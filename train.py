@@ -14,7 +14,7 @@ import wandb
 from accelerate import Accelerator
 from hydra.core.config_store import ConfigStore
 from omegaconf import OmegaConf
-from tqdm.auto import tqdm
+from tqdm.auto import tqdm as original_tqdm
 from transformers import (
     AdamW,
     AutoModelForCausalLM,
@@ -29,8 +29,6 @@ from input_pipeline import DataConfig, get_dataloaders
 @dataclass
 class CFG:
     data_config: DataConfig = DataConfig()
-    per_device_eval_batch_size: int = 2
-    per_device_train_batch_size: int = 2
     weight_decay: float = 0.0
     learning_rate: float = 5e-5
     gradient_accumulation_steps: int = 1
@@ -43,7 +41,7 @@ class CFG:
     h: bool = False  # help, print config and exit
     num_eval: int = 3
     model_name: str = "gpt2"
-    project_name = str = "metadata_lm"
+    project_name: str = "metadata_lm"
 
 
 cs = ConfigStore.instance()
@@ -99,11 +97,11 @@ def main(args: CFG) -> None:
     set_seed(args.seed)
     accelerator = Accelerator()
     is_local_main_process = accelerator.is_local_main_process
-    tqdm = partial(tqdm, disable=not is_local_main_process)
+    tqdm = partial(original_tqdm, disable=not is_local_main_process)
 
     # post-process args
     total_batch_size = (
-        args.per_device_train_batch_size
+        args.data_config.per_device_train_batch_size
         * accelerator.num_processes
         * args.gradient_accumulation_steps
     )
@@ -182,7 +180,7 @@ def main(args: CFG) -> None:
             loss = loss_fn(batch, outputs, metadata_mask)
 
             losses.append(
-                accelerator.gather(loss.repeat(args.per_device_eval_batch_size))
+                accelerator.gather(loss.repeat(args.data_config.per_device_eval_batch_size))
             )
 
         losses = torch.cat(losses)
@@ -211,7 +209,6 @@ def main(args: CFG) -> None:
                 step % args.gradient_accumulation_steps == 0
                 or step == len(train_dataloader) - 1
             )
-            do_eval = completed_steps > 0 and completed_steps % eval_per_n_step == 0
             if do_step:
                 #             accelerator.clip_grad_norm_(model.parameters(), 1.0)
                 optimizer.step()
@@ -221,6 +218,7 @@ def main(args: CFG) -> None:
                 completed_steps += 1
             else:
                 continue
+            do_eval = completed_steps > 0 and completed_steps % eval_per_n_step == 0
             if do_eval:
                 for key, eval_dataloader in eval_dataloaders.items():
                     metrics = evaluate(eval_dataloader)

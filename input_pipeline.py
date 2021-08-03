@@ -1,6 +1,5 @@
-from dataclasses import dataclass
-
-from torch.utils.data import DataLoader, Dataset
+from dataclasses import dataclass, field
+from typing import List
 
 
 @dataclass
@@ -8,8 +7,11 @@ class DataConfig:
     experiment: str = 'sample'
     per_device_eval_batch_size: int = 2
     per_device_train_batch_size: int = 2
-    # add any config necessary here
-    # the main script will load this class and parse from command line
+    metadata_list: List[str] = field(default_factory=list)
+    metadata_sep: str = " | "
+    metadata_key_value_sep: str = ": "
+    global_metadata_sep: str = " |||"
+    max_seq_len: int = 512
 
 
 def get_dataloaders(tokenizer, cfg: DataConfig):

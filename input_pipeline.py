@@ -5,7 +5,9 @@ from torch.utils.data import DataLoader, Dataset
 
 @dataclass
 class DataConfig:
-    batch_size: int = 8
+    experiment: str = 'sample'
+    per_device_eval_batch_size: int = 2
+    per_device_train_batch_size: int = 2
     # add any config necessary here
     # the main script will load this class and parse from command line
 
@@ -32,4 +34,7 @@ def get_dataloaders(tokenizer, cfg: DataConfig):
            outputs = model(**batch)
            metrics = loss_fn(batch, outputs, metadata_mask)
     """
+    if cfg.experiment == 'sample':
+        from experiments.sample import get_dataloaders as fn
+        return fn(tokenizer, cfg)
     return train_dataloader, {"val1": val_dataloader1}

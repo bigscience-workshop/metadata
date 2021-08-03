@@ -164,8 +164,6 @@ def get_dataloaders(tokenizer, args):
     train_dataset = lm_datasets["train"]
     val_dataset = lm_datasets["validation"]
 
-    print(train_dataset[0])
-
     # DataLoaders creation:
     train_dataloader = DataLoader(
         train_dataset,

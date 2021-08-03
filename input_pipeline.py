@@ -1,10 +1,10 @@
 import logging
-from typing import Optional
 from dataclasses import dataclass
+from typing import Optional
 
-from datasets import load_dataset
 import hydra
-from torch.utils.data import DataLoader, Dataset
+from datasets import load_dataset
+from torch.utils.data import DataLoader
 from transformers import default_data_collator
 
 logger = logging.getLogger(__name__)
@@ -13,7 +13,9 @@ logger = logging.getLogger(__name__)
 @dataclass
 class DataConfig:
     batch_size: int = 8
-    dataset_name: Optional[str] = None  # The name of the dataset to use (via the datasets library)
+    dataset_name: Optional[
+        str
+    ] = None  # The name of the dataset to use (via the datasets library)
     dataset_config_name: Optional[
         str
     ] = None  # The configuration name of the dataset to use (via the datasets library)
@@ -22,12 +24,18 @@ class DataConfig:
         str
     ] = None  # An optional input evaluation data file to evaluate the perplexity on (a text file)
     overwrite_cache: Optional[bool] = False
-    cache_dir: Optional[str] = None  # Where do you want to store the pretrained models downloaded from s3
-    preprocessing_num_workers: Optional[int] = None  # The number of processes to use for the preprocessing
+    cache_dir: Optional[
+        str
+    ] = None  # Where do you want to store the pretrained models downloaded from s3
+    preprocessing_num_workers: Optional[
+        int
+    ] = None  # The number of processes to use for the preprocessing
     validation_split_percentage: Optional[
         int
     ] = 5  # The percentage of the train set used as validation set in case there's no validation split
-    block_size: Optional[int] = None  # "Optional input sequence length after tokenization. "
+    block_size: Optional[
+        int
+    ] = None  # "Optional input sequence length after tokenization. "
     # The training dataset will be truncated in block of this size for training. "
     # Default to the model max input length for single sentence inputs (take into account special tokens)."
 
@@ -99,7 +107,9 @@ def get_dataloaders(tokenizer, args):
             extension = "text"
         if extension == "jsonl":
             extension = "json"
-        raw_datasets = load_dataset(extension, data_files=data_files, cache_dir=args.cache_dir)
+        raw_datasets = load_dataset(
+            extension, data_files=data_files, cache_dir=args.cache_dir
+        )
 
         if "validation" not in raw_datasets.keys():
             raw_datasets["validation"] = load_dataset(
@@ -198,7 +208,9 @@ def get_dataloaders(tokenizer, args):
         batch_size=args.per_device_train_batch_size,
     )
     val_dataloader1 = DataLoader(
-        val_dataset, collate_fn=default_data_collator, batch_size=args.per_device_eval_batch_size
+        val_dataset,
+        collate_fn=default_data_collator,
+        batch_size=args.per_device_eval_batch_size,
     )
     return train_dataloader, {"val1": val_dataloader1}
 

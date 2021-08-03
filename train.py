@@ -15,15 +15,11 @@ from accelerate import Accelerator
 from hydra.core.config_store import ConfigStore
 from omegaconf import OmegaConf
 from tqdm.auto import tqdm as original_tqdm
-from transformers import (
-    AdamW,
-    AutoModelForCausalLM,
-    AutoTokenizer,
-    get_scheduler,
-    set_seed,
-)
+from transformers import (AdamW, AutoModelForCausalLM, AutoTokenizer,
+                          get_scheduler, set_seed)
 
 from input_pipeline import DataConfig, get_dataloaders
+
 
 @dataclass
 class TrainingArguments:
@@ -39,6 +35,7 @@ class TrainingArguments:
     seed: int = 42
     out_dir: str = "output_dir"
     num_eval: int = 3
+
 
 @dataclass
 class CFG(DataConfig, TrainingArguments):
@@ -195,7 +192,9 @@ def main(args: CFG) -> None:
 
     progress_bar = tqdm(range(args.max_train_steps), desc="training")
     completed_steps = 0
-    logger = Logger(is_local_main_process, project=args.project_name, config=args, dir=args.out_dir)
+    logger = Logger(
+        is_local_main_process, project=args.project_name, config=args, dir=args.out_dir
+    )
     for epoch in range(args.num_train_epochs):
         model.train()
         for step, batch in enumerate(train_dataloader):

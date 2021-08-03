@@ -1,16 +1,16 @@
-import sys
-import os
-import logging
 import inspect
+import logging
+import os
+import sys
 from shutil import copyfile
-import torch
-from transformers.testing_utils import torch_device
-from hydra.experimental import initialize
-import hydra
 from unittest.mock import patch
 
-from train import main
+import hydra
+import torch
+from hydra.experimental import initialize
+from transformers.testing_utils import torch_device
 
+from train import main
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -19,7 +19,9 @@ logger = logging.getLogger()
 
 def test_toy_training(tmpdir):
     os.environ["WANDB_MODE"] = "offline"
-    copyfile("tests/fixtures/config_local_files.yaml", os.path.join(tmpdir, "config.yaml"))
+    copyfile(
+        "tests/fixtures/config_local_files.yaml", os.path.join(tmpdir, "config.yaml")
+    )
     print(tmpdir)
     # os.chdir(tmpdir)
     path_train_fn = os.path.abspath(inspect.getfile(main))

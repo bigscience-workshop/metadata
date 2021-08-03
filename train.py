@@ -75,6 +75,8 @@ def loss_fn(batch, outputs, metadata_mask=None):
     shift_labels = labels[..., 1:].contiguous()
     if metadata_mask is not None:
         loss_mask = torch.logical_and(attention_mask, ~metadata_mask)
+    else:
+        loss_mask = attention_mask
     shift_mask = loss_mask[..., 1:].contiguous()
     # Flatten the tokens
     loss = F.cross_entropy(
@@ -110,7 +112,7 @@ def main(args: CFG) -> None:
     # get dataloaders
     tokenizer = AutoTokenizer.from_pretrained(args.model_name)
     tokenizer.pad_token = tokenizer.eos_token
-    train_dataloader, *eval_dataloaders = get_dataloaders(tokenizer, args.data_config)
+    train_dataloader, eval_dataloaders = get_dataloaders(tokenizer, args.data_config)
 
     # get model
     model = AutoModelForCausalLM.from_pretrained(args.model_name)

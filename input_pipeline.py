@@ -1,10 +1,10 @@
 from dataclasses import dataclass, field
-from typing import List
+from typing import List, Optional
 
 
 @dataclass
 class DataConfig:
-    experiment: str = 'sample'
+    experiment: str = "sample"
     per_device_eval_batch_size: int = 2
     per_device_train_batch_size: int = 2
     metadata_list: List[str] = field(default_factory=list)
@@ -12,6 +12,29 @@ class DataConfig:
     metadata_key_value_sep: str = ": "
     global_metadata_sep: str = " |||"
     max_seq_len: int = 512
+    dataset_name: Optional[
+        str
+    ] = None  # The name of the dataset to use (via the datasets library)
+    dataset_config_name: Optional[
+        str
+    ] = None  # The configuration name of the dataset to use (via the datasets library)
+    train_file: Optional[str] = None  # The input training data file (a text file).
+    validation_file: Optional[
+        str
+    ] = None  # An optional input evaluation data file to evaluate the perplexity on (a text file)
+    overwrite_cache: Optional[bool] = False
+    cache_dir: Optional[
+        str
+    ] = None  # Where do you want to store the pretrained models downloaded from s3
+    preprocessing_num_workers: Optional[
+        int
+    ] = None  # The number of processes to use for the preprocessing
+    validation_split_percentage: Optional[
+        int
+    ] = 5  # The percentage of the train set used as validation set in case there's no validation split
+    block_size: Optional[
+        int
+    ] = None  # "Optional input sequence length after tokenization. "
 
 
 def get_dataloaders(tokenizer, cfg: DataConfig):
@@ -36,7 +59,11 @@ def get_dataloaders(tokenizer, cfg: DataConfig):
            outputs = model(**batch)
            metrics = loss_fn(batch, outputs, metadata_mask)
     """
-    if cfg.experiment == 'sample':
+    if cfg.experiment == "sample":
         from experiments.sample import get_dataloaders as fn
+
         return fn(tokenizer, cfg)
-    return train_dataloader, {"val1": val_dataloader1}
+    if cfg.experiment == "without_metadata":
+        from experiments.without_metadata import get_dataloaders as fn
+
+        return fn(tokenizer, cfg)

@@ -13,6 +13,7 @@
 """
 This script provides functions for processing different kinds of metadata.
 """
+import datetime
 from typing import Dict, Any, Tuple, Optional
 
 from input_pipeline import DataConfig
@@ -52,6 +53,16 @@ class MetadataProcessor:
         return f"[{kv_pair}]", f"[/{kv_pair}]"
 
 
+class TimestampProcessor(MetadataProcessor):
+    """An example metadata processor for timestamps."""
+
+    def process_global(self, metadata_attrs: Dict[str, Any]) -> Optional[str]:
+        formatted_datetime = datetime.datetime.strptime(metadata_attrs['value'], '%Y-%m-%dT%H:%M:%S.%fZ')
+        year_str = f"Year: {formatted_datetime.year}"
+        month_str = f"Month: {formatted_datetime.strftime('%B')}"
+        return self.cfg.metadata_sep.join((year_str, month_str))
+
+
 class EntityProcessor(MetadataProcessor):
     """An example metadata processor for named entities."""
 
@@ -67,6 +78,7 @@ class HtmlProcessor(MetadataProcessor):
 
 
 PROCESSORS = {
+    'timestamp': TimestampProcessor,
     'entity': EntityProcessor,
-    'html': HtmlProcessor
+    'html': HtmlProcessor,
 }

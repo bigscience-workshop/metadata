@@ -1,0 +1,10 @@
+batch_size: 8
+dataset_name: null
+dataset_config_name: null
+train_file: null
+validation_file: null
+overwrite_cache: false
+cache_dir: null
+preprocessing_num_workers: null
+validation_split_percentage: 5
+block_size: 100

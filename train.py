@@ -14,7 +14,7 @@ import wandb
 from accelerate import Accelerator
 from hydra.core.config_store import ConfigStore
 from omegaconf import OmegaConf
-from tqdm.auto import tqdm
+from tqdm.auto import tqdm as original_tqdm
 from transformers import (
     AdamW,
     AutoModelForCausalLM,
@@ -25,10 +25,8 @@ from transformers import (
 
 from input_pipeline import DataConfig, get_dataloaders
 
-
 @dataclass
-class CFG:
-    data_config: DataConfig = DataConfig()
+class TrainingArguments:
     per_device_eval_batch_size: int = 2
     per_device_train_batch_size: int = 2
     weight_decay: float = 0.0
@@ -40,10 +38,15 @@ class CFG:
     num_warmup_steps: int = 1000
     seed: int = 42
     out_dir: str = "output_dir"
-    h: bool = False  # help, print config and exit
     num_eval: int = 3
+
+@dataclass
+class CFG(DataConfig, TrainingArguments):
+    # data_config: DataConfig = DataConfig()
+    # training_args: TrainingArguments= TrainingArguments()
+    h: bool = False  # help, print config and exit
     model_name: str = "gpt2"
-    project_name = str = "metadata_lm"
+    project_name: str = "metadata_lm"
 
 
 cs = ConfigStore.instance()
@@ -90,7 +93,7 @@ def loss_fn(batch, outputs, metadata_mask=None):
     return loss
 
 
-@hydra.main(config_name="config")
+@hydra.main(config_path="conf", config_name="config")
 def main(args: CFG) -> None:
     print(OmegaConf.to_yaml(args))
     if args.h:
@@ -99,7 +102,7 @@ def main(args: CFG) -> None:
     set_seed(args.seed)
     accelerator = Accelerator()
     is_local_main_process = accelerator.is_local_main_process
-    tqdm = partial(tqdm, disable=not is_local_main_process)
+    tqdm = partial(original_tqdm, disable=not is_local_main_process)
 
     # post-process args
     total_batch_size = (
@@ -112,7 +115,7 @@ def main(args: CFG) -> None:
     # get dataloaders
     tokenizer = AutoTokenizer.from_pretrained(args.model_name)
     tokenizer.pad_token = tokenizer.eos_token
-    train_dataloader, eval_dataloaders = get_dataloaders(tokenizer, args.data_config)
+    train_dataloader, eval_dataloaders = get_dataloaders(tokenizer, args)
 
     # get model
     model = AutoModelForCausalLM.from_pretrained(args.model_name)
@@ -192,7 +195,7 @@ def main(args: CFG) -> None:
 
     progress_bar = tqdm(range(args.max_train_steps), desc="training")
     completed_steps = 0
-    logger = Logger(is_local_main_process, project=args.project_name, config=args)
+    logger = Logger(is_local_main_process, project=args.project_name, config=args, dir=args.out_dir)
     for epoch in range(args.num_train_epochs):
         model.train()
         for step, batch in enumerate(train_dataloader):

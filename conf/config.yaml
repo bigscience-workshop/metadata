@@ -1,0 +1,5 @@
+defaults:  
+  - data_config: defaults_data_config
+  - training_args: defaults_training_args
+  - model_args: defaults_model_args
+  - metadata_args: defaults_metadata_args

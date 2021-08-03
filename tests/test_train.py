@@ -1,14 +1,9 @@
-import inspect
 import logging
 import os
 import sys
 from shutil import copyfile
 from unittest.mock import patch
 
-import hydra
-import torch
-from hydra.experimental import initialize
-from transformers.testing_utils import torch_device
 
 from train import main
 
@@ -22,12 +17,6 @@ def test_toy_training(tmpdir):
     copyfile(
         "tests/fixtures/config_local_files.yaml", os.path.join(tmpdir, "config.yaml")
     )
-    print(tmpdir)
-    # os.chdir(tmpdir)
-    path_train_fn = os.path.abspath(inspect.getfile(main))
-    relative_path = os.path.relpath(tmpdir, path_train_fn)
-    # hydra._internal.hydra.GlobalHydra.get_state().clear()
-    # with initialize(config_path=relative_path):
     path_test_folder = os.path.dirname(os.path.abspath(__file__))
     testargs = [
         "",

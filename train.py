@@ -2,9 +2,12 @@ import gc
 import math
 import os
 import sys
+import json
 from dataclasses import dataclass
 from functools import partial
 from typing import Optional
+from pathlib import Path
+import jax
 
 import datasets
 import hydra
@@ -25,10 +28,15 @@ from transformers import (
 
 from input_pipeline import DataConfig, get_dataloaders
 
+@dataclass
+class LoggingConfig:
+    wandb: bool = True
+    txt: bool = False
 
 @dataclass
 class CFG:
     data_config: DataConfig = DataConfig()
+    logging: LoggingConfig = LoggingConfig()
     weight_decay: float = 0.0
     learning_rate: float = 5e-5
     gradient_accumulation_steps: int = 1
@@ -47,20 +55,46 @@ class CFG:
 cs = ConfigStore.instance()
 cs.store(name="config", node=CFG)
 
+def to_cpu(item):
+    if torch.is_tensor(item):
+        return item.detach().cpu()
+    else:
+        return item
+def to_python(item):
+    if torch.is_tensor(item):
+        return item.tolist()
+    else:
+        return item
+
 
 class Logger:
-    def __init__(self, is_local_main_process, *args, **kwargs):
+    def __init__(self, is_local_main_process, config=None, *args, **kwargs):
         self.is_local_main_process = is_local_main_process
+        self.cfg = config
         if self.is_local_main_process:
-            self.run = wandb.init(*args, **kwargs)
+            if self.cfg.logging.wandb:
+                self.run = wandb.init(config=config, *args, **kwargs)
+            if self.cfg.logging.txt:
+                with open(Path(self.cfg.out_dir) / "config.yaml", "w") as f:
+                    f.write(OmegaConf.to_yaml(self.cfg))
+                self.history = []
 
     def log(self, dic):
         if self.is_local_main_process:
-            wandb.log(dic)
+            if self.cfg.logging.wandb:
+                wandb.log(dic)
+            if self.cfg.logging.txt:
+                self.history.append(jax.tree_map(to_cpu, dic))
 
     def close(self):
         if self.is_local_main_process:
-            wandb.finish()
+            if self.cfg.logging.wandb:
+                wandb.finish()
+            if self.cfg.logging.txt:
+                with open(Path(self.cfg.out_dir) / "logs.jsonl", "w") as f:
+                    for dic in self.history:
+                        f.write(json.dumps(jax.tree_map(to_python, dic)))
+                        f.write("\n")
 
 
 def loss_fn(batch, outputs, metadata_mask=None):
@@ -190,7 +224,7 @@ def main(args: CFG) -> None:
 
     progress_bar = tqdm(range(args.max_train_steps), desc="training")
     completed_steps = 0
-    logger = Logger(is_local_main_process, project=args.project_name, config=args)
+    logger = Logger(is_local_main_process, config=args, project=args.project_name)
     for epoch in range(args.num_train_epochs):
         model.train()
         for step, batch in enumerate(train_dataloader):

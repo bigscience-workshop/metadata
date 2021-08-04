@@ -14,7 +14,7 @@
 This script provides functions for processing different kinds of metadata.
 """
 import datetime
-from typing import Dict, Any, Tuple, Optional
+from typing import Any, Dict, Optional, Tuple
 
 from input_pipeline import DataConfig
 
@@ -70,7 +70,7 @@ class TimestampProcessor(MetadataProcessor):
     def process_global(self, metadata_attrs: Dict[str, Any]) -> Optional[str]:
         # We represent a timestamp using only the year and month.
         # Example: "Year: 2020 | Month: September".
-        formatted_datetime = datetime.datetime.strptime(metadata_attrs['value'], '%Y-%m-%dT%H:%M:%S.%fZ')
+        formatted_datetime = datetime.datetime.strptime(metadata_attrs["value"], "%Y-%m-%dT%H:%M:%S.%fZ")
         year_str = f"Year: {formatted_datetime.year}"
         month_str = f"Month: {formatted_datetime.strftime('%B')}"
         return self.cfg.metadata_sep.join((year_str, month_str))
@@ -95,7 +95,7 @@ class HtmlProcessor(MetadataProcessor):
 
 
 PROCESSORS = {
-    'timestamp': TimestampProcessor,
-    'entity': EntityProcessor,
-    'html': HtmlProcessor,
+    "timestamp": TimestampProcessor,
+    "entity": EntityProcessor,
+    "html": HtmlProcessor,
 }

@@ -14,15 +14,16 @@
 This script provides utility functions for linearizing, encoding and chunking a given input text with metadata information.
 """
 from collections import defaultdict
-from typing import Dict, Any, List, Tuple
+from typing import Any, Dict, List, Tuple
 
 from input_pipeline import DataConfig
 from metadata_processors import PROCESSORS, MetadataProcessor
-
 from transformers import PreTrainedTokenizerFast
 
 
-def add_metadata_and_chunk_examples(examples: Dict[str, List], tokenizer: PreTrainedTokenizerFast, cfg: DataConfig) -> Dict[str, List]:
+def add_metadata_and_chunk_examples(
+    examples: Dict[str, List], tokenizer: PreTrainedTokenizerFast, cfg: DataConfig
+) -> Dict[str, List]:
     """Adds metadata to the provided input examples, encodes them and groups them in chunks of size `cfg.max_seq_len`.
 
     Args:
@@ -57,25 +58,29 @@ def add_metadata_and_chunk_examples(examples: Dict[str, List], tokenizer: PreTra
             char_range = range(char_span.start, char_span.end)
             return any(char_level_metadata_mask[c] for c in char_range)
 
-        token_level_metadata_mask = [is_metadata(idx) for idx, _ in enumerate(text_with_local_metadata_encoded.input_ids)]
+        token_level_metadata_mask = [
+            is_metadata(idx) for idx, _ in enumerate(text_with_local_metadata_encoded.input_ids)
+        ]
 
         # Create chunks of `max_seq_len` tokens.
         global_metadata_len = len(global_metadata_prefix_encoded.input_ids)
         max_text_len = cfg.max_seq_len - global_metadata_len
 
         for text_chunk_encoded, chunk_metadata_mask in chunks(
-                max_text_len, text_with_local_metadata_encoded.input_ids, token_level_metadata_mask
+            max_text_len, text_with_local_metadata_encoded.input_ids, token_level_metadata_mask
         ):
             total_len = len(global_metadata_prefix_encoded.input_ids) + len(text_chunk_encoded)
             padding_len = max_text_len - len(text_chunk_encoded)
 
-            input_ids = global_metadata_prefix_encoded.input_ids + text_chunk_encoded + [tokenizer.eos_token_id] * padding_len
+            input_ids = (
+                global_metadata_prefix_encoded.input_ids + text_chunk_encoded + [tokenizer.eos_token_id] * padding_len
+            )
             attention_mask = [1] * total_len + [0] * padding_len
             metadata_mask = [1] * global_metadata_len + [int(x) for x in chunk_metadata_mask] + [0] * padding_len
 
-            linearized_examples['input_ids'].append(input_ids)
-            linearized_examples['attention_mask'].append(attention_mask)
-            linearized_examples['metadata_mask'].append(metadata_mask)
+            linearized_examples["input_ids"].append(input_ids)
+            linearized_examples["attention_mask"].append(attention_mask)
+            linearized_examples["metadata_mask"].append(metadata_mask)
 
     return linearized_examples
 
@@ -120,7 +125,9 @@ def add_local_metadata_to_text(example: Dict[str, Any], cfg: DataConfig) -> Tupl
 
     # Filter and sort all metadata so that they are processed in the requested order.
     filtered_metadata = [md for md in example["metadata"] if md["type"] == "local" and md["key"] in cfg.metadata_list]
-    sorted_metadata = sorted(filtered_metadata, key=lambda md: (cfg.metadata_list.index(md["key"]), md["char_end_idx"]))
+    sorted_metadata = sorted(
+        filtered_metadata, key=lambda md: (cfg.metadata_list.index(md["key"]), md["char_end_idx"])
+    )
 
     # Compute the text sequences to add at the start and end of each metadata entry.
     for metadata in sorted_metadata:
@@ -154,7 +161,7 @@ def add_local_metadata_to_text(example: Dict[str, Any], cfg: DataConfig) -> Tupl
                 text_with_local_metadata.append(end_text)
                 metadata_mask += [True] * len(end_text)
 
-    return ''.join(text_with_local_metadata), metadata_mask
+    return "".join(text_with_local_metadata), metadata_mask
 
 
 def chunks(n: int, *lists):
@@ -163,4 +170,4 @@ def chunks(n: int, *lists):
     assert lists, "At least one list must be given."
     assert len(set(len(lst) for lst in lists)) == 1, "All lists must be of the same size."
     for i in range(0, len(lists[0]), n):
-        yield (lst[i:i + n] for lst in lists)
+        yield (lst[i : i + n] for lst in lists)

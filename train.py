@@ -7,23 +7,17 @@ from functools import partial
 from typing import Optional
 
 import datasets
-import hydra
 import torch
 import torch.nn.functional as F
+from tqdm.auto import tqdm as original_tqdm
+
+import hydra
 import wandb
 from accelerate import Accelerator
 from hydra.core.config_store import ConfigStore
-from omegaconf import OmegaConf
-from tqdm.auto import tqdm as original_tqdm
-from transformers import (
-    AdamW,
-    AutoModelForCausalLM,
-    AutoTokenizer,
-    get_scheduler,
-    set_seed,
-)
-
 from input_pipeline import DataConfig, get_dataloaders
+from omegaconf import OmegaConf
+from transformers import AdamW, AutoModelForCausalLM, AutoTokenizer, get_scheduler, set_seed
 
 
 @dataclass
@@ -101,9 +95,7 @@ def main(args: CFG) -> None:
 
     # post-process args
     total_batch_size = (
-        args.data_config.per_device_train_batch_size
-        * accelerator.num_processes
-        * args.gradient_accumulation_steps
+        args.data_config.per_device_train_batch_size * accelerator.num_processes * args.gradient_accumulation_steps
     )
     os.makedirs(args.out_dir, exist_ok=True)
 
@@ -120,43 +112,29 @@ def main(args: CFG) -> None:
     no_decay = ["bias", "LayerNorm.weight"]
     optimizer_grouped_parameters = [
         {
-            "params": [
-                p
-                for n, p in model.named_parameters()
-                if not any(nd in n for nd in no_decay)
-            ],
+            "params": [p for n, p in model.named_parameters() if not any(nd in n for nd in no_decay)],
             "weight_decay": args.weight_decay,
         },
         {
-            "params": [
-                p
-                for n, p in model.named_parameters()
-                if any(nd in n for nd in no_decay)
-            ],
+            "params": [p for n, p in model.named_parameters() if any(nd in n for nd in no_decay)],
             "weight_decay": 0.0,
         },
     ]
     optimizer = AdamW(optimizer_grouped_parameters, lr=args.learning_rate)
 
     # Prepare everything
-    model, optimizer, train_dataloader = accelerator.prepare(
-        model, optimizer, train_dataloader
-    )
+    model, optimizer, train_dataloader = accelerator.prepare(model, optimizer, train_dataloader)
     eval_dataloaders = {k: accelerator.prepare(v) for k, v in eval_dataloaders.items()}
 
     # Note -> the training dataloader needs to be prepared before we grab its length below (cause its length will be
     # shorter in multiprocess)
 
     # Scheduler and math around the number of training steps.
-    num_update_steps_per_epoch = math.ceil(
-        len(train_dataloader) / args.gradient_accumulation_steps
-    )
+    num_update_steps_per_epoch = math.ceil(len(train_dataloader) / args.gradient_accumulation_steps)
     if args.max_train_steps is None:
         args.max_train_steps = args.num_train_epochs * num_update_steps_per_epoch
     else:
-        args.num_train_epochs = math.ceil(
-            args.max_train_steps / num_update_steps_per_epoch
-        )
+        args.num_train_epochs = math.ceil(args.max_train_steps / num_update_steps_per_epoch)
 
     eval_per_n_step = args.max_train_steps // args.num_eval
     scheduler = get_scheduler(
@@ -170,18 +148,14 @@ def main(args: CFG) -> None:
     def evaluate(eval_dataloader):
         model.eval()
         losses = []
-        for step, batch in enumerate(
-            tqdm(eval_dataloader, desc="eval")
-        ):  # , leave=False)
+        for step, batch in enumerate(tqdm(eval_dataloader, desc="eval")):  # , leave=False)
             labels = batch.pop("labels")
             metadata_mask = batch.get("metadata_mask", None)
             outputs = model(**batch)
             batch["labels"] = labels
             loss = loss_fn(batch, outputs, metadata_mask)
 
-            losses.append(
-                accelerator.gather(loss.repeat(args.data_config.per_device_eval_batch_size))
-            )
+            losses.append(accelerator.gather(loss.repeat(args.data_config.per_device_eval_batch_size)))
 
         losses = torch.cat(losses)
         perplexity = math.exp(torch.mean(losses))
@@ -205,10 +179,7 @@ def main(args: CFG) -> None:
             loss = loss / args.gradient_accumulation_steps
             accelerator.backward(loss)
 
-            do_step = (
-                step % args.gradient_accumulation_steps == 0
-                or step == len(train_dataloader) - 1
-            )
+            do_step = step % args.gradient_accumulation_steps == 0 or step == len(train_dataloader) - 1
             if do_step:
                 #             accelerator.clip_grad_norm_(model.parameters(), 1.0)
                 optimizer.step()
@@ -234,9 +205,7 @@ def main(args: CFG) -> None:
                     }
                     torch.save(
                         save_dict,
-                        os.path.join(
-                            args.out_dir, f"checkpoint-{completed_steps}step.pt"
-                        ),
+                        os.path.join(args.out_dir, f"checkpoint-{completed_steps}step.pt"),
                     )
                     del save_dict
                     gc.collect()

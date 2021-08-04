@@ -4,9 +4,3 @@ wandb==0.10.30
 transformers==4.6.0
 accelerate==0.3.0
 datasets==1.11.0
-
-# Dev
-isort>=5.5.4
-black==21.4b0
-flake8>=3.8.3
-pytest==6.2.4

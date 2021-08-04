@@ -32,8 +32,14 @@ class MetadataProcessor:
     def process_global(self, metadata_attrs: Dict[str, Any]) -> Optional[str]:
         """Process a single instance of global metadata and compute the corresponding prefix.
 
+        This prefix is added at the very beginning (that is, before the actual input text), along with all other global metadata.
+        By default, global metadata is represented as a key-value pair and separated using `self.cfg.metadata_key_value_sep`, which
+        defaults to ": ". For example, for a metadata instance with key "url" and value "wikipedia.com/Apple", the default global
+        prefix will be "url: wikipedia.com/Apple".
+
         Args:
-            metadata_attrs: All attributes of this metadata instance, following our default format.
+            metadata_attrs: All attributes of this metadata instance. Each global metadata instance is expected to have an attribute "key"
+            of type string and a corresponding "value" of arbitrary type.
 
         Returns:
             A single string representing the prefix that should be added to the input for this metadata instance.
@@ -43,8 +49,13 @@ class MetadataProcessor:
     def process_local(self, metadata_attrs: Dict[str, Any]) -> Optional[Tuple[str, str]]:
         """Process a single instance of local metadata and compute the corresponding prefix and suffix.
 
+        Local metadata must have a character-level start and end index. The prefix returned by this function is added directly before the
+        start index, the suffix is added directly at the end index. For example, for an input "a b c" and a metadata instance with start
+        index 2 and end index 3, if this function returns the tuple `("<b>", "</b>")`, the input will be converted to "a <b>b</b> c".
+
         Args:
-            metadata_attrs: All attributes of this metadata instance, following our default format.
+            metadata_attrs: All attributes of this metadata instance. Each local metadata instance is expected to have an attribute "key"
+            of type string and a corresponding "value" of arbitrary type, as well as a "char_start_idx" and "char_end_idx" of type int.
 
         Returns:
             A tuple of two strings representing the prefix and suffix that should be added to the input for this metadata instance.
@@ -57,6 +68,8 @@ class TimestampProcessor(MetadataProcessor):
     """An example metadata processor for timestamps."""
 
     def process_global(self, metadata_attrs: Dict[str, Any]) -> Optional[str]:
+        # We represent a timestamp using only the year and month.
+        # Example: "Year: 2020 | Month: September".
         formatted_datetime = datetime.datetime.strptime(metadata_attrs['value'], '%Y-%m-%dT%H:%M:%S.%fZ')
         year_str = f"Year: {formatted_datetime.year}"
         month_str = f"Month: {formatted_datetime.strftime('%B')}"
@@ -67,6 +80,8 @@ class EntityProcessor(MetadataProcessor):
     """An example metadata processor for named entities."""
 
     def process_local(self, metadata_attrs: Dict[str, Any]) -> Optional[Tuple[str, str]]:
+        # We represent an entity by adding the entity name after the entity mention in double square brackets.
+        # Example: "Biden [[Joe Biden]] studied at ..."
         return "", f" [[{metadata_attrs['value']}]]"
 
 
@@ -74,6 +89,8 @@ class HtmlProcessor(MetadataProcessor):
     """An example metadata processor for HTMl tags."""
 
     def process_local(self, metadata_attrs: Dict[str, Any]) -> Optional[Tuple[str, str]]:
+        # We represent a html tag `T` by enclosing the corresponding text span with "<T>" and "</T>".
+        # Example: An <b>apple</b> is an edible fruit.
         return f"<{metadata_attrs['value']}>", f"</{metadata_attrs['value']}>"
 
 

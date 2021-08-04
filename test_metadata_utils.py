@@ -110,6 +110,8 @@ class MetadataUtilsTester(unittest.TestCase):
         cfg.metadata_list = ["url", "timestamp", "html", "entity"]
         cfg.max_seq_len = 64
 
+        PROCESSORS["timestamp"] = MetadataProcessor
+
         ds_dict = {key: [self.examples[0][key], self.examples[1][key]] for key in self.examples[0].keys()}
         ds = Dataset.from_dict(ds_dict)
 

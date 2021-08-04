@@ -6,8 +6,6 @@ from pathlib import Path
 from shutil import copyfile
 from unittest.mock import patch
 
-from train import main
-
 
 logging.basicConfig(level=logging.DEBUG)
 

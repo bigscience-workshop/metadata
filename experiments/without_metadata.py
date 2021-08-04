@@ -74,9 +74,7 @@ def get_dataloaders(tokenizer, args):
             extension = "text"
         if extension == "jsonl":
             extension = "json"
-        raw_datasets = load_dataset(
-            extension, data_files=data_files, cache_dir=args.cache_dir
-        )
+        raw_datasets = load_dataset(extension, data_files=data_files, cache_dir=args.cache_dir)
 
         if "validation" not in raw_datasets.keys():
             raw_datasets["validation"] = load_dataset(

@@ -42,3 +42,8 @@ After installing the development dependencies, to execute the tests run in a bas
 ```sh
 python -m pytest .
 ```
+
+In order to have a unified code style, we have implemented some formatting tools. Before you commit or PR, it would be great if you could run:
+```sh
+make style && make quality
+```

@@ -102,9 +102,6 @@ def get_dataloaders(tokenizer, args):
     def tokenize_function(examples):
         return tokenizer(examples[text_column_name])
 
-    raw_datasets["train"].to_json("train_toy_wikitext.jsonl")
-    raw_datasets["validation"].to_json("val_toy_wikitext.jsonl")
-
     tokenized_datasets = raw_datasets.map(
         tokenize_function,
         batched=True,

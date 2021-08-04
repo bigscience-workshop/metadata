@@ -158,7 +158,10 @@ def main(args: CFG) -> None:
             args.max_train_steps / num_update_steps_per_epoch
         )
 
-    eval_per_n_step = args.max_train_steps // args.num_eval
+    if args.num_eval < 1:
+        eval_per_n_step = args.max_train_steps + 1
+    else:
+        eval_per_n_step = args.max_train_steps // args.num_eval
     scheduler = get_scheduler(
         name=args.lr_scheduler_type,
         optimizer=optimizer,

@@ -34,3 +34,11 @@ accelerate launch --fp16 train.py max_train_steps=100 num_eval=1 data_config.per
     ]
 }
 ```
+
+## Contribute 🧠
+
+After installing the development dependencies, to execute the tests run in a bash at the root of the repository:
+
+```sh
+python -m pytest .
+```

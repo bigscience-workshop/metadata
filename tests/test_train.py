@@ -3,8 +3,6 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-from shutil import copyfile
-from unittest.mock import patch
 
 
 logging.basicConfig(level=logging.DEBUG)
@@ -21,11 +19,11 @@ def test_toy_training(tmpdir):
 
     process = subprocess.Popen(
         [
-            "python",
+            sys.executable,
             f'{os.path.join(path_script, "train.py")}',
             "data_config.experiment=without_metadata",
-            f'data_config.train_file={os.path.join(path_test_folder,"data","train_toy_wikitext.jsonl")}',
-            f'data_config.validation_file={os.path.join(path_test_folder,"data","val_toy_wikitext.jsonl")}',
+            f'data_config.train_file={os.path.join(path_test_folder, "data", "train_toy_wikitext.jsonl")}',
+            f'data_config.validation_file={os.path.join(path_test_folder, "data", "val_toy_wikitext.jsonl")}',
             "num_eval=2",
             f"out_dir={tmpdir}",
             "max_train_steps=4",

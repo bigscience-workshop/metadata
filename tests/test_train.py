@@ -62,10 +62,11 @@ def test_toy_training_with_metadata(tmpdir):
         ],
         stdout=subprocess.PIPE,
         stderr= subprocess.PIPE,
+        universal_newlines=True,
     )
     out, out_err= process.communicate()
 
     # We check that the script has run smoothly
     assert process.returncode == 0, out_err
-
+    
     # We could also check that the perplexity logged in wandb is below 100

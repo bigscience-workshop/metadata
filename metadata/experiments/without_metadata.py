@@ -32,7 +32,7 @@ def get_dataloaders(tokenizer, args):
            metrics = loss_fn(batch, outputs, metadata_mask)
     """
     # Mostly copy/paste from https://github.com/huggingface/transformers/blob/master/examples/pytorch/language-modeling/run_clm_no_trainer.py
-    #  Get the datasets: you can either provide your own CSV/JSON/TXT training and evaluation files (see below)
+    # Get the datasets: you can either provide your own CSV/JSON/TXT training and evaluation files (see below)
     # or just provide the name of one of the public datasets available on the hub at https://huggingface.co/datasets/
     # (the dataset will be downloaded automatically from the datasets Hub).
     #

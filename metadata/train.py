@@ -15,7 +15,7 @@ import hydra
 import wandb
 from accelerate import Accelerator
 from hydra.core.config_store import ConfigStore
-from input_pipeline import DataConfig, get_dataloaders
+from metadata.input_pipeline import DataConfig, get_dataloaders
 from omegaconf import OmegaConf
 from transformers import AdamW, AutoModelForCausalLM, AutoTokenizer, get_scheduler, set_seed
 

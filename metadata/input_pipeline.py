@@ -52,10 +52,16 @@ def get_dataloaders(tokenizer, cfg: DataConfig):
            metrics = loss_fn(batch, outputs, metadata_mask)
     """
     if cfg.experiment == "sample":
-        from experiments.sample import get_dataloaders as fn
+        from metadata.experiments.sample import get_dataloaders as fn
 
         return fn(tokenizer, cfg)
     if cfg.experiment == "without_metadata":
-        from experiments.without_metadata import get_dataloaders as fn
+        from metadata.experiments.without_metadata import get_dataloaders as fn
 
         return fn(tokenizer, cfg)
+    if cfg.experiment == "with_metadata":
+        from metadata.experiments.with_metadata import get_dataloaders as fn
+
+        return fn(tokenizer, cfg)
+    else:
+        raise ValueError(f"You have not entered a valid experience name")

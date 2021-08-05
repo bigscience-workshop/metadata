@@ -105,10 +105,30 @@ class MetadataUtilsTester(unittest.TestCase):
             "000111111111111111111111111111111111100000111111111111111111111111111111111111000000000000000000000000000000000001111111111111111110000011111111110000011111111110000000000000000000",
         )
 
+    def test_add_no_metadata_and_chunk_examples(self):
+        cfg = DataConfig()
+        cfg.metadata_list = ["url", "timestamp", "html", "entity"]
+        cfg.max_seq_len = 64
+        cfg.metadata_probability = 0
+
+        ds_dict = {key: [self.examples[0][key], self.examples[1][key]] for key in self.examples[0].keys()}
+        ds = Dataset.from_dict(ds_dict)
+
+        mapped_ds = ds.map(
+            functools.partial(add_metadata_and_chunk_examples, tokenizer=self.tokenizer, cfg=cfg),
+            batched=True,
+            remove_columns=ds.column_names,
+            load_from_cache_file=False,
+        )
+
+        for example in mapped_ds:
+            self.assertTrue(all(not x for x in example["metadata_mask"]))
+
     def test_add_metadata_and_chunk_examples(self):
         cfg = DataConfig()
         cfg.metadata_list = ["url", "timestamp", "html", "entity"]
         cfg.max_seq_len = 64
+        cfg.metadata_probability = 1
 
         PROCESSORS["timestamp"] = MetadataProcessor
 

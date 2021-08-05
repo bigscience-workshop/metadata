@@ -7,11 +7,14 @@ class DataConfig:
     experiment: str = "sample"
     per_device_eval_batch_size: int = 2
     per_device_train_batch_size: int = 2
-    metadata_list: List[str] = field(default_factory=list)
-    metadata_sep: str = " | "
-    metadata_key_value_sep: str = ": "
-    global_metadata_sep: str = " |||"
-    max_seq_len: int = 512
+    metadata_list: List[str] = field(default_factory=list)  # A sorted list of all kinds of metadata to be used
+    metadata_sep: str = (
+        " | "  # The separator to be used between different kinds of global metadata (e.g., timestamp and URL)
+    )
+    metadata_key_value_sep: str = ": "  # The default separator used between a metadata key and its associated value
+    metadata_probability: float = 1  # The probability of adding metadata to an input example
+    global_metadata_sep: str = " |||"  # The separator to be used between global metadata and the actual input text
+    max_seq_len: int = 512  # The maximum sequence length to be used for training
     dataset_name: Optional[str] = None  # The name of the dataset to use (via the datasets library)
     dataset_config_name: Optional[
         str

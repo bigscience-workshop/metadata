@@ -9,14 +9,13 @@ def req_file(filename):
 
 install_requires = req_file("requirements.txt")
 
-# TODO Fill
 setup(
-    name="MyPackageName",
+    name="bsmetadata",
     version="0.0.0",
     url="https://github.com/bigscience-workshop/metadata.git",
-    author="Author Name",
-    author_email="author@gmail.com",
-    description="Description of my package",
+    author="Multiple Authors",
+    author_email="xxx",
+    description="Codebase for including metadata (e.g., URLs, timestamps, HTML tags) during language model pretraining.",
     packages=find_packages(),
     install_requires=install_requires,
 )

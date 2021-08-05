@@ -12,7 +12,7 @@ install_requires = req_file("requirements.txt")
 # TODO Fill
 setup(
     name="MyPackageName",
-    version="1.0.0",
+    version="0.0.0",
     url="https://github.com/bigscience-workshop/metadata.git",
     author="Author Name",
     author_email="author@gmail.com",

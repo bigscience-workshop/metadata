@@ -104,20 +104,20 @@ def get_dataloaders(tokenizer, args):
         batched=True,
         num_proc=args.preprocessing_num_workers,
         load_from_cache_file=not args.overwrite_cache,
-        desc=f"TODO",
+        desc=f"Pre-process the text and metadata to create new samples",
         remove_columns=column_names,
     )
 
-    def create_label_column(examples):
+    def create_labels_column(examples):
         examples["labels"] = examples["input_ids"].copy()
         return examples
 
     lm_datasets = lm_datasets.map(
-        create_label_column,
+        create_labels_column,
         batched=True,
         num_proc=args.preprocessing_num_workers,
         load_from_cache_file=not args.overwrite_cache,
-        desc=f"TODO"
+        desc=f"Create labels column"
     )
 
     train_dataset = lm_datasets["train"]

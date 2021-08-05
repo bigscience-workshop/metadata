@@ -7,9 +7,8 @@ from datasets import load_dataset
 from torch.utils.data import DataLoader
 
 import hydra
-from transformers import default_data_collator
-
 from metadata.metadata_utils import add_metadata_and_chunk_examples
+from transformers import default_data_collator
 
 
 logger = logging.getLogger(__name__)
@@ -118,7 +117,7 @@ def get_dataloaders(tokenizer, args):
         batched=True,
         num_proc=args.preprocessing_num_workers,
         load_from_cache_file=not args.overwrite_cache,
-        desc=f"Create labels column"
+        desc=f"Create labels column",
     )
 
     train_dataset = lm_datasets["train"]

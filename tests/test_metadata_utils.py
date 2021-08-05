@@ -2,16 +2,16 @@ import functools
 import unittest
 
 from datasets import Dataset
+from transformers import GPT2TokenizerFast
 
-from input_pipeline import DataConfig
-from metadata_processors import PROCESSORS, MetadataProcessor
-from metadata_utils import (
+from metadata.input_pipeline import DataConfig
+from metadata.metadata_processors import PROCESSORS, MetadataProcessor
+from metadata.metadata_utils import (
     add_local_metadata_to_text,
     add_metadata_and_chunk_examples,
     chunks,
     create_global_metadata_prefix,
 )
-from transformers import GPT2TokenizerFast
 
 
 class MetadataUtilsTester(unittest.TestCase):

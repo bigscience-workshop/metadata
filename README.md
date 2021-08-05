@@ -1,4 +1,5 @@
 # Metadata
+
 Experiments on including metadata such as URLs, timestamps, website descriptions and HTML tags during pretraining.
 
 ## Usage
@@ -37,13 +38,20 @@ accelerate launch --fp16 train.py max_train_steps=100 num_eval=1 data_config.per
 
 ## Contribute 🧠
 
-After installing the development dependencies, to execute the tests run in a bash at the root of the repository:
+After installing the development dependencies, first you need to install the package in editable mode. You can do it by running in a bash at the root of the repository
+
+```
+pip install -e .
+```
+
+and then you can execute the tests by running:
 
 ```sh
 python -m pytest .
 ```
 
 In order to have a unified code style, we have implemented some formatting tools. Before you commit or PR, it would be great if you could run:
+
 ```sh
 make style && make quality
 ```

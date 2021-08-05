@@ -1,9 +1,10 @@
 from dataclasses import dataclass
 
 from datasets import load_dataset
-from torch.utils.data import DataLoader, Dataset
-
+from torch.utils.data import DataLoader
 from transformers import PreTrainedTokenizerBase
+
+from metadata.input_pipeline import DataConfig
 
 
 @dataclass
@@ -28,7 +29,7 @@ class DataCollatorForCLM:
         return batch
 
 
-def get_dataloaders(tokenizer, cfg: "DataConfig"):
+def get_dataloaders(tokenizer, cfg: DataConfig):
     datasets = load_dataset("wikitext", "wikitext-2-raw-v1")
     data_collator = DataCollatorForCLM(tokenizer)
     train_dataloader = DataLoader(

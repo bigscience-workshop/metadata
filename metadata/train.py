@@ -2,7 +2,8 @@ import gc
 import math
 import os
 import sys
-from dataclasses import dataclass
+import dataclasses
+from dataclasses import dataclass, field
 from functools import partial
 from typing import Optional
 
@@ -22,7 +23,7 @@ from metadata.input_pipeline import DataConfig, get_dataloaders
 @dataclass
 class CFG:
     data_config: DataConfig = DataConfig()
-    weight_decay: float = 0.0
+    weight_decay: float = field(default=0.0, metadata={"help": "weight decay, default=0.0"})
     learning_rate: float = 5e-5
     gradient_accumulation_steps: int = 1
     num_train_epochs: int = 1
@@ -83,9 +84,13 @@ def loss_fn(batch, outputs, metadata_mask=None):
 
 @hydra.main(config_name="config")
 def main(args: CFG) -> None:
-    print(OmegaConf.to_yaml(args))
     if args.h:
+        for field in dataclasses.fields(CFG):
+            kwargs = field.metadata.copy()
+            help = kwargs.get("help", "")
+            print(f"{field.name}: {help}")
         sys.exit()
+    print(OmegaConf.to_yaml(args))
 
     set_seed(args.seed)
     accelerator = Accelerator()

@@ -52,15 +52,15 @@ def get_dataloaders(tokenizer, cfg: DataConfig):
            metrics = loss_fn(batch, outputs, metadata_mask)
     """
     if cfg.experiment == "sample":
-        from metadata.experiments.sample import get_dataloaders as fn
+        from bsmetadata.experiments.sample import get_dataloaders as fn
 
         return fn(tokenizer, cfg)
     if cfg.experiment == "without_metadata":
-        from metadata.experiments.without_metadata import get_dataloaders as fn
+        from bsmetadata.experiments.without_metadata import get_dataloaders as fn
 
         return fn(tokenizer, cfg)
     if cfg.experiment == "with_metadata":
-        from metadata.experiments.with_metadata import get_dataloaders as fn
+        from bsmetadata.experiments.with_metadata import get_dataloaders as fn
 
         return fn(tokenizer, cfg)
     else:

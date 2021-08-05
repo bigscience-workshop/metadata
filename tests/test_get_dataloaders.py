@@ -6,10 +6,8 @@ import pytest
 import torch
 from transformers import AutoTokenizer
 
-from metadata.experiments.with_metadata import get_dataloaders as get_dataloaders_with_metadata
-
-# sys.path.append(".")
-from metadata.input_pipeline import DataConfig
+from bsmetadata.experiments.with_metadata import get_dataloaders as get_dataloaders_with_metadata
+from bsmetadata.input_pipeline import DataConfig
 
 
 logging.basicConfig(level=logging.DEBUG)

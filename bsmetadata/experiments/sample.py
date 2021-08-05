@@ -4,7 +4,7 @@ from datasets import load_dataset
 from torch.utils.data import DataLoader
 from transformers import PreTrainedTokenizerBase
 
-from metadata.input_pipeline import DataConfig
+from bsmetadata.input_pipeline import DataConfig
 
 
 @dataclass

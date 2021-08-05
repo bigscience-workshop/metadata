@@ -18,8 +18,8 @@ from typing import Any, Dict, List, Tuple
 
 from transformers import PreTrainedTokenizerFast
 
-from metadata.input_pipeline import DataConfig
-from metadata.metadata_processors import PROCESSORS, MetadataProcessor
+from bsmetadata.input_pipeline import DataConfig
+from bsmetadata.metadata_processors import PROCESSORS, MetadataProcessor
 
 
 def add_metadata_and_chunk_examples(

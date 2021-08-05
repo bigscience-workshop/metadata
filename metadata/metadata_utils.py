@@ -13,6 +13,7 @@
 """
 This script provides utility functions for linearizing, encoding and chunking a given input text with metadata information.
 """
+import random
 from collections import defaultdict
 from typing import Any, Dict, List, Tuple
 
@@ -44,12 +45,24 @@ def add_metadata_and_chunk_examples(
     for example_idx in range(num_examples):
         example = {k: v[example_idx] for k, v in examples.items()}
 
-        # Get the global metadata prefix that is prepended to each training example.
-        global_metadata_prefix = create_global_metadata_prefix(example, cfg)
-        global_metadata_prefix_encoded = tokenizer.encode_plus(global_metadata_prefix)
+        # Determine whether metadata should be used.
+        add_metadata = random.random() < cfg.metadata_probability
 
-        # Get the actual text with local metadata inserted.
-        text_with_local_metadata, char_level_metadata_mask = add_local_metadata_to_text(example, cfg)
+        if add_metadata:
+            # Get the global metadata prefix that is prepended to each training example.
+            global_metadata_prefix = create_global_metadata_prefix(example, cfg)
+            global_metadata_prefix_encoded = tokenizer.encode_plus(global_metadata_prefix).input_ids
+        else:
+            global_metadata_prefix_encoded = []
+
+        if add_metadata:
+            # Get the actual text with local metadata inserted.
+            text_with_local_metadata, char_level_metadata_mask = add_local_metadata_to_text(example, cfg)
+
+        else:
+            text_with_local_metadata = example["text"]
+            char_level_metadata_mask = [False] * len(text_with_local_metadata)
+
         text_with_local_metadata = " " + text_with_local_metadata
         char_level_metadata_mask = [False] + char_level_metadata_mask
         text_with_local_metadata_encoded = tokenizer.encode_plus(text_with_local_metadata)
@@ -64,18 +77,16 @@ def add_metadata_and_chunk_examples(
         ]
 
         # Create chunks of `max_seq_len` tokens.
-        global_metadata_len = len(global_metadata_prefix_encoded.input_ids)
+        global_metadata_len = len(global_metadata_prefix_encoded)
         max_text_len = cfg.max_seq_len - global_metadata_len
 
         for text_chunk_encoded, chunk_metadata_mask in chunks(
             max_text_len, text_with_local_metadata_encoded.input_ids, token_level_metadata_mask
         ):
-            total_len = len(global_metadata_prefix_encoded.input_ids) + len(text_chunk_encoded)
+            total_len = len(global_metadata_prefix_encoded) + len(text_chunk_encoded)
             padding_len = max_text_len - len(text_chunk_encoded)
 
-            input_ids = (
-                global_metadata_prefix_encoded.input_ids + text_chunk_encoded + [tokenizer.eos_token_id] * padding_len
-            )
+            input_ids = global_metadata_prefix_encoded + text_chunk_encoded + [tokenizer.eos_token_id] * padding_len
             attention_mask = [1] * total_len + [0] * padding_len
             metadata_mask = [1] * global_metadata_len + [int(x) for x in chunk_metadata_mask] + [0] * padding_len
 

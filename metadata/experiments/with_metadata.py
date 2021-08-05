@@ -96,9 +96,9 @@ def get_dataloaders(tokenizer, args):
     # https://huggingface.co/docs/datasets/loading_datasets.html.
 
     # Preprocessing the datasets.
-    # First we tokenize all the texts.
     column_names = raw_datasets["train"].column_names
 
+    # First we pre-process our text and metadata
     lm_datasets = raw_datasets.map(
         functools.partial(add_metadata_and_chunk_examples, tokenizer=tokenizer, cfg=args),
         batched=True,
@@ -112,6 +112,7 @@ def get_dataloaders(tokenizer, args):
         examples["labels"] = examples["input_ids"].copy()
         return examples
 
+    # Then we add the column containing the labels
     lm_datasets = lm_datasets.map(
         create_labels_column,
         batched=True,

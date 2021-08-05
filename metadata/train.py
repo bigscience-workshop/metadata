@@ -6,7 +6,6 @@ from dataclasses import dataclass
 from functools import partial
 from typing import Optional
 
-import datasets
 import hydra
 import torch
 import torch.nn.functional as F
@@ -93,10 +92,6 @@ def main(args: CFG) -> None:
     is_local_main_process = accelerator.is_local_main_process
     tqdm = partial(original_tqdm, disable=not is_local_main_process)
 
-    # post-process args
-    total_batch_size = (
-        args.data_config.per_device_train_batch_size * accelerator.num_processes * args.gradient_accumulation_steps
-    )
     os.makedirs(args.out_dir, exist_ok=True)
 
     # get dataloaders

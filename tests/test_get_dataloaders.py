@@ -1,10 +1,6 @@
 import logging
 import os
-import subprocess
-import sys
 from pathlib import Path
-from shutil import copyfile
-from unittest.mock import patch
 
 import pytest
 import torch

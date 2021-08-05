@@ -5,7 +5,7 @@ from datasets import load_dataset
 from torch.utils.data import DataLoader
 from transformers import default_data_collator
 
-from metadata.metadata_utils import add_metadata_and_chunk_examples
+from bsmetadata.metadata_utils import add_metadata_and_chunk_examples
 
 
 logger = logging.getLogger(__name__)

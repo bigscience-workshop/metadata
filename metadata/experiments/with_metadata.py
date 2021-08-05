@@ -70,7 +70,10 @@ def get_dataloaders(tokenizer, args):
             data_files["validation"] = args.validation_file
         extension = args.train_file.split(".")[-1]
         if extension == "txt":
-            extension = "text"
+            raise ValueError(
+                "You have entered a text file for the train data, but this type of file cannot contain metadata "
+                "columns. Wouldn't you rather have a file in json/jsonl or pandas format?"
+            )
         if extension == "jsonl":
             extension = "json"
         raw_datasets = load_dataset(extension, data_files=data_files, cache_dir=args.cache_dir)

@@ -16,10 +16,10 @@ class DataConfig:
     dataset_config_name: Optional[
         str
     ] = None  # The configuration name of the dataset to use (via the datasets library)
-    train_file: Optional[str] = None  # The input training data file (a text file).
+    train_file: Optional[str] = None  # The input training data file (a jsonl file).
     validation_file: Optional[
         str
-    ] = None  # An optional input evaluation data file to evaluate the perplexity on (a text file)
+    ] = None  # An optional input evaluation data file to evaluate the perplexity on (a jsonl file)
     overwrite_cache: Optional[bool] = False
     cache_dir: Optional[str] = None  # Where do you want to store the pretrained models downloaded from s3
     preprocessing_num_workers: Optional[int] = None  # The number of processes to use for the preprocessing

@@ -3,8 +3,6 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-from shutil import copyfile
-from unittest.mock import patch
 
 
 logging.basicConfig(level=logging.DEBUG)
@@ -21,7 +19,7 @@ def test_toy_training_without_metadata(tmpdir):
 
     process = subprocess.Popen(
         [
-            "python",
+            sys.executable,
             f'{os.path.join(path_script, "metadata", "train.py")}',
             "data_config.experiment=without_metadata",
             f'data_config.train_file={os.path.join(path_test_folder,"data","train_toy_raw_wikitext.jsonl")}',
@@ -51,7 +49,7 @@ def test_toy_training_with_metadata(tmpdir):
 
     process = subprocess.Popen(
         [
-            "python",
+            sys.executable,
             f'{os.path.join(path_script, "metadata", "train.py")}',
             "data_config.experiment=with_metadata",
             f'data_config.train_file={os.path.join(path_test_folder,"data","train_toy_wikitext_with_metadata.jsonl")}',

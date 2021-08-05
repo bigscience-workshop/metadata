@@ -7,17 +7,17 @@ from functools import partial
 from typing import Optional
 
 import datasets
+import hydra
 import torch
 import torch.nn.functional as F
-from tqdm.auto import tqdm as original_tqdm
-
-import hydra
 import wandb
 from accelerate import Accelerator
 from hydra.core.config_store import ConfigStore
-from metadata.input_pipeline import DataConfig, get_dataloaders
 from omegaconf import OmegaConf
+from tqdm.auto import tqdm as original_tqdm
 from transformers import AdamW, AutoModelForCausalLM, AutoTokenizer, get_scheduler, set_seed
+
+from metadata.input_pipeline import DataConfig, get_dataloaders
 
 
 @dataclass

@@ -8,12 +8,12 @@ from unittest.mock import patch
 
 import pytest
 import torch
+from transformers import AutoTokenizer
 
 from metadata.experiments.with_metadata import get_dataloaders as get_dataloaders_with_metadata
 
 # sys.path.append(".")
 from metadata.input_pipeline import DataConfig
-from transformers import AutoTokenizer
 
 
 logging.basicConfig(level=logging.DEBUG)

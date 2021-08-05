@@ -150,7 +150,7 @@ def main(args: CFG) -> None:
         losses = []
         for step, batch in enumerate(tqdm(eval_dataloader, desc="eval")):  # , leave=False)
             labels = batch.pop("labels")
-            metadata_mask = batch.get("metadata_mask", None)
+            metadata_mask = batch.pop("metadata_mask", None)
             outputs = model(**batch)
             batch["labels"] = labels
             loss = loss_fn(batch, outputs, metadata_mask)
@@ -170,7 +170,7 @@ def main(args: CFG) -> None:
         for step, batch in enumerate(train_dataloader):
             # pop labels because we want to calculate loss ourselves
             labels = batch.pop("labels")
-            metadata_mask = batch.get("metadata_mask", None)
+            metadata_mask = batch.pop("metadata_mask", None)
             outputs = model(**batch)
             batch["labels"] = labels
             loss = loss_fn(batch, outputs, metadata_mask)

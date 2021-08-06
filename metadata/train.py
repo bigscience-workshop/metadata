@@ -33,7 +33,6 @@ class CFG:
     num_warmup_steps: int = 1000
     seed: int = 42
     out_dir: str = "output_dir"
-    h: bool = False  # help, print config and exit
     num_eval: int = 3
     model_name: str = "gpt2"
     project_name: str = "metadata_lm"

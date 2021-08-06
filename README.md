@@ -8,6 +8,12 @@ This repository contains code for including metadata such as URLs, timestamps, w
 accelerate launch --fp16 train.py max_train_steps=100 num_eval=1 data_config.per_device_eval_batch_size=4
 ```
 
+## Get Help
+
+```sh
+python metadata/train.py [-h] [--help]
+```
+
 ## Metadata Format
 
 This script expects metadata to be in [JSON lines (.jsonl)](https://jsonlines.org/) format. Each JSON line is required to have the following fields:

@@ -1,8 +1,10 @@
+import dataclasses
 import gc
+import json
 import math
 import os
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import partial
 from typing import Optional
 
@@ -22,23 +24,44 @@ from bsmetadata.input_pipeline import DataConfig, get_dataloaders
 @dataclass
 class CFG:
     data_config: DataConfig = DataConfig()
-    weight_decay: float = 0.0
-    learning_rate: float = 5e-5
-    gradient_accumulation_steps: int = 1
-    num_train_epochs: int = 1
-    max_train_steps: Optional[int] = None
-    lr_scheduler_type: str = "linear"
-    num_warmup_steps: int = 1000
-    seed: int = 42
-    out_dir: str = "output_dir"
-    h: bool = False  # help, print config and exit
-    num_eval: int = 3
-    model_name: str = "gpt2"
-    project_name: str = "metadata_lm"
+    weight_decay: float = field(default=0.0, metadata={"help": "The weight decay to use for training."})
+    learning_rate: float = field(default=5e-5, metadata={"help": "The initial learning rate."})
+    gradient_accumulation_steps: int = field(
+        default=1,
+        metadata={"help": "The number of gradient accumulation steps to perform before updating model parameters."},
+    )
+    num_train_epochs: int = field(default=1, metadata={"help": "The number of epochs to train the model for."})
+    max_train_steps: Optional[int] = field(
+        default=None, metadata={"help": "The maximum number of training steps (overrides num_train_epochs)."}
+    )
+    lr_scheduler_type: str = field(default="linear", metadata={"help": "The type of learning rate schedule to use."})
+    num_warmup_steps: int = field(
+        default=1000, metadata={"help": "The number of warmup steps during which the learning rate is increased."}
+    )
+    seed: int = field(default=42, metadata={"help": "The seed used for RNG initialization."})
+    out_dir: str = field(
+        default="output_dir", metadata={"help": "The output directory in which the trained model is saved."}
+    )
+    num_eval: int = field(default=3, metadata={"help": "The number of evaluations to perform during training."})
+    model_name: str = field(default="gpt2", metadata={"help": "The name of the pretrained model to use."})
+    project_name: str = field(default="metadata_lm", metadata={"help": "The project name."})
 
 
 cs = ConfigStore.instance()
 cs.store(name="config", node=CFG)
+
+
+def show_help(context="", cls=CFG):
+    default_instance = cls()
+    for field_ in dataclasses.fields(cls):
+        if dataclasses.is_dataclass(field_.type):
+            show_help(context=f"{context}{field_.name}.", cls=field_.type)
+        else:
+            kwargs = field_.metadata.copy()
+            # print(field)
+            help = kwargs.get("help", "")
+            default = getattr(default_instance, field_.name)  # init and tell the default
+            print(f"{context}{field_.name}: {help} (default={json.dumps(default)})")
 
 
 class Logger:
@@ -84,8 +107,6 @@ def loss_fn(batch, outputs, metadata_mask=None):
 @hydra.main(config_name="config")
 def main(args: CFG) -> None:
     print(OmegaConf.to_yaml(args))
-    if args.h:
-        sys.exit()
 
     set_seed(args.seed)
     accelerator = Accelerator()
@@ -218,4 +239,7 @@ def main(args: CFG) -> None:
 
 
 if __name__ == "__main__":
+    if "--help" in sys.argv or "-h" in sys.argv:
+        show_help()
+        sys.exit()
     main()

@@ -4,29 +4,61 @@ from typing import List, Optional
 
 @dataclass
 class DataConfig:
-    experiment: str = "sample"
-    per_device_eval_batch_size: int = 2
-    per_device_train_batch_size: int = 2
-    metadata_list: List[str] = field(default_factory=list)
-    metadata_sep: str = " | "
-    metadata_key_value_sep: str = ": "
-    global_metadata_sep: str = " |||"
-    max_seq_len: int = 512
-    dataset_name: Optional[str] = None  # The name of the dataset to use (via the datasets library)
-    dataset_config_name: Optional[
-        str
-    ] = None  # The configuration name of the dataset to use (via the datasets library)
-    train_file: Optional[str] = None  # The input training data file (a jsonl file).
-    validation_file: Optional[
-        str
-    ] = None  # An optional input evaluation data file to evaluate the perplexity on (a jsonl file)
-    overwrite_cache: Optional[bool] = False
-    cache_dir: Optional[str] = None  # Where do you want to store the pretrained models downloaded from s3
-    preprocessing_num_workers: Optional[int] = None  # The number of processes to use for the preprocessing
-    validation_split_percentage: Optional[
-        int
-    ] = 5  # The percentage of the train set used as validation set in case there's no validation split
-    block_size: Optional[int] = None  # "Optional input sequence length after tokenization. "
+    experiment: str = field(default="sample", metadata={"help": "The name of the experiment."})
+    per_device_eval_batch_size: int = field(
+        default=2, metadata={"help": "The per-device batch size to use for evaluation."}
+    )
+    per_device_train_batch_size: int = field(
+        default=2, metadata={"help": "The per-device batch size to use for training."}
+    )
+    metadata_list: List[str] = field(
+        default_factory=list,
+        metadata={"help": "The list of metadata types to use. Metadata is added in order of appearance in this list."},
+    )
+    metadata_sep: str = field(
+        default=" | ",
+        metadata={"help": "The character sequence that is used to separate two instances of global metadata."},
+    )
+    metadata_key_value_sep: str = field(
+        default=": ",
+        metadata={"help": "The character sequence that is used by default to separate a metadata key and its value."},
+    )
+    global_metadata_sep: str = field(
+        default=" |||",
+        metadata={"help": "The character sequence that is used to separate all global metadata from the actual text."},
+    )
+    max_seq_len: int = field(
+        default=512, metadata={"help": "The maximum number of tokens to use for each training chunk."}
+    )
+    dataset_name: Optional[str] = field(
+        default=None, metadata={"help": "The name of the dataset to use (via the datasets library)"}
+    )
+    dataset_config_name: Optional[str] = field(
+        default=None, metadata={"help": "The configuration name of the dataset to use (via the datasets library)"}
+    )
+    train_file: Optional[str] = field(default=None, metadata={"help": "The input training data file (a jsonl file)."})
+    validation_file: Optional[str] = field(
+        default=None,
+        metadata={"help": "An optional input evaluation data file to evaluate the perplexity on (a jsonl file)."},
+    )
+    overwrite_cache: Optional[bool] = field(
+        default=False, metadata={"help": "Whether the local cache containing datasets should be overwritten."}
+    )
+    cache_dir: Optional[str] = field(
+        default=None, metadata={"help": "Where do you want to store the pretrained models downloaded from s3?"}
+    )
+    preprocessing_num_workers: Optional[int] = field(
+        default=None, metadata={"help": "The number of processes to use for the preprocessing."}
+    )
+    validation_split_percentage: Optional[int] = field(
+        default=5,
+        metadata={
+            "help": "The percentage of the train set used as validation set in case there's no validation split."
+        },
+    )
+    block_size: Optional[int] = field(
+        default=None, metadata={"help": "Optional input sequence length after tokenization."}
+    )
 
 
 def get_dataloaders(tokenizer, cfg: DataConfig):

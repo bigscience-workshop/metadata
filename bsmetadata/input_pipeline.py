@@ -23,6 +23,9 @@ class DataConfig:
         default=": ",
         metadata={"help": "The character sequence that is used by default to separate a metadata key and its value."},
     )
+    metadata_probability: float = field(
+        default=1, metadata={"help": "The probability of adding metadata to an input example."}
+    )
     global_metadata_sep: str = field(
         default=" |||",
         metadata={"help": "The character sequence that is used to separate all global metadata from the actual text."},
@@ -59,7 +62,6 @@ class DataConfig:
     block_size: Optional[int] = field(
         default=None, metadata={"help": "Optional input sequence length after tokenization."}
     )
-
 
 def get_dataloaders(tokenizer, cfg: DataConfig):
     """

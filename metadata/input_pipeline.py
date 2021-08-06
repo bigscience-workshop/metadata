@@ -63,5 +63,9 @@ def get_dataloaders(tokenizer, cfg: DataConfig):
         from metadata.experiments.with_metadata import get_dataloaders as fn
 
         return fn(tokenizer, cfg)
+    if cfg.experiment == "arxiv_time":
+        from metadata.experiments.arxiv_time import get_dataloaders as fn
+
+        return fn(tokenizer, cfg)
     else:
         raise ValueError("You have not entered a valid experience name")

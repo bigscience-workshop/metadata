@@ -16,7 +16,7 @@ This script provides functions for processing different kinds of metadata.
 import datetime
 from typing import Any, Dict, Optional, Tuple
 
-from metadata.input_pipeline import DataConfig
+from bsmetadata.input_pipeline import DataConfig
 
 
 class MetadataProcessor:

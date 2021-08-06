@@ -18,7 +18,7 @@ from omegaconf import OmegaConf
 from tqdm.auto import tqdm as original_tqdm
 from transformers import AdamW, AutoModelForCausalLM, AutoTokenizer, get_scheduler, set_seed
 
-from metadata.input_pipeline import DataConfig, get_dataloaders
+from bsmetadata.input_pipeline import DataConfig, get_dataloaders
 
 
 @dataclass

@@ -1,8 +1,9 @@
+import dataclasses
 import gc
+import json
 import math
 import os
 import sys
-import dataclasses
 from dataclasses import dataclass, field
 from functools import partial
 from typing import Optional
@@ -40,6 +41,19 @@ class CFG:
 
 cs = ConfigStore.instance()
 cs.store(name="config", node=CFG)
+
+
+def show_help(context="", cls=CFG):
+    default_instance = cls()
+    for field in dataclasses.fields(cls):
+        if dataclasses.is_dataclass(field.type):
+            show_help(context=f"{context}{field.name}.", cls=field.type)
+        else:
+            kwargs = field.metadata.copy()
+            # print(field)
+            help = kwargs.get("help", "")
+            default = getattr(default_instance, field.name)  # init and tell the default
+            print(f"{context}{field.name}: {help}, default={json.dumps(default)}")
 
 
 class Logger:
@@ -84,12 +98,6 @@ def loss_fn(batch, outputs, metadata_mask=None):
 
 @hydra.main(config_name="config")
 def main(args: CFG) -> None:
-    if args.h:
-        for field in dataclasses.fields(CFG):
-            kwargs = field.metadata.copy()
-            help = kwargs.get("help", "")
-            print(f"{field.name}: {help}")
-        sys.exit()
     print(OmegaConf.to_yaml(args))
 
     set_seed(args.seed)
@@ -220,4 +228,7 @@ def main(args: CFG) -> None:
 
 
 if __name__ == "__main__":
+    if "--help" in sys.argv or "-h" in sys.argv:
+        show_help()
+        sys.exit()
     main()

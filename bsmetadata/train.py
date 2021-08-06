@@ -44,15 +44,15 @@ cs.store(name="config", node=CFG)
 
 def show_help(context="", cls=CFG):
     default_instance = cls()
-    for field in dataclasses.fields(cls):
-        if dataclasses.is_dataclass(field.type):
-            show_help(context=f"{context}{field.name}.", cls=field.type)
+    for field_ in dataclasses.fields(cls):
+        if dataclasses.is_dataclass(field_.type):
+            show_help(context=f"{context}{field_.name}.", cls=field_.type)
         else:
-            kwargs = field.metadata.copy()
+            kwargs = field_.metadata.copy()
             # print(field)
             help = kwargs.get("help", "")
-            default = getattr(default_instance, field.name)  # init and tell the default
-            print(f"{context}{field.name}: {help}, default={json.dumps(default)}")
+            default = getattr(default_instance, field_.name)  # init and tell the default
+            print(f"{context}{field_.name}: {help}, default={json.dumps(default)}")
 
 
 class Logger:

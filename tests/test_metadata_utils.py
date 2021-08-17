@@ -50,6 +50,13 @@ class MetadataUtilsTester(unittest.TestCase):
                     {"key": "html", "type": "local", "value": "i", "char_start_idx": 43, "char_end_idx": 48},
                 ],
             },
+            {
+                "id": "0003",
+                "text": "Wubba Lubba Dub Dub!",
+                "metadata": [
+                    {"key": "url", "type": "global", "value": "callto:RickAndMorty/Year%202021/"},
+                ],
+            },
         ]
 
     def test_chunks(self):
@@ -68,7 +75,6 @@ class MetadataUtilsTester(unittest.TestCase):
         cfg.metadata_sep = " | "
         cfg.global_metadata_sep = " |||"
         cfg.metadata_list = ["url", "timestamp"]
-        PROCESSORS["url"] = MetadataProcessor
         PROCESSORS["timestamp"] = MetadataProcessor
 
         self.assertEqual(
@@ -77,6 +83,9 @@ class MetadataUtilsTester(unittest.TestCase):
         )
         self.assertEqual(
             create_global_metadata_prefix(self.examples[1], cfg), "url: https://en.wikipedia.org/wiki/Apple |||"
+        )
+        self.assertEqual(
+            create_global_metadata_prefix(self.examples[2], cfg), "url: callto:RickAndMorty/Year 2021/ |||"
         )
 
     def test_add_local_metadata_to_text(self):

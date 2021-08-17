@@ -15,6 +15,7 @@ This script provides functions for processing different kinds of metadata.
 """
 import datetime
 from typing import Any, Dict, Optional, Tuple
+from urllib.parse import unquote_plus
 
 from bsmetadata.input_pipeline import DataConfig
 
@@ -94,8 +95,18 @@ class HtmlProcessor(MetadataProcessor):
         return f"<{metadata_attrs['value']}>", f"</{metadata_attrs['value']}>"
 
 
+class UrlProcessor(MetadataProcessor):
+    """An example metadata processor for URLs."""
+
+    def process_global(self, metadata_attrs: Dict[str, Any]) -> Optional[str]:
+        # We represent a URL with unquoted format such that less confusion for a tokenizer.
+        # Example: "foo.bar/Year 2021/" instead of "foo.bar/Year%202021/".
+        return "".join([metadata_attrs["key"], self.cfg.metadata_key_value_sep, unquote_plus(metadata_attrs["value"])])
+
+
 PROCESSORS = {
     "timestamp": TimestampProcessor,
     "entity": EntityProcessor,
     "html": HtmlProcessor,
+    "url": UrlProcessor,
 }

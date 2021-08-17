@@ -1,4 +1,4 @@
-name: Code quality
+name: Test
 
 on:
     push:
@@ -11,8 +11,8 @@ on:
         types:
             - created
 jobs:
-    check_code_quality:
-        name: Check code quality
+    test:
+        name: Test
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v2
@@ -23,7 +23,9 @@ jobs:
             - name: Install dependencies
               run: |
                   python -m pip install --upgrade pip
+                  python -m pip install .
                   python -m pip install -r requirements-dev.txt
-            - name: Make quality
+            - name: Test
               run: |
-                  make quality
+                  python -m pytest tests/test_get_dataloaders.py
+                  python -m pytest tests/test_metadata_utils.py

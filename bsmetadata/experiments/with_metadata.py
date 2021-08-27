@@ -68,7 +68,8 @@ def get_dataloaders(tokenizer, args):
             data_files["train"] = args.train_file
         if args.validation_file is not None:
             data_files["validation"] = args.validation_file
-        extension = args.train_file.split(".")[-1]
+
+        extension = args.train_file.split(".")[-1] if not args.extension else args.extension
         if extension == "txt":
             raise ValueError(
                 "You have entered a text file for the train data, but this type of file cannot contain metadata "

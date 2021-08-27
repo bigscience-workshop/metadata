@@ -16,6 +16,7 @@ This script provides utility functions for linearizing, encoding and chunking a 
 import random
 from collections import defaultdict
 from typing import Any, Dict, List, Tuple
+from dataclasses import field, dataclass
 
 from transformers import PreTrainedTokenizerFast
 
@@ -122,6 +123,14 @@ def create_global_metadata_prefix(example: Dict[str, Any], cfg: DataConfig) -> s
     return cfg.metadata_sep.join(sorted_metadata) + cfg.global_metadata_sep if sorted_metadata else ""
 
 
+@dataclass
+class MetadataIdxStorage:
+    start_idx_tag_with_content: dict = field(default_factory=(lambda: defaultdict(list)))
+    end_idx_tag_with_content: dict = field(default_factory=(lambda: defaultdict(list)))
+    start_idx_tag_without_content: dict = field(default_factory=(lambda: defaultdict(list)))
+    end_idx_tag_without_content: dict = field(default_factory=(lambda: defaultdict(list)))
+
+
 def add_local_metadata_to_text(example: Dict[str, Any], cfg: DataConfig) -> Tuple[str, List[bool]]:
     """Adds local metadata (such as HTML tags and entity names) to the given input text.
 
@@ -134,7 +143,7 @@ def add_local_metadata_to_text(example: Dict[str, Any], cfg: DataConfig) -> Tupl
             - the first element is the text with metadata;
             - the second element is a boolean mask where `mask[i]` is set iff `text[i]` is some kind of metadata.
     """
-    metadata_start_texts, metadata_end_texts = defaultdict(list), defaultdict(list)
+    metadata_idx_storage = MetadataIdxStorage()
 
     # Filter and sort all metadata so that they are processed in the requested order.
     filtered_metadata = [md for md in example["metadata"] if md["type"] == "local" and md["key"] in cfg.metadata_list]
@@ -152,27 +161,58 @@ def add_local_metadata_to_text(example: Dict[str, Any], cfg: DataConfig) -> Tupl
         char_start_idx = metadata.get("char_start_idx", -1)
         char_end_idx = metadata.get("char_end_idx", -1)
 
-        metadata_start_texts[char_start_idx].insert(0, start_text)
-        metadata_end_texts[char_end_idx].append(end_text)
+        if char_start_idx == char_end_idx:
+            metadata_idx_storage.start_idx_tag_without_content[char_start_idx].insert(0, start_text)
+            metadata_idx_storage.end_idx_tag_without_content[char_end_idx].append(end_text)
+        else:
+            metadata_idx_storage.start_idx_tag_with_content[char_start_idx].insert(0, start_text)
+            metadata_idx_storage.end_idx_tag_with_content[char_end_idx].append(end_text)
 
     # Build the final text with local metadata and the corresponding mask.
     text_with_local_metadata = []
     metadata_mask = []
 
-    for idx, char in enumerate(example["text"]):
+    def _add_metadata_to_text(metadata_text_list, text_with_local_metadata, metadata_mask):
+        for metadata_text in metadata_text_list:
+            text_with_local_metadata.append(metadata_text)
+            metadata_mask += [True] * len(metadata_text)
 
-        if idx in metadata_start_texts:
-            for start_text in metadata_start_texts[idx]:
-                text_with_local_metadata.append(start_text)
-                metadata_mask += [True] * len(start_text)
+    for idx, char in enumerate(example["text"]):
+        if idx in metadata_idx_storage.end_idx_tag_with_content:
+            metadata_text_list = metadata_idx_storage.end_idx_tag_with_content[idx]
+            _add_metadata_to_text(metadata_text_list, text_with_local_metadata, metadata_mask)
+
+        if idx in metadata_idx_storage.start_idx_tag_without_content:
+            metadata_text_list = metadata_idx_storage.start_idx_tag_without_content[idx]
+            _add_metadata_to_text(metadata_text_list, text_with_local_metadata, metadata_mask)
+
+        if idx in metadata_idx_storage.end_idx_tag_without_content:
+            metadata_text_list = metadata_idx_storage.end_idx_tag_without_content[idx]
+            _add_metadata_to_text(metadata_text_list, text_with_local_metadata, metadata_mask)
+
+        if idx in metadata_idx_storage.start_idx_tag_with_content:
+            metadata_text_list = metadata_idx_storage.start_idx_tag_with_content[idx]
+            _add_metadata_to_text(metadata_text_list, text_with_local_metadata, metadata_mask)
 
         text_with_local_metadata.append(char)
         metadata_mask += [False]
 
-        if idx + 1 in metadata_end_texts:
-            for end_text in metadata_end_texts[idx + 1]:
-                text_with_local_metadata.append(end_text)
-                metadata_mask += [True] * len(end_text)
+    idx += 1
+    if idx in metadata_idx_storage.end_idx_tag_with_content:
+        metadata_text_list = metadata_idx_storage.end_idx_tag_with_content[idx]
+        _add_metadata_to_text(metadata_text_list, text_with_local_metadata, metadata_mask)
+
+    if idx in metadata_idx_storage.start_idx_tag_without_content:
+        metadata_text_list = metadata_idx_storage.start_idx_tag_without_content[idx]
+        _add_metadata_to_text(metadata_text_list, text_with_local_metadata, metadata_mask)
+
+    if idx in metadata_idx_storage.end_idx_tag_without_content:
+        metadata_text_list = metadata_idx_storage.end_idx_tag_without_content[idx]
+        _add_metadata_to_text(metadata_text_list, text_with_local_metadata, metadata_mask)
+
+    if idx in metadata_idx_storage.start_idx_tag_with_content:
+        metadata_text_list = metadata_idx_storage.start_idx_tag_with_content[idx]
+        _add_metadata_to_text(metadata_text_list, text_with_local_metadata, metadata_mask)
 
     return "".join(text_with_local_metadata), metadata_mask
 

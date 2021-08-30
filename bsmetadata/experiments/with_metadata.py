@@ -40,11 +40,18 @@ def get_dataloaders(tokenizer, args):
     #
     # In distributed training, the load_dataset function guarantees that only one local process can concurrently
     # download the dataset.
+    data_files = {}
+    if args.train_file is not None:
+        data_files["train"] = args.train_file
+    if args.validation_file is not None:
+        data_files["validation"] = args.validation_file
+
     if args.dataset_name is not None:
         # Downloading and loading a dataset from the hub.
         raw_datasets = load_dataset(
             args.dataset_name,
             args.dataset_config_name,
+            data_files=data_files,
             cache_dir=args.cache_dir,
             keep_in_memory=False,
         )
@@ -63,12 +70,6 @@ def get_dataloaders(tokenizer, args):
                 cache_dir=args.cache_dir,
             )
     else:
-        data_files = {}
-        if args.train_file is not None:
-            data_files["train"] = args.train_file
-        if args.validation_file is not None:
-            data_files["validation"] = args.validation_file
-
         extension = args.train_file.split(".")[-1] if not args.extension else args.extension
         if extension == "txt":
             raise ValueError(

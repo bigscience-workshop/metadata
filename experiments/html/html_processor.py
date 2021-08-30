@@ -1,7 +1,7 @@
 import datetime
-from typing import Any, Dict, Optional, Tuple, List
-from urllib.parse import unquote_plus
 from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Tuple
+from urllib.parse import unquote_plus
 
 from bsmetadata.input_pipeline import DataConfig
 from bsmetadata.metadata_processors import MetadataProcessor
@@ -32,8 +32,8 @@ class Metadata:
 class TagFilter:
     def __init__(
         self,
-        content_max_char_length: Optional[float] = float("inf"),
-        content_min_char_length: Optional[float] = 0,
+        content_max_char_length: Optional[float] = - float("inf"),
+        content_min_char_length: Optional[float] = - float("inf"),
         tags_exceptions: Optional[List[str]] = None,
         tags_to_remove_alone: Optional[List[TagToRemove]] = None,
     ):
@@ -79,8 +79,8 @@ class HtmlProcessor(MetadataProcessor):
         self,
         cfg: DataConfig,
         attributes_to_keep=None,
-        content_max_char_length: Optional[float] = float("inf"),
-        content_min_char_length: Optional[float] = 0,
+        content_max_char_length: Optional[float] = - float("inf"),
+        content_min_char_length: Optional[float] = - float("inf"),
         tags_exceptions: Optional[List[str]] = None,
         tags_to_remove_alone: Optional[List[TagToRemove]] = None,
     ):

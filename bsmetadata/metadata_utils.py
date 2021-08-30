@@ -15,8 +15,8 @@ This script provides utility functions for linearizing, encoding and chunking a 
 """
 import random
 from collections import defaultdict
+from dataclasses import dataclass, field
 from typing import Any, Dict, List, Tuple
-from dataclasses import field, dataclass
 
 from transformers import PreTrainedTokenizerFast
 

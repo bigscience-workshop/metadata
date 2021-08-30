@@ -1,7 +1,8 @@
 import functools
-from functools import partial
 import unittest
+from functools import partial
 
+from html_processor import HtmlProcessor, TagToRemove
 from transformers import GPT2TokenizerFast
 
 from bsmetadata.input_pipeline import DataConfig
@@ -12,8 +13,6 @@ from bsmetadata.metadata_utils import (
     chunks,
     create_global_metadata_prefix,
 )
-
-from html_processor import HtmlProcessor, TagToRemove
 
 
 class MetadataUtilsTester(unittest.TestCase):

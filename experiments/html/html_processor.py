@@ -1,5 +1,5 @@
 import datetime
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import unquote_plus
 
@@ -10,8 +10,8 @@ from bsmetadata.metadata_processors import MetadataProcessor
 @dataclass
 class TagToRemove:
     tag: str
-    content_min_char_length: int = 0
-    content_max_char_length: int = float("inf")
+    txt_min_chr_len: int = 0
+    txt_max_chr_len: int = float("inf")
 
 
 @dataclass
@@ -29,11 +29,38 @@ class Metadata:
     type: str = "local"
 
 
+@dataclass
+class AllTagsRules:
+    attributes_to_keep: List[str] = field(default_factory=(lambda: []), metadata={"help": "TODO."})
+    txt_max_chr_len: float = field(default= -float("inf"), metadata={"help": "TODO."})
+    txt_min_chr_len: float = field(default= -float("inf"), metadata={"help": "TODO."})
+    tags_exceptions_to_txt_max_min_chr_len: List[str] = field(
+        default_factory=(lambda: []), metadata={"help": "TODO."}
+    )
+
+
+@dataclass
+class HTMLParserConfig:
+    all_tags_rules: AllTagsRules = AllTagsRules()
+    tags_to_remove_alone_tag_name: List[str] = field(
+        default_factory=(lambda: []),
+        metadata={"help": "TODO."},
+    )
+    tags_to_remove_alone_txt_max_chr_len: List[float] = field(
+        default_factory=(lambda: []),
+        metadata={"help": "TODO."},
+    )
+    tags_to_remove_alone_txt_min_chr_len: List[float] = field(
+        default_factory=(lambda: []),
+        metadata={"help": "TODO."},
+    )
+
+
 class TagFilter:
     def __init__(
         self,
-        content_max_char_length: Optional[float] = - float("inf"),
-        content_min_char_length: Optional[float] = - float("inf"),
+        txt_max_chr_len: Optional[float] = -float("inf"),
+        txt_min_chr_len: Optional[float] = -float("inf"),
         tags_exceptions: Optional[List[str]] = None,
         tags_to_remove_alone: Optional[List[TagToRemove]] = None,
     ):
@@ -42,8 +69,8 @@ class TagFilter:
             if isinstance(tags_to_remove_alone, list)
             else {}
         )
-        self.content_max_char_length = content_max_char_length
-        self.content_min_char_length = content_min_char_length
+        self.txt_max_chr_len = txt_max_chr_len
+        self.txt_min_chr_len = txt_min_chr_len
         self.tags_exceptions = tags_exceptions if tags_exceptions else []
 
     def drop_tag(self, metadata_node):
@@ -56,16 +83,13 @@ class TagFilter:
         if tag in self.tags_to_remove_alone:
             tag_to_remove_characteristics = self.tags_to_remove_alone[tag]
             if (
-                content_char_length <= tag_to_remove_characteristics.content_max_char_length
-                and content_char_length >= tag_to_remove_characteristics.content_min_char_length
+                content_char_length <= tag_to_remove_characteristics.txt_max_chr_len
+                and content_char_length >= tag_to_remove_characteristics.txt_min_chr_len
             ):
                 drop_tag = True
 
         if tag not in self.tags_exceptions:
-            if (
-                content_char_length <= self.content_max_char_length
-                and content_char_length >= self.content_min_char_length
-            ):
+            if content_char_length <= self.txt_max_chr_len and content_char_length >= self.txt_min_chr_len:
                 drop_tag = True
 
         # raise TypeError(f"tag need to be a string not a {type(tag)}")
@@ -78,21 +102,29 @@ class HtmlProcessor(MetadataProcessor):
     def __init__(
         self,
         cfg: DataConfig,
-        attributes_to_keep=None,
-        content_max_char_length: Optional[float] = - float("inf"),
-        content_min_char_length: Optional[float] = - float("inf"),
-        tags_exceptions: Optional[List[str]] = None,
-        tags_to_remove_alone: Optional[List[TagToRemove]] = None,
     ):
         """
         Args:
             cfg: The data configuration to use.
         """
         super().__init__(cfg)
+        attributes_to_keep = cfg.html_parser_config.all_tags_rules.attributes_to_keep
+        txt_max_chr_len = cfg.html_parser_config.all_tags_rules.txt_max_chr_len
+        txt_min_chr_len = cfg.html_parser_config.all_tags_rules.txt_min_chr_len
+        tags_exceptions = cfg.html_parser_config.all_tags_rules.tags_exceptions_to_txt_max_min_chr_len
+        tags_to_remove_alone = [
+            TagToRemove(tag=tag, txt_max_chr_len=txt_max_chr_len, txt_min_chr_len=txt_min_chr_len)
+            for (tag, txt_max_chr_len, txt_min_chr_len) in zip(
+                cfg.html_parser_config.tags_to_remove_alone_tag_name,
+                cfg.html_parser_config.tags_to_remove_alone_txt_max_chr_len,
+                cfg.html_parser_config.tags_to_remove_alone_txt_min_chr_len,
+            )
+        ]
+
         self._tag_filter = TagFilter(
             tags_to_remove_alone=tags_to_remove_alone,
-            content_min_char_length=content_min_char_length,
-            content_max_char_length=content_max_char_length,
+            txt_min_chr_len=txt_min_chr_len,
+            txt_max_chr_len=txt_max_chr_len,
             tags_exceptions=tags_exceptions,
         )
         self._attributes_to_keep = attributes_to_keep

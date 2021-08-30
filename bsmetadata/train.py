@@ -232,7 +232,7 @@ def main(args: CFG) -> None:
                         gc.collect()
                 if completed_steps >= args.max_train_steps:
                     break
-    logger.close()
+        logger.close()
 
     if is_local_main_process and args.out_dir is not None:
         accelerator.wait_for_everyone()

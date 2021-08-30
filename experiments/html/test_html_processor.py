@@ -147,7 +147,7 @@ class MetadataUtilsTester(unittest.TestCase):
     def test_add_html_tags_remove_tag(self):
         cfg = DataConfig()
         cfg.metadata_list = ["html"]
-        tags_to_remove_alone = [TagToRemove("span", content_max_char_length=5), TagToRemove("body")]
+        tags_to_remove_alone = [TagToRemove("span", txt_max_chr_len=5), TagToRemove("body")]
         PROCESSORS["html"] = partial(HtmlProcessor, tags_to_remove_alone=tags_to_remove_alone)
 
         text1, mask1 = add_local_metadata_to_text(self.examples[1], cfg)

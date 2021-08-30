@@ -1,12 +1,10 @@
-import functools
 import unittest
-from functools import partial
 
-from html_processor import HtmlProcessor, TagToRemove
+from html_processor import AllTagsRules, HTMLParserConfig, HtmlProcessor, TagToRemove
+from start_training import DataConfigWithHTML
 from transformers import GPT2TokenizerFast
 
-from bsmetadata.input_pipeline import DataConfig
-from bsmetadata.metadata_processors import PROCESSORS, MetadataProcessor
+from bsmetadata.metadata_processors import PROCESSORS
 from bsmetadata.metadata_utils import (
     add_local_metadata_to_text,
     add_metadata_and_chunk_examples,
@@ -135,20 +133,36 @@ class MetadataUtilsTester(unittest.TestCase):
         ]
 
     def test_add_html_tags(self):
-        cfg = DataConfig()
+        cfg = DataConfigWithHTML(
+            html_parser_config=HTMLParserConfig(
+                all_tags_rules=AllTagsRules(attributes_to_keep=["class", "id", "href"])
+            )
+        )
         cfg.metadata_list = ["html"]
         PROCESSORS["html"] = HtmlProcessor
 
         text1, mask1 = add_local_metadata_to_text(self.examples[0], cfg)
-        target_text = '<a>useless text</a> <div id="siteNotice centralNotice" class="mw-body-content"><a id="top"><div id="mw-head-base" class="noprint"><div id="mw-page-base" class="noprint"></div></div></a></div><h1 id="firstHeading" class="firstHeading" lang="en"><i>The Walking Dead</i> (season 8)</h1>\n'
+        target_text = '<a>useless text</a> <div id="siteNotice centralNotice" class="mw-body-content"><a id="top"><div id="mw-head-base" class="noprint"><div id="mw-page-base" class="noprint"></div></div></a></div><h1 id="firstHeading" class="firstHeading"><i>The Walking Dead</i> (season 8)</h1>\n'
 
         self.assertEqual(text1, target_text)
 
     def test_add_html_tags_remove_tag(self):
-        cfg = DataConfig()
-        cfg.metadata_list = ["html"]
         tags_to_remove_alone = [TagToRemove("span", txt_max_chr_len=5), TagToRemove("body")]
-        PROCESSORS["html"] = partial(HtmlProcessor, tags_to_remove_alone=tags_to_remove_alone)
+
+        cfg = DataConfigWithHTML(
+            html_parser_config=HTMLParserConfig(
+                all_tags_rules=AllTagsRules(attributes_to_keep=["class", "id", "href"]),
+                tags_to_remove_alone_tag_name=[tag_to_remove.tag for tag_to_remove in tags_to_remove_alone],
+                tags_to_remove_alone_txt_max_chr_len=[
+                    tag_to_remove.txt_max_chr_len for tag_to_remove in tags_to_remove_alone
+                ],
+                tags_to_remove_alone_txt_min_chr_len=[
+                    tag_to_remove.txt_min_chr_len for tag_to_remove in tags_to_remove_alone
+                ],
+            )
+        )
+        cfg.metadata_list = ["html"]
+        PROCESSORS["html"] = HtmlProcessor
 
         text1, mask1 = add_local_metadata_to_text(self.examples[1], cfg)
         target_text = (

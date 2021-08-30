@@ -1,22 +1,12 @@
 import sys
 from dataclasses import dataclass, field
-from functools import partial
-from typing import Optional, List, Any, Tuple
+from typing import Optional
 
-from datasets import load_dataset
-from html_processor import HtmlProcessor, TagToRemove, HTMLParserConfig, AllTagsRules
+from html_processor import AllTagsRules, HTMLParserConfig, HtmlProcessor, TagToRemove
 from hydra.core.config_store import ConfigStore
-from transformers import AutoTokenizer
 
-from bsmetadata.experiments.with_metadata import get_dataloaders
 from bsmetadata.input_pipeline import DataConfig
 from bsmetadata.metadata_processors import PROCESSORS
-from bsmetadata.metadata_utils import (
-    add_local_metadata_to_text,
-    add_metadata_and_chunk_examples,
-    chunks,
-    create_global_metadata_prefix,
-)
 from bsmetadata.train import main, show_help
 
 
@@ -45,16 +35,16 @@ PROCESSORS["html"] = HtmlProcessor
 
 @dataclass
 class DataConfigWithHTML(DataConfig):
-        html_parser_config: HTMLParserConfig = HTMLParserConfig(
-            AllTagsRules(
-                attributes_to_keep=attributes_to_keep,
-                txt_max_chr_len=txt_max_chr_len,
-                txt_min_chr_len=txt_min_chr_len,
-                tags_exceptions_to_txt_max_min_chr_len=tags_exceptions
-            ),
-            tags_to_remove_alone_tag_name=[tag_to_remove.tag for tag_to_remove in tags_to_remove_alone],
-            tags_to_remove_alone_txt_max_chr_len=[tag_to_remove.txt_max_chr_len for tag_to_remove in tags_to_remove_alone],
-            tags_to_remove_alone_txt_min_chr_len=[tag_to_remove.txt_min_chr_len for tag_to_remove in tags_to_remove_alone]
+    html_parser_config: HTMLParserConfig = HTMLParserConfig(
+        AllTagsRules(
+            attributes_to_keep=attributes_to_keep,
+            txt_max_chr_len=txt_max_chr_len,
+            txt_min_chr_len=txt_min_chr_len,
+            tags_exceptions_to_txt_max_min_chr_len=tags_exceptions,
+        ),
+        tags_to_remove_alone_tag_name=[tag_to_remove.tag for tag_to_remove in tags_to_remove_alone],
+        tags_to_remove_alone_txt_max_chr_len=[tag_to_remove.txt_max_chr_len for tag_to_remove in tags_to_remove_alone],
+        tags_to_remove_alone_txt_min_chr_len=[tag_to_remove.txt_min_chr_len for tag_to_remove in tags_to_remove_alone],
     )
 
 

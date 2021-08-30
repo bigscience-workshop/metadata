@@ -48,6 +48,7 @@ class CFG:
     do_train: bool = field(default=True, metadata={"help": "Whether to run training."})
     do_eval: bool = field(default=True, metadata={"help": "Whether to run eval on the dev set."})
 
+
 cs = ConfigStore.instance()
 cs.store(name="config", node=CFG)
 
@@ -108,6 +109,9 @@ def loss_fn(batch, outputs, metadata_mask=None):
 @hydra.main(config_name="config")
 def main(args: CFG) -> None:
     print(OmegaConf.to_yaml(args))
+
+    # The following line is very important for the object to be hashable (property used by datasets)
+    args = OmegaConf.to_object(args)
 
     set_seed(args.seed)
     accelerator = Accelerator()

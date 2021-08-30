@@ -1,4 +1,3 @@
-import datetime
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import unquote_plus
@@ -32,11 +31,9 @@ class Metadata:
 @dataclass
 class AllTagsRules:
     attributes_to_keep: List[str] = field(default_factory=(lambda: []), metadata={"help": "TODO."})
-    txt_max_chr_len: float = field(default= -float("inf"), metadata={"help": "TODO."})
-    txt_min_chr_len: float = field(default= -float("inf"), metadata={"help": "TODO."})
-    tags_exceptions_to_txt_max_min_chr_len: List[str] = field(
-        default_factory=(lambda: []), metadata={"help": "TODO."}
-    )
+    txt_max_chr_len: float = field(default=-float("inf"), metadata={"help": "TODO."})
+    txt_min_chr_len: float = field(default=-float("inf"), metadata={"help": "TODO."})
+    tags_exceptions_to_txt_max_min_chr_len: List[str] = field(default_factory=(lambda: []), metadata={"help": "TODO."})
 
 
 @dataclass

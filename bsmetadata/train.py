@@ -45,7 +45,8 @@ class CFG:
     num_eval: int = field(default=3, metadata={"help": "The number of evaluations to perform during training."})
     model_name: str = field(default="gpt2", metadata={"help": "The name of the pretrained model to use."})
     project_name: str = field(default="metadata_lm", metadata={"help": "The project name."})
-
+    do_train: bool = field(default=True, metadata={"help": "Whether to run training."})
+    do_eval: bool = field(default=True, metadata={"help": "Whether to run eval on the dev set."})
 
 cs = ConfigStore.instance()
 cs.store(name="config", node=CFG)
@@ -181,55 +182,56 @@ def main(args: CFG) -> None:
         model.train()
         return {"perplexity": perplexity}
 
-    progress_bar = tqdm(range(args.max_train_steps), desc="training")
-    completed_steps = 0
-    logger = Logger(is_local_main_process, project=args.project_name, config=args)
-    for epoch in range(args.num_train_epochs):
-        model.train()
-        for step, batch in enumerate(train_dataloader):
-            # pop labels because we want to calculate loss ourselves
-            labels = batch.pop("labels")
-            metadata_mask = batch.pop("metadata_mask", None)
-            outputs = model(**batch)
-            batch["labels"] = labels
-            loss = loss_fn(batch, outputs, metadata_mask)
+    if args.do_train:
+        progress_bar = tqdm(range(args.max_train_steps), desc="training")
+        completed_steps = 0
+        logger = Logger(is_local_main_process, project=args.project_name, config=args)
+        for epoch in range(args.num_train_epochs):
+            model.train()
+            for step, batch in enumerate(train_dataloader):
+                # pop labels because we want to calculate loss ourselves
+                labels = batch.pop("labels")
+                metadata_mask = batch.pop("metadata_mask", None)
+                outputs = model(**batch)
+                batch["labels"] = labels
+                loss = loss_fn(batch, outputs, metadata_mask)
 
-            logger.log({"loss": loss})
-            loss = loss / args.gradient_accumulation_steps
-            accelerator.backward(loss)
+                logger.log({"loss": loss})
+                loss = loss / args.gradient_accumulation_steps
+                accelerator.backward(loss)
 
-            do_step = step % args.gradient_accumulation_steps == 0 or step == len(train_dataloader) - 1
-            if do_step:
-                #             accelerator.clip_grad_norm_(model.parameters(), 1.0)
-                optimizer.step()
-                scheduler.step()
-                optimizer.zero_grad()
-                progress_bar.update(1)
-                completed_steps += 1
-            else:
-                continue
-            do_eval = completed_steps > 0 and completed_steps % eval_per_n_step == 0
-            if do_eval:
-                for key, eval_dataloader in eval_dataloaders.items():
-                    metrics = evaluate(eval_dataloader)
-                    logger.log({key: metrics})
+                do_step = step % args.gradient_accumulation_steps == 0 or step == len(train_dataloader) - 1
+                if do_step:
+                    #             accelerator.clip_grad_norm_(model.parameters(), 1.0)
+                    optimizer.step()
+                    scheduler.step()
+                    optimizer.zero_grad()
+                    progress_bar.update(1)
+                    completed_steps += 1
+                else:
+                    continue
+                do_eval = args.do_train and completed_steps > 0 and completed_steps % eval_per_n_step == 0
+                if do_eval:
+                    for key, eval_dataloader in eval_dataloaders.items():
+                        metrics = evaluate(eval_dataloader)
+                        logger.log({key: metrics})
 
-                # logger.info(f"epoch {epoch}: perplexity: {perplexity}")
-                if is_local_main_process:
-                    save_dict = {
-                        "epoch": epoch + 1,
-                        "state_dict": accelerator.unwrap_model(model).state_dict(),
-                        "optimizer": optimizer.state_dict(),
-                        "scheduler": scheduler.state_dict(),
-                    }
-                    torch.save(
-                        save_dict,
-                        os.path.join(args.out_dir, f"checkpoint-{completed_steps}step.pt"),
-                    )
-                    del save_dict
-                    gc.collect()
-            if completed_steps >= args.max_train_steps:
-                break
+                    # logger.info(f"epoch {epoch}: perplexity: {perplexity}")
+                    if is_local_main_process:
+                        save_dict = {
+                            "epoch": epoch + 1,
+                            "state_dict": accelerator.unwrap_model(model).state_dict(),
+                            "optimizer": optimizer.state_dict(),
+                            "scheduler": scheduler.state_dict(),
+                        }
+                        torch.save(
+                            save_dict,
+                            os.path.join(args.out_dir, f"checkpoint-{completed_steps}step.pt"),
+                        )
+                        del save_dict
+                        gc.collect()
+                if completed_steps >= args.max_train_steps:
+                    break
     logger.close()
 
     if is_local_main_process and args.out_dir is not None:

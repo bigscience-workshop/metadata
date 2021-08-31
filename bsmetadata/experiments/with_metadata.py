@@ -46,6 +46,8 @@ def get_dataloaders(tokenizer, args):
     if args.validation_file is not None:
         data_files["validation"] = args.validation_file
 
+    logger.info("Start to load dataset")
+    logger.warning("Start to load dataset")
     if args.dataset_name is not None:
         # Downloading and loading a dataset from the hub.
         raw_datasets = load_dataset(
@@ -93,12 +95,14 @@ def get_dataloaders(tokenizer, args):
                 split=f"train[{args.validation_split_percentage}%:]",
                 cache_dir=args.cache_dir,
             )
+    logger.info("Dataset loaded")
     # See more about loading any type of standard or custom dataset (from files, python dict, pandas DataFrame, etc) at
     # https://huggingface.co/docs/datasets/loading_datasets.html.
 
     # Preprocessing the datasets.
     column_names = raw_datasets["train"].column_names
 
+    logger.info("Start to add metadata and chunk examples")
     # First we pre-process our text and metadata
     lm_datasets = raw_datasets.map(
         functools.partial(add_metadata_and_chunk_examples, tokenizer=tokenizer, cfg=args),
@@ -108,11 +112,13 @@ def get_dataloaders(tokenizer, args):
         desc="Pre-process the text and metadata to create new samples",
         remove_columns=column_names,
     )
+    logger.info("Add metadata and chunk examples finished")
 
     def create_labels_column(examples):
         examples["labels"] = examples["input_ids"].copy()
         return examples
 
+    logger.info("Create labels column")
     # Then we add the column containing the labels
     lm_datasets = lm_datasets.map(
         create_labels_column,
@@ -121,6 +127,7 @@ def get_dataloaders(tokenizer, args):
         load_from_cache_file=not args.overwrite_cache,
         desc="Create labels column",
     )
+    logger.info("Creating labels column finished")
 
     train_dataset = lm_datasets["train"]
     val_dataset = lm_datasets["validation"]

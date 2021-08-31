@@ -1,4 +1,5 @@
 import dataclasses
+import logging
 import gc
 import json
 import math
@@ -120,10 +121,18 @@ def main(args: CFG) -> None:
 
     os.makedirs(args.out_dir, exist_ok=True)
 
+    # Setup logging
+    logging.basicConfig(
+        format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
+        datefmt="%m/%d/%Y %H:%M:%S",
+        level=logging.INFO if is_local_main_process else logging.WARN,
+    )
+
     # get dataloaders
     tokenizer = AutoTokenizer.from_pretrained(args.model_name)
     tokenizer.pad_token = tokenizer.eos_token
     train_dataloader, eval_dataloaders = get_dataloaders(tokenizer, args.data_config)
+    logger.info("The dataloaders have been build")
 
     # get model
     model = AutoModelForCausalLM.from_pretrained(args.model_name)
@@ -187,9 +196,11 @@ def main(args: CFG) -> None:
         return {"perplexity": perplexity}
 
     if args.do_train:
+        # Train!
+        logger.info("***** Running training *****")
         progress_bar = tqdm(range(args.max_train_steps), desc="training")
         completed_steps = 0
-        logger = Logger(is_local_main_process, project=args.project_name, config=args)
+        logger_metrics = Logger(is_local_main_process, project=args.project_name, config=args)
         for epoch in range(args.num_train_epochs):
             model.train()
             for step, batch in enumerate(train_dataloader):
@@ -200,7 +211,7 @@ def main(args: CFG) -> None:
                 batch["labels"] = labels
                 loss = loss_fn(batch, outputs, metadata_mask)
 
-                logger.log({"loss": loss})
+                logger_metrics.log({"loss": loss})
                 loss = loss / args.gradient_accumulation_steps
                 accelerator.backward(loss)
 
@@ -218,9 +229,9 @@ def main(args: CFG) -> None:
                 if do_eval:
                     for key, eval_dataloader in eval_dataloaders.items():
                         metrics = evaluate(eval_dataloader)
-                        logger.log({key: metrics})
+                        logger_metrics.log({key: metrics})
 
-                    # logger.info(f"epoch {epoch}: perplexity: {perplexity}")
+                    # logger_metrics.info(f"epoch {epoch}: perplexity: {perplexity}")
                     if is_local_main_process:
                         save_dict = {
                             "epoch": epoch + 1,
@@ -236,7 +247,7 @@ def main(args: CFG) -> None:
                         gc.collect()
                 if completed_steps >= args.max_train_steps:
                     break
-        logger.close()
+        logger_metrics.close()
 
     if is_local_main_process and args.out_dir is not None:
         accelerator.wait_for_everyone()

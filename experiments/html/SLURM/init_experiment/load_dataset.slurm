@@ -8,8 +8,8 @@
 #SBATCH --time 00:02:00              # maximum execution time (HH:MM:SS)
 #SBATCH --output=%x-%j.out           # output file name
 #SBATCH --error=%x-%j.err            # error file name
-#SBATCH --account=six@cpu            # account
-#SBATCH -p compil                   # partition with internet
+#SBATCH --account=six@gpu            # account
+#SBATCH -p compil                    # partition with internet
 
 set -x -e
 

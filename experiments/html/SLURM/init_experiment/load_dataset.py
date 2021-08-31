@@ -1,3 +1,4 @@
+import logging
 import sys
 
 import hydra
@@ -7,6 +8,7 @@ from hydra.core.config_store import ConfigStore
 from bsmetadata.input_pipeline import DataConfig
 from bsmetadata.train import show_help
 
+logger = logging.getLogger(__name__)
 
 cs = ConfigStore.instance()
 cs.store(name="data_config", node=DataConfig)
@@ -21,6 +23,7 @@ def main(args: DataConfig) -> None:
         data_files["validation"] = args.validation_file
 
     if args.dataset_name is not None:
+        logger.info("Downloading and loading a dataset from the hub")
         # Downloading and loading a dataset from the hub.
         raw_datasets = load_dataset(
             args.dataset_name,

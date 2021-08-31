@@ -1,7 +1,7 @@
 import dataclasses
-import logging
 import gc
 import json
+import logging
 import math
 import os
 import sys
@@ -20,6 +20,9 @@ from tqdm.auto import tqdm as original_tqdm
 from transformers import AdamW, AutoModelForCausalLM, AutoTokenizer, get_scheduler, set_seed
 
 from bsmetadata.input_pipeline import DataConfig, get_dataloaders
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass

@@ -1,13 +1,16 @@
-import hydra
 import sys
+
+import hydra
 from datasets import load_dataset
 from hydra.core.config_store import ConfigStore
 
 from bsmetadata.input_pipeline import DataConfig
 from bsmetadata.train import show_help
 
+
 cs = ConfigStore.instance()
 cs.store(name="data_config", node=DataConfig)
+
 
 @hydra.main(config_name="data_config")
 def main(args: DataConfig) -> None:

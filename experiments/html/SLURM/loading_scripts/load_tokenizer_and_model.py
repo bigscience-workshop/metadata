@@ -1,14 +1,25 @@
-import hydra
+import logging
 import sys
+
+import hydra
 from datasets import load_dataset
 from hydra.core.config_store import ConfigStore
 from transformers import AdamW, AutoModelForCausalLM, AutoTokenizer
 
 from bsmetadata.input_pipeline import DataConfig
-from bsmetadata.train import show_help, CFG
+from bsmetadata.train import CFG, show_help
+
+
+# Setup logging
+logging.basicConfig(
+    format="%(asctime)s - %(levelname)s - %(name)s - %(message)s", datefmt="%m/%d/%Y %H:%M:%S", level=logging.INFO
+)
+
+logger = logging.getLogger(__name__)
 
 cs = ConfigStore.instance()
 cs.store(name="config", node=CFG)
+
 
 @hydra.main(config_path=None, config_name="config")
 def main(args: CFG) -> None:

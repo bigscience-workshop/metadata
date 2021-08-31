@@ -15,7 +15,7 @@ source $HOME/start-user
 
 cd $WORK/repos/metadata/
 
-python experiments/html/SLURM/init_experiment/start_training.py \
+python experiments/html/start_training.py \
 data_config.experiment="with_metadata" \
 data_config.metadata_list=["html"] \
 data_config.max_seq_len=1024 \

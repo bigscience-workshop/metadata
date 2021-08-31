@@ -23,7 +23,10 @@ def main(args: DataConfig) -> None:
         data_files["validation"] = args.validation_file
 
     if args.dataset_name is not None:
-        logger.info("Downloading and loading a dataset from the hub")
+        logger.info(
+            "Downloading and loading a dataset from the hub"
+            f"{args.dataset_name}, {args.dataset_config_name}, data_files={data_files}, cache_dir={args.cache_dir},"
+        )
         # Downloading and loading a dataset from the hub.
         raw_datasets = load_dataset(
             args.dataset_name,
@@ -34,6 +37,7 @@ def main(args: DataConfig) -> None:
         )
 
         if "validation" not in raw_datasets.keys():
+            logger.info("validation not in raw_datasets.keys()")
             raw_datasets["validation"] = load_dataset(
                 args.dataset_name,
                 args.dataset_config_name,

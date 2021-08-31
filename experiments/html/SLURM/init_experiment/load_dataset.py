@@ -9,7 +9,7 @@ from bsmetadata.train import show_help
 cs = ConfigStore.instance()
 cs.store(name="data_config", node=DataConfig)
 
-@hydra.main(config_name="config")
+@hydra.main(config_name="data_config")
 def main(args: DataConfig) -> None:
     data_files = {}
     if args.train_file is not None:

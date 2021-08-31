@@ -132,8 +132,10 @@ def main(args: CFG) -> None:
     )
 
     # get dataloaders
+    logger.info("Load tokenizer")
     tokenizer = AutoTokenizer.from_pretrained(args.model_name)
     tokenizer.pad_token = tokenizer.eos_token
+    logger.info("Load dataloaders")
     train_dataloader, eval_dataloaders = get_dataloaders(tokenizer, args.data_config)
     logger.info("The dataloaders have been build")
 

@@ -106,7 +106,7 @@ def loss_fn(batch, outputs, metadata_mask=None):
     return loss
 
 
-@hydra.main(config_name="config")
+@hydra.main(config_path=None, config_name="config")
 def main(args: CFG) -> None:
     print(OmegaConf.to_yaml(args))
 

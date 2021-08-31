@@ -1,5 +1,6 @@
 import functools
 import logging
+from datasets import config
 
 from datasets import load_dataset
 from torch.utils.data import DataLoader
@@ -48,6 +49,7 @@ def get_dataloaders(tokenizer, args):
 
     logger.info("Start to load dataset")
     logger.warning("Start to load dataset")
+    logger.info(config.HF_DATASETS_CACHE)
     if args.dataset_name is not None:
         logger.info(
             "Downloading and loading a dataset from the hub"

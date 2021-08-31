@@ -1,5 +1,6 @@
 import logging
 import sys
+from datasets import config
 
 import hydra
 from datasets import load_dataset
@@ -22,6 +23,7 @@ def main(args: DataConfig) -> None:
     if args.validation_file is not None:
         data_files["validation"] = args.validation_file
 
+    logger.info(config.HF_DATASETS_CACHE)
     if args.dataset_name is not None:
         logger.info(
             "Downloading and loading a dataset from the hub"

@@ -49,6 +49,7 @@ def get_dataloaders(tokenizer, args):
     logger.info("Start to load dataset")
     logger.warning("Start to load dataset")
     if args.dataset_name is not None:
+        logger.info("Downloading and loading a dataset from the hub")
         # Downloading and loading a dataset from the hub.
         raw_datasets = load_dataset(
             args.dataset_name,
@@ -72,6 +73,7 @@ def get_dataloaders(tokenizer, args):
                 cache_dir=args.cache_dir,
             )
     else:
+        logger.info("Loading dataset from extension script")
         extension = args.train_file.split(".")[-1] if not args.extension else args.extension
         if extension == "txt":
             raise ValueError(

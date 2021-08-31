@@ -13,7 +13,6 @@ set -x -e
 
 source $HOME/start-user
 
-export HF_DATASETS_OFFLINE=1
 export TRANSFORMERS_OFFLINE=1
 
 cd $WORK/repos/metadata/

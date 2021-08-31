@@ -15,9 +15,6 @@ set -x -e
 
 source $HOME/start-user
 
-export HF_DATASETS_OFFLINE=1
-export TRANSFORMERS_OFFLINE=1
-
 cd $WORK/repos/metadata/
 
 python experiments/html/SLURM/loading_scripts/load_tokenizer_and_model.py \

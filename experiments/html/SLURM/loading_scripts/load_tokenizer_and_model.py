@@ -1,6 +1,7 @@
 import logging
 import sys
 
+import transformers.utils.logging as logging_transformers
 import hydra
 from datasets import load_dataset
 from hydra.core.config_store import ConfigStore
@@ -14,6 +15,9 @@ from bsmetadata.train import CFG, show_help
 logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(name)s - %(message)s", datefmt="%m/%d/%Y %H:%M:%S", level=logging.INFO
 )
+logging_transformers.set_verbosity_info()
+logging_transformers.enable_default_handler()
+logging_transformers.enable_explicit_format()
 
 logger = logging.getLogger(__name__)
 

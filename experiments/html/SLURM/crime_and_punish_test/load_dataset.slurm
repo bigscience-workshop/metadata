@@ -18,4 +18,4 @@ source $HOME/start-user
 cd $WORK/repos/metadata/
 
 python experiments/html/SLURM/init_experiment/load_dataset.py \
-dataset_name="squad" \
+dataset_name="crime_and_punish" \

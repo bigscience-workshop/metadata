@@ -21,7 +21,7 @@ python experiments/html/start_training.py \
 data_config.experiment="with_metadata" \
 data_config.metadata_list=["html"] \
 data_config.max_seq_len=1024 \
-data_config.dataset_name="squad" \
+data_config.dataset_name="crime_and_punish" \
 data_config.extension="json" \
 data_config.preprocessing_num_workers=8 \
 do_train=False \

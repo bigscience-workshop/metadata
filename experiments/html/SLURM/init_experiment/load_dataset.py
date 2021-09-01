@@ -23,6 +23,9 @@ def main(args: DataConfig) -> None:
     if args.validation_file is not None:
         data_files["validation"] = args.validation_file
 
+    if not data_files:
+        data_files = None
+
     logger.info(config.HF_DATASETS_CACHE)
     if args.dataset_name is not None:
         logger.info(

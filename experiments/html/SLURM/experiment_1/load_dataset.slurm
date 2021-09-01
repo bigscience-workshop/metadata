@@ -5,7 +5,7 @@
 #SBATCH --cpus-per-task=8            # number of cores per tasks
 #SBATCH --hint=nomultithread         # we get physical cores not logical
 #SBATCH --gres=gpu:0                 # number of gpus
-#SBATCH --time 00:02:00              # maximum execution time (HH:MM:SS)
+#SBATCH --time 00:30:00              # maximum execution time (HH:MM:SS)
 #SBATCH --output=%x-%j.out           # output file name
 #SBATCH --error=%x-%j.err            # error file name
 #SBATCH --account=six@gpu            # account
@@ -16,11 +16,11 @@ set -x -e
 source $HOME/start-user
 
 # Uncomment if the repo doesn't exist
-cd $DATASETS_CUSTOM/
-git clone https://huggingface.co/datasets/SaulLu/Natural_Questions_HTML
-cd Natural_Questions_HTML_Toy/
-git lfs install
-git lfs pull origin master
+# cd $DATASETS_CUSTOM/
+# git clone https://huggingface.co/datasets/SaulLu/Natural_Questions_HTML
+# cd Natural_Questions_HTML_Toy/
+# git lfs install
+# git lfs pull origin master
 
 cd $WORK/repos/metadata/
 

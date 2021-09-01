@@ -46,6 +46,9 @@ def get_dataloaders(tokenizer, args):
         data_files["train"] = args.train_file
     if args.validation_file is not None:
         data_files["validation"] = args.validation_file
+        
+    if not data_files:
+        data_files = None
 
     logger.info("Start to load dataset")
     logger.warning("Start to load dataset")

@@ -15,9 +15,13 @@ set -x -e
 
 source $HOME/start-user
 
+# Uncomment if the repo doesn't exist
+# cd $DATASETS_CUSTOM/
+# git clone https://huggingface.co/datasets/SaulLu/Natural_Questions_HTML_Toy
+
 cd $WORK/repos/metadata/
 
 python experiments/html/SLURM/init_experiment/load_dataset.py \
-dataset_name="SaulLu/Natural_Questions_HTML_Toy" \
+dataset_name="${DATASETS_CUSTOM}/SaulLu/Natural_Questions_HTML_Toy" \
 train_file="nq-train-*.jsonl.gz" \
 validation_file="nq-dev-*.jsonl.gz" 

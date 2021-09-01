@@ -140,6 +140,7 @@ def main(args: CFG) -> None:
     logger.info("The dataloaders have been build")
 
     # get model
+    logger.info("Load model")
     model = AutoModelForCausalLM.from_pretrained(args.model_name)
 
     # Optimizer
@@ -200,9 +201,9 @@ def main(args: CFG) -> None:
         model.train()
         return {"perplexity": perplexity}
 
+    logger.info("***** Start training *****")
     if args.do_train:
         # Train!
-        logger.info("***** Running training *****")
         progress_bar = tqdm(range(args.max_train_steps), desc="training")
         completed_steps = 0
         logger_metrics = Logger(is_local_main_process, project=args.project_name, config=args)
@@ -254,6 +255,7 @@ def main(args: CFG) -> None:
                     break
         logger_metrics.close()
 
+    logger.info("***** Training finished *****")
     if is_local_main_process and args.out_dir is not None:
         accelerator.wait_for_everyone()
         unwrapped_model = accelerator.unwrap_model(model)

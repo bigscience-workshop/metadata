@@ -22,6 +22,6 @@ source $HOME/start-user
 cd $WORK/repos/metadata/
 
 python experiments/html/SLURM/init_experiment/load_dataset.py \
-dataset_name="${DATASETS_CUSTOM}/SaulLu/Natural_Questions_HTML_Toy" \
+dataset_name="${DATASETS_CUSTOM}/Natural_Questions_HTML_Toy" \
 train_file="nq-train-*.jsonl.gz" \
 validation_file="nq-dev-*.jsonl.gz" 

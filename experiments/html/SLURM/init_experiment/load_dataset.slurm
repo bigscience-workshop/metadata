@@ -18,6 +18,9 @@ source $HOME/start-user
 # Uncomment if the repo doesn't exist
 # cd $DATASETS_CUSTOM/
 # git clone https://huggingface.co/datasets/SaulLu/Natural_Questions_HTML_Toy
+# cd Natural_Questions_HTML_Toy/
+# git lfs install
+# git lfs pull origin master
 
 cd $WORK/repos/metadata/
 

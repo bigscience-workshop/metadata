@@ -1,7 +1,8 @@
 import functools
 import logging
 from datasets import config
-
+import copy
+from datasets.fingerprint import Hasher
 from datasets import load_dataset
 from torch.utils.data import DataLoader
 from transformers import default_data_collator
@@ -58,7 +59,7 @@ def get_dataloaders(tokenizer, args):
             f"dataset_name={args.dataset_name}, dataset_config_name={args.dataset_config_name}, data_files={data_files}, cache_dir={args.cache_dir},"
         )
         # Downloading and loading a dataset from the hub.
-        raw_datasets = load_dataset(
+        datasets = load_dataset(
             args.dataset_name,
             args.dataset_config_name,
             data_files=data_files,
@@ -66,14 +67,14 @@ def get_dataloaders(tokenizer, args):
             keep_in_memory=False,
         )
 
-        if "validation" not in raw_datasets.keys():
-            raw_datasets["validation"] = load_dataset(
+        if "validation" not in datasets.keys():
+            datasets["validation"] = load_dataset(
                 args.dataset_name,
                 args.dataset_config_name,
                 split=f"train[:{args.validation_split_percentage}%]",
                 cache_dir=args.cache_dir,
             )
-            raw_datasets["train"] = load_dataset(
+            datasets["train"] = load_dataset(
                 args.dataset_name,
                 args.dataset_config_name,
                 split=f"train[{args.validation_split_percentage}%:]",
@@ -89,16 +90,16 @@ def get_dataloaders(tokenizer, args):
             )
         if extension == "jsonl":
             extension = "json"
-        raw_datasets = load_dataset(extension, data_files=data_files, cache_dir=args.cache_dir)
+        datasets = load_dataset(extension, data_files=data_files, cache_dir=args.cache_dir)
 
-        if "validation" not in raw_datasets.keys():
-            raw_datasets["validation"] = load_dataset(
+        if "validation" not in datasets.keys():
+            datasets["validation"] = load_dataset(
                 extension,
                 data_files=data_files,
                 split=f"train[:{args.validation_split_percentage}%]",
                 cache_dir=args.cache_dir,
             )
-            raw_datasets["train"] = load_dataset(
+            datasets["train"] = load_dataset(
                 extension,
                 data_files=data_files,
                 split=f"train[{args.validation_split_percentage}%:]",
@@ -109,12 +110,21 @@ def get_dataloaders(tokenizer, args):
     # https://huggingface.co/docs/datasets/loading_datasets.html.
 
     # Preprocessing the datasets.
-    column_names = raw_datasets["train"].column_names
+    column_names = datasets["train"].column_names
 
     logger.info("Start to add metadata and chunk examples")
+
+    tmp_data_args = copy.deepcopy(args)
+    tmp_data_args.preprocessing_num_workers = 80
+    tmp_data_args.overwrite_cache = False
+    tmp_data_args.per_device_eval_batch_size = 2
+    tmp_data_args.per_device_train_batch_size = 2
+
+    logger.info(f"Will store the cache with the hash for the tokenizer {Hasher.hash(tokenizer)} and the args {Hasher.hash(tmp_data_args)}")
+
     # First we pre-process our text and metadata
-    lm_datasets = raw_datasets.map(
-        functools.partial(add_metadata_and_chunk_examples, tokenizer=tokenizer, cfg=args),
+    datasets = datasets.map(
+        functools.partial(add_metadata_and_chunk_examples, tokenizer=tokenizer, cfg=tmp_data_args),
         batched=True,
         num_proc=args.preprocessing_num_workers,
         load_from_cache_file=not args.overwrite_cache,
@@ -129,7 +139,7 @@ def get_dataloaders(tokenizer, args):
 
     logger.info("Create labels column")
     # Then we add the column containing the labels
-    lm_datasets = lm_datasets.map(
+    datasets = datasets.map(
         create_labels_column,
         batched=True,
         num_proc=args.preprocessing_num_workers,
@@ -138,8 +148,11 @@ def get_dataloaders(tokenizer, args):
     )
     logger.info("Creating labels column finished")
 
-    train_dataset = lm_datasets["train"]
-    val_dataset = lm_datasets["validation"]
+    train_dataset = datasets["train"]
+    val_dataset = datasets["validation"]
+
+    logger.info(f"  Num train examples = {len(train_dataset)}")
+    logger.info(f"  Num validation examples = {len(val_dataset)}")
 
     # DataLoaders creation:
     train_dataloader = DataLoader(

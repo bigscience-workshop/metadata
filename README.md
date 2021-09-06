@@ -11,7 +11,7 @@ accelerate launch --fp16 train.py max_train_steps=100 num_eval=1 data_config.per
 ## Get Help
 
 ```sh
-python metadata/train.py [-h] [--help]
+python bsmetadata/train.py [-h] [--help]
 ```
 
 ## Metadata Format

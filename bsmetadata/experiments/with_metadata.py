@@ -53,7 +53,7 @@ def get_dataloaders(tokenizer, args):
     logger.info(f"Start to load dataset, the result will be cached at {config.HF_DATASETS_CACHE}")
     if args.dataset_name is not None:
         logger.info(
-            "Downloading and loading with arguments: "
+            "Downloading with arguments: "
             f"dataset_name={args.dataset_name}, "
             f"dataset_config_name={args.dataset_config_name}, "
             f"data_files={data_files}, "
@@ -131,6 +131,7 @@ def get_dataloaders(tokenizer, args):
         load_from_cache_file=not args.overwrite_cache,
         desc="Pre-process the text and metadata to create new samples",
         remove_columns=column_names,
+        batch_size=1, # To avoid out of memory issues
     )
     logger.info("Add metadata and chunk examples finished")
 
@@ -146,6 +147,7 @@ def get_dataloaders(tokenizer, args):
         num_proc=args.preprocessing_num_workers,
         load_from_cache_file=not args.overwrite_cache,
         desc="Create labels column",
+        batch_size=1, # To avoid out of memory issues
     )
     logger.info("Creating labels column finished")
 

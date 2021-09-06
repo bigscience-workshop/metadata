@@ -130,6 +130,7 @@ def get_dataloaders(tokenizer, args):
         load_from_cache_file=not args.overwrite_cache,
         desc="Pre-process the text and metadata to create new samples",
         remove_columns=column_names,
+        batch_size=1,
     )
     logger.info("Add metadata and chunk examples finished")
 

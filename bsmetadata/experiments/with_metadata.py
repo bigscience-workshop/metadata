@@ -1,9 +1,8 @@
+import copy
 import functools
 import logging
-from datasets import config
-import copy
-from datasets.fingerprint import Hasher
-from datasets import load_dataset
+
+from datasets import config, load_dataset
 from torch.utils.data import DataLoader
 from transformers import default_data_collator
 
@@ -47,16 +46,18 @@ def get_dataloaders(tokenizer, args):
         data_files["train"] = args.train_file
     if args.validation_file is not None:
         data_files["validation"] = args.validation_file
-        
+
     if not data_files:
         data_files = None
 
-    logger.info("Start to load dataset")
-    logger.info(config.HF_DATASETS_CACHE)
+    logger.info(f"Start to load dataset, the result will be cached at {config.HF_DATASETS_CACHE}")
     if args.dataset_name is not None:
         logger.info(
-            "Downloading and loading with arguments: "
-            f"dataset_name={args.dataset_name}, dataset_config_name={args.dataset_config_name}, data_files={data_files}, cache_dir={args.cache_dir},"
+            "Downloading with arguments: "
+            f"dataset_name={args.dataset_name}, "
+            f"dataset_config_name={args.dataset_config_name}, "
+            f"data_files={data_files}, "
+            f"cache_dir={args.cache_dir},"
         )
         # Downloading and loading a dataset from the hub.
         datasets = load_dataset(
@@ -114,13 +115,14 @@ def get_dataloaders(tokenizer, args):
 
     logger.info("Start to add metadata and chunk examples")
 
+    # Sets the attributes of the args object that have no influence on the calculation of the next map. This is useful
+    # for using the cache efficiently.
     tmp_data_args = copy.deepcopy(args)
     tmp_data_args.preprocessing_num_workers = 80
     tmp_data_args.overwrite_cache = False
     tmp_data_args.per_device_eval_batch_size = 2
     tmp_data_args.per_device_train_batch_size = 2
-
-    logger.info(f"Will store the cache with the hash for the tokenizer {Hasher.hash(tokenizer)} and the args {Hasher.hash(tmp_data_args)}")
+    tmp_data_args.map_batch_size = 1
 
     # First we pre-process our text and metadata
     datasets = datasets.map(
@@ -130,7 +132,7 @@ def get_dataloaders(tokenizer, args):
         load_from_cache_file=not args.overwrite_cache,
         desc="Pre-process the text and metadata to create new samples",
         remove_columns=column_names,
-        batch_size=1,
+        batch_size=args.map_batch_size,
     )
     logger.info("Add metadata and chunk examples finished")
 
@@ -146,7 +148,7 @@ def get_dataloaders(tokenizer, args):
         num_proc=args.preprocessing_num_workers,
         load_from_cache_file=not args.overwrite_cache,
         desc="Create labels column",
-        batch_size=1,
+        batch_size=args.map_batch_size,
     )
     logger.info("Creating labels column finished")
 

@@ -46,6 +46,9 @@ def build_dataset(tokenizer, args):
     if args.validation_file is not None:
         data_files["validation"] = args.validation_file
 
+    if not data_files:
+        data_files = None
+
     if args.dataset_name is not None:
         # Downloading and loading a dataset from the hub.
         raw_datasets = load_dataset(

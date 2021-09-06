@@ -146,6 +146,7 @@ def get_dataloaders(tokenizer, args):
         num_proc=args.preprocessing_num_workers,
         load_from_cache_file=not args.overwrite_cache,
         desc="Create labels column",
+        batch_size=1,
     )
     logger.info("Creating labels column finished")
 

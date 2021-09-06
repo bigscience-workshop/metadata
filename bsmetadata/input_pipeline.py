@@ -63,6 +63,13 @@ class DataConfig:
     block_size: Optional[int] = field(
         default=None, metadata={"help": "Optional input sequence length after tokenization."}
     )
+    map_batch_size: Optional[int] = field(
+        default=1,
+        metadata={
+            "help": "This is the size of the batch size that will be used for the mapping operation when generating"
+            " the dataset. If you are using `with_metadata` the recommended batch size is 1.."
+        },
+    )
 
 
 def get_dataloaders(tokenizer, cfg: DataConfig):

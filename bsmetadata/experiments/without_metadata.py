@@ -117,7 +117,7 @@ def get_dataloaders(tokenizer, args):
         remove_columns=column_names,
         load_from_cache_file=not args.overwrite_cache,
         desc="Running tokenizer on dataset",
-        batch_size=1, # To avoid out of memory issues
+        batch_size=args.map_batch_size,
     )
     logger.info("Tokenize dataset finished")
 
@@ -168,7 +168,7 @@ def get_dataloaders(tokenizer, args):
         num_proc=args.preprocessing_num_workers,
         load_from_cache_file=not args.overwrite_cache,
         desc=f"Grouping texts in chunks of {block_size}",
-        batch_size=1, # To avoid out of memory issues
+        batch_size=args.map_batch_size,
     )
     logger.info("Group texts finished")
 

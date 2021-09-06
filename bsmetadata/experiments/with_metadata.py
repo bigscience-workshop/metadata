@@ -122,6 +122,7 @@ def get_dataloaders(tokenizer, args):
     tmp_data_args.overwrite_cache = False
     tmp_data_args.per_device_eval_batch_size = 2
     tmp_data_args.per_device_train_batch_size = 2
+    tmp_data_args.map_batch_size = 1
 
     # First we pre-process our text and metadata
     datasets = datasets.map(
@@ -131,7 +132,7 @@ def get_dataloaders(tokenizer, args):
         load_from_cache_file=not args.overwrite_cache,
         desc="Pre-process the text and metadata to create new samples",
         remove_columns=column_names,
-        batch_size=1, # To avoid out of memory issues
+        batch_size=args.map_batch_size,
     )
     logger.info("Add metadata and chunk examples finished")
 
@@ -147,7 +148,7 @@ def get_dataloaders(tokenizer, args):
         num_proc=args.preprocessing_num_workers,
         load_from_cache_file=not args.overwrite_cache,
         desc="Create labels column",
-        batch_size=1, # To avoid out of memory issues
+        batch_size=args.map_batch_size,
     )
     logger.info("Creating labels column finished")
 

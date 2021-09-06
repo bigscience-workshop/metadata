@@ -1,6 +1,8 @@
 from dataclasses import dataclass, field
 from typing import Optional
 
+from accelerate import DistributedType
+
 from bsmetadata.metadata_utils import MetadataConfig
 
 
@@ -53,6 +55,7 @@ class DataConfig:
             " the dataset. If you are using `with_metadata` the recommended batch size is 1.."
         },
     )
+    distributed_type: DistributedType = field(default=DistributedType.NO)
 
 
 def get_dataloaders(tokenizer, cfg: DataConfig):

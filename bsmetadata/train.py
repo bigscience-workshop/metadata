@@ -104,8 +104,11 @@ def loss_fn(batch, outputs, metadata_mask=None):
     return loss
 
 
-@hydra.main(config_name="config")
+@hydra.main(config_path=None, config_name="config")
 def main(args: CFG) -> None:
+    accelerator = Accelerator()
+    args.data_config.distributed_type = accelerator.distributed_type
+
     print(OmegaConf.to_yaml(args))
 
     # The dataset library use the hash of the arguments to create the cache
@@ -113,7 +116,6 @@ def main(args: CFG) -> None:
     args = OmegaConf.to_object(args)
 
     set_seed(args.seed)
-    accelerator = Accelerator()
     is_local_main_process = accelerator.is_local_main_process
     tqdm = partial(original_tqdm, disable=not is_local_main_process, position=0)
 

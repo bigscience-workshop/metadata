@@ -6,7 +6,6 @@ from transformers import GPT2TokenizerFast
 
 from bsmetadata.input_pipeline import DataConfig
 from bsmetadata.metadata_processors import PROCESSORS, HtmlProcessor, MetadataProcessor
-from bsmetadata.metadata_processors import PROCESSORS, MetadataProcessor
 from bsmetadata.metadata_utils import (
     add_local_metadata_to_text,
     add_metadata_and_chunk_examples,
@@ -210,7 +209,9 @@ class MetadataUtilsTester(unittest.TestCase):
         PROCESSORS["html"] = HtmlProcessor
 
         text1, mask1 = add_local_metadata_to_text(self.examples[3], cfg)
-        target_text = '<a>useless text </a><div><a><div><div></div></div></a></div><h1><i>The Walking Dead</i> (season 8)</h1>\n'
+        target_text = (
+            "<a>useless text </a><div><a><div><div></div></div></a></div><h1><i>The Walking Dead</i> (season 8)</h1>\n"
+        )
 
         self.assertEqual(text1, target_text)
 

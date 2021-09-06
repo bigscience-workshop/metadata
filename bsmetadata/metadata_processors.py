@@ -92,7 +92,13 @@ class HtmlProcessor(MetadataProcessor):
     def process_local(self, metadata_attrs: Dict[str, Any]) -> Optional[Tuple[str, str]]:
         # We represent a html tag `T` by enclosing the corresponding text span with "<T>" and "</T>".
         # Example: An <b>apple</b> is an edible fruit.
-        return f"<{metadata_attrs['value']}>", f"</{metadata_attrs['value']}>"
+        attributes = " ".join(
+            f'{attr}:"{value}"'
+            for attr, value in zip(metadata_attrs["value"]["attrs"]["attr"], metadata_attrs["value"]["attrs"]["value"])
+        )
+        if attributes:
+            attributes = " " + attributes
+        return f"<{metadata_attrs['value']['tag']}{attributes}>", f"</{metadata_attrs['value']['tag']}>"
 
 
 class UrlProcessor(MetadataProcessor):

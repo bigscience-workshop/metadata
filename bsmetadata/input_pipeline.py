@@ -50,6 +50,7 @@ class DataConfig:
     cache_dir: Optional[str] = field(
         default=None, metadata={"help": "Where do you want to store the pretrained models downloaded from s3?"}
     )
+    extension: Optional[str] = field(default=None, metadata={"help": "the file extension of the dataset"})
     preprocessing_num_workers: Optional[int] = field(
         default=None, metadata={"help": "The number of processes to use for the preprocessing."}
     )

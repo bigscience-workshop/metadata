@@ -201,8 +201,8 @@ def main(args: CFG) -> None:
         model.train()
         return {"perplexity": perplexity}
 
-    logger.info("***** Start training *****")
     if args.do_train:
+        logger.info("***** Start training *****")
         # Train!
         progress_bar = tqdm(range(args.max_train_steps), desc="training")
         completed_steps = 0
@@ -254,8 +254,8 @@ def main(args: CFG) -> None:
                 if completed_steps >= args.max_train_steps:
                     break
         logger_metrics.close()
-
-    logger.info("***** Training finished *****")
+        logger.info("***** Training finished *****")
+        
     if is_local_main_process and args.out_dir is not None:
         accelerator.wait_for_everyone()
         unwrapped_model = accelerator.unwrap_model(model)

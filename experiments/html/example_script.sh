@@ -9,3 +9,7 @@ data_config.extension="json" \
 data_config.preprocessing_num_workers=6 \
 do_train=False \
 do_eval=False \
+evaluation_strategy=STEPS \
+eval_steps=50 \
+save_strategy=STEPS \
+save_steps=500 \

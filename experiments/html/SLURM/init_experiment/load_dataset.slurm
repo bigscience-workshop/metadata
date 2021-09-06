@@ -22,7 +22,7 @@ source $HOME/start-user
 # git lfs install
 # git lfs pull origin master
 
-cd $WORK/repos/metadata/
+cd $WORK/repos/test-sync/metadata/
 
 python experiments/html/SLURM/init_experiment/load_dataset.py \
 dataset_name="${DATASETS_CUSTOM}/Natural_Questions_HTML_Toy" \

@@ -16,7 +16,7 @@ source $HOME/start-user
 export HF_DATASETS_OFFLINE=1
 export TRANSFORMERS_OFFLINE=1
 
-cd $WORK/repos/metadata/
+cd $WORK/repos/test-sync/metadata/
 
 python experiments/html/start_training.py \
 data_config.experiment="with_metadata" \

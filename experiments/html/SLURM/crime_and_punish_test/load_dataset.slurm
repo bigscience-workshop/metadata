@@ -15,7 +15,7 @@ set -x -e
 
 source $HOME/start-user
 
-cd $WORK/repos/metadata/
+cd $WORK/repos/test-sync/metadata/
 
 python experiments/html/SLURM/init_experiment/load_dataset.py \
 dataset_name="crime_and_punish" \

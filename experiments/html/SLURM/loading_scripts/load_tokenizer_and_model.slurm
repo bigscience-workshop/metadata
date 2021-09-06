@@ -15,7 +15,7 @@ set -x -e
 
 source $HOME/start-user
 
-cd $WORK/repos/metadata/
+cd $WORK/repos/test-sync/metadata/
 
 python experiments/html/SLURM/loading_scripts/load_tokenizer_and_model.py \
 model_name=gpt2 \

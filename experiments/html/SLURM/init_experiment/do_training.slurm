@@ -19,7 +19,7 @@ export TRANSFORMERS_OFFLINE=1
 # be careful about the cache folder for Wandb
 export WANDB_MODE=offline
 
-cd $WORK/repos/metadata/
+cd $WORK/repos/test-sync/metadata/
 
 python experiments/html/start_training.py \
 data_config.experiment="with_metadata" \

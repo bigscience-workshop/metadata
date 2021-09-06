@@ -8,7 +8,7 @@ from hydra.core.config_store import ConfigStore
 
 from bsmetadata.input_pipeline import DataConfig
 from bsmetadata.metadata_processors import PROCESSORS
-from bsmetadata.train import main, show_help
+from bsmetadata.train import main, show_help, CFG
 
 
 tags_to_remove_alone = [
@@ -50,35 +50,12 @@ class DataConfigWithHTML(DataConfig):
 
 
 @dataclass
-class CFG:
+class CFGAugmented(CFG):
     data_config: DataConfigWithHTML = DataConfigWithHTML()
-    weight_decay: float = field(default=0.0, metadata={"help": "The weight decay to use for training."})
-    learning_rate: float = field(default=5e-5, metadata={"help": "The initial learning rate."})
-    gradient_accumulation_steps: int = field(
-        default=1,
-        metadata={"help": "The number of gradient accumulation steps to perform before updating model parameters."},
-    )
-    num_train_epochs: int = field(default=1, metadata={"help": "The number of epochs to train the model for."})
-    max_train_steps: Optional[int] = field(
-        default=None, metadata={"help": "The maximum number of training steps (overrides num_train_epochs)."}
-    )
-    lr_scheduler_type: str = field(default="linear", metadata={"help": "The type of learning rate schedule to use."})
-    num_warmup_steps: int = field(
-        default=1000, metadata={"help": "The number of warmup steps during which the learning rate is increased."}
-    )
-    seed: int = field(default=42, metadata={"help": "The seed used for RNG initialization."})
-    out_dir: str = field(
-        default="output_dir", metadata={"help": "The output directory in which the trained model is saved."}
-    )
-    num_eval: int = field(default=3, metadata={"help": "The number of evaluations to perform during training."})
-    model_name: str = field(default="gpt2", metadata={"help": "The name of the pretrained model to use."})
-    project_name: str = field(default="metadata_lm", metadata={"help": "The project name."})
-    do_train: bool = field(default=True, metadata={"help": "Whether to run training."})
-    do_eval: bool = field(default=True, metadata={"help": "Whether to run eval on the dev set."})
 
 
 cs = ConfigStore.instance()
-cs.store(name="config", node=CFG)
+cs.store(name="config", node=CFGAugmented)
 
 if __name__ == "__main__":
     if "--help" in sys.argv or "-h" in sys.argv:

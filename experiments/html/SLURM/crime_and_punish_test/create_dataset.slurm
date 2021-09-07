@@ -5,8 +5,8 @@
 #SBATCH --cpus-per-task=8            # number of cores per tasks
 #SBATCH --hint=nomultithread         # we get physical cores not logical
 #SBATCH --time 00:10:00              # maximum execution time (HH:MM:SS)
-#SBATCH --output=%x-%j.out          # output file name
-#SBATCH --error=%x-%j.err           # error file name
+#SBATCH --output=/gpfsdswork/projects/rech/six/uue59kq/logs/%x-%j.out          # output file name
+#SBATCH --error=/gpfsdswork/projects/rech/six/uue59kq/logs/%x-%j.err           # error file name
 #SBATCH --account=six@cpu # account
 
 set -x -e
@@ -16,7 +16,7 @@ source $HOME/start-user
 export HF_DATASETS_OFFLINE=1
 export TRANSFORMERS_OFFLINE=1
 
-cd $WORK/repos/test-sync/metadata/
+cd $WORK/repos/sync/metadata/
 
 python experiments/html/start_training.py \
 data_config.experiment="with_metadata" \

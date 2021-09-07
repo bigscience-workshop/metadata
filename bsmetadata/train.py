@@ -251,7 +251,7 @@ def main(args: CFG) -> None:
         completed_steps = 0
         logger_metrics = Logger(is_local_main_process, project=args.project_name, config=args)
         
-        do_eval = args.do_eval and completed_steps > 0 and completed_steps % eval_per_n_step == 0
+        do_eval = args.do_eval
         if do_eval:
             logger.info("***** Evaluation *****")
             for key, eval_dataloader in eval_dataloaders.items():
@@ -269,7 +269,7 @@ def main(args: CFG) -> None:
                 batch["labels"] = labels
                 loss = loss_fn(batch, outputs, metadata_mask)
 
-                logger_metrics.log({"loss": loss})
+                logger_metrics.log({"loss": loss, "lr": optimizer.param_groups[0]['lr']})
                 loss = loss / args.gradient_accumulation_steps
                 accelerator.backward(loss)
 

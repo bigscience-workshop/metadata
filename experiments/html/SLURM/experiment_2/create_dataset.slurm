@@ -19,12 +19,12 @@ export TRANSFORMERS_OFFLINE=1
 cd $WORK/repos/sync/metadata/
 
 python experiments/html/start_training.py \
-data_config.experiment="with_metadata" \
+data_config.experiment="with_metadata_and_baseline_val" \
 data_config.metadata_list=["html"] \
 data_config.max_seq_len=1024 \
 data_config.dataset_name="${DATASETS_CUSTOM}/Natural_Questions_HTML" \
-data_config.train_file="nq-train-*.jsonl.gz" \
-data_config.validation_file="nq-dev-*.jsonl.gz" \
+data_config.train_file="nq-train-0\[0-2\].jsonl.gz" \
+data_config.validation_file="nq-dev-00.jsonl.gz" \
 data_config.extension="json" \
 data_config.preprocessing_num_workers=80 \
 out_dir="${SCRATCH}/metadata_outputs" \

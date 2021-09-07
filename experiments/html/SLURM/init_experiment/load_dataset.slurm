@@ -6,8 +6,8 @@
 #SBATCH --hint=nomultithread         # we get physical cores not logical
 #SBATCH --gres=gpu:0                 # number of gpus
 #SBATCH --time 00:02:00              # maximum execution time (HH:MM:SS)
-#SBATCH --output=%x-%j.out           # output file name
-#SBATCH --error=%x-%j.err            # error file name
+#SBATCH --output=/gpfsdswork/projects/rech/six/uue59kq/logs/%x-%j.out           # output file name
+#SBATCH --error=/gpfsdswork/projects/rech/six/uue59kq/logs/%x-%j.err            # error file name
 #SBATCH --account=six@gpu            # account
 #SBATCH -p compil                    # partition with internet
 
@@ -22,7 +22,7 @@ source $HOME/start-user
 # git lfs install
 # git lfs pull origin master
 
-cd $WORK/repos/test-sync/metadata/
+cd $WORK/repos/sync/metadata/
 
 python experiments/html/SLURM/init_experiment/load_dataset.py \
 dataset_name="${DATASETS_CUSTOM}/Natural_Questions_HTML_Toy" \

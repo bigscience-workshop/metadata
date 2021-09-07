@@ -106,5 +106,10 @@ def get_dataloaders(tokenizer, cfg: DataConfig):
         from bsmetadata.experiments.with_metadata import get_dataloaders as fn
 
         return fn(tokenizer, cfg)
+    
+    if cfg.experiment == "with_metadata_and_baseline_val":
+        from bsmetadata.experiments.with_metadata_and_baseline_val import get_dataloaders as fn
+
+        return fn(tokenizer, cfg)
     else:
         raise ValueError("You have not entered a valid experience name")

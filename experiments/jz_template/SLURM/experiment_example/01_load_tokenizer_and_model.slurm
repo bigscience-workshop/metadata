@@ -18,4 +18,4 @@ source $HOME/start-user
 cd $WORK/repos/sync/metadata/
 
 python experiments/html/SLURM/loading_scripts/load_tokenizer_and_model.py \
-model_name=gpt2 \
+    model_name=gpt2 \

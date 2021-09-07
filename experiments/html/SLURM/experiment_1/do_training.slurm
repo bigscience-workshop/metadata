@@ -20,7 +20,7 @@ export TRANSFORMERS_OFFLINE=1
 export WANDB_MODE=offline
 export WANDB_DIR=$SCRATCH
 
-cd $WORK/repos/test-sync/metadata/
+cd $WORK/repos/sync/metadata/
 
 python experiments/html/start_training.py \
 data_config.experiment="with_metadata" \

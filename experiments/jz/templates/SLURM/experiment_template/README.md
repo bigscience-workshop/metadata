@@ -7,3 +7,7 @@
 3. Preprocess the dataset on a cpu-only partition
 4. Run the training on a gpu 16gb partition
 
+Are you downloading a new:
+- model ?
+- tokenizer ?
+- dataset ? 

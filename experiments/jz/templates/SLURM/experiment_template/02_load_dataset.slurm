@@ -11,6 +11,7 @@
 #SBATCH --account=six@gpu                                               # account
 #SBATCH -p compil                                                       # partition with internet
 
+
 set -x -e
 
 # Next line will:
@@ -21,9 +22,41 @@ set -x -e
 # If there are new dependencies to install, you have to tell me about them and not do it in this script
 source $HOME/start-modelling-metadata-user
 
-# Folder for the clone of github.com/bigscience-workshop/metadata/
-cd $WORK/repos/metadata/
+# For the moment we can't directly use the new dataset feature on JZ which would avoid having to clone the dataset
+# repo from the HUB. So the first thing to do is to clone the repo of the XXX dataset if it does not already exist.
+HUB_REPO_NAME='XXX' # (change me! e.g. SaulLu/Natural_Questions_HTML_Toy)
 
-# Command to load the XXX model and tokenizer stored on https://huggingface.co/models
-python experiments/jz_template/SLURM/loading_script_utils/load_tokenizer_and_model.py \
-    model_name=XXX
+# We define the name of the folder in which the clone will be made
+#Define multi-character delimiter
+delimiter="/"
+#Concatenate the delimiter with the main string
+string=$HUB_REPO_NAME$delimiter
+
+#Split the text based on the delimiter
+myarray=()
+while [[ $string ]]; do
+  myarray+=( "${string%%"$delimiter"*}" )
+  string=${string#*"$delimiter"}
+done
+REPO_DIR="${DATASETS_CUSTOM}/${myarray[-1]}"
+
+# We clone the repo if it doesn't exist
+if [[ -d "${REPO_DIR}" ]]
+then
+    echo "${REPO_DIR} already exists on your filesystem."
+else
+    echo "${REPO_DIR} doesn't exists on your filesystem."
+    cd $DATASETS_CUSTOM/
+    git clone "https://huggingface.co/datasets/${HUB_REPO_NAME}"
+    cd ${REPO_DIR}
+    git lfs install
+    git lfs pull origin master
+fi
+
+cd $WORK/repos/sync/metadata/
+
+# We check that the dataset can indeed be loaded
+python experiments/jz/utils/loading_script_utils/load_dataset.py \
+    dataset_name="${REPO_DIR}" \
+    train_file="XXX" \ # (change me! e.g "nq-train-*.jsonl.gz" or remove arg)
+    validation_file="XXX" # (change me! e.g. "nq-dev-*.jsonl.gz" or remove arg)

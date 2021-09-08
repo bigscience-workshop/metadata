@@ -9,6 +9,7 @@ from transformers import AutoTokenizer
 from bsmetadata.experiments.with_metadata import get_dataloaders as get_dataloaders_with_metadata
 from bsmetadata.experiments.without_metadata import get_dataloaders as get_dataloaders_without_metadata
 from bsmetadata.input_pipeline import DataConfig
+from bsmetadata.metadata_processors import MetadataConfig
 
 
 logging.basicConfig(level=logging.DEBUG)
@@ -30,8 +31,7 @@ def test_get_dataloaders_with_metadata(metadata_list):
     data_config = DataConfig(
         train_file=os.path.join(path_test_folder, "data", "train_toy_wikitext_with_metadata.jsonl"),
         validation_file=os.path.join(path_test_folder, "data", "val_toy_wikitext_with_metadata.jsonl"),
-        metadata_list=metadata_list,
-        max_seq_len=100,
+        metadata_config=MetadataConfig(metadata_list=metadata_list, max_seq_len=100),
     )
 
     tokenizer = AutoTokenizer.from_pretrained("gpt2")
@@ -70,8 +70,7 @@ def test_get_dataloaders_with_metadata_start_with_metadata_mask(metadata_list):
     data_config = DataConfig(
         train_file=os.path.join(path_test_folder, "data", "train_toy_wikitext_with_metadata.jsonl"),
         validation_file=os.path.join(path_test_folder, "data", "val_toy_wikitext_with_metadata.jsonl"),
-        metadata_list=metadata_list,
-        max_seq_len=100,
+        metadata_config=MetadataConfig(metadata_list=metadata_list, max_seq_len=100),
     )
 
     tokenizer = AutoTokenizer.from_pretrained("gpt2")
@@ -108,7 +107,6 @@ def test_get_dataloaders_without_metadata():
         train_file=os.path.join(path_test_folder, "data", "train_toy_raw_wikitext.jsonl"),
         validation_file=os.path.join(path_test_folder, "data", "val_toy_raw_wikitext.jsonl"),
         block_size=50,
-        max_seq_len=100,
     )
 
     tokenizer = AutoTokenizer.from_pretrained("gpt2")

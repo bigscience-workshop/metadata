@@ -1,4 +1,3 @@
-import copy
 import functools
 import logging
 
@@ -115,18 +114,9 @@ def get_dataloaders(tokenizer, args):
 
     logger.info("Start to add metadata and chunk examples")
 
-    # Sets the attributes of the args object that have no influence on the calculation of the next map. This is useful
-    # for using the cache efficiently.
-    tmp_data_args = copy.deepcopy(args)
-    tmp_data_args.preprocessing_num_workers = 80
-    tmp_data_args.overwrite_cache = False
-    tmp_data_args.per_device_eval_batch_size = 2
-    tmp_data_args.per_device_train_batch_size = 2
-    tmp_data_args.map_batch_size = 1
-
     # First we pre-process our text and metadata
     datasets = datasets.map(
-        functools.partial(add_metadata_and_chunk_examples, tokenizer=tokenizer, cfg=tmp_data_args),
+        functools.partial(add_metadata_and_chunk_examples, tokenizer=tokenizer, cfg=args.metadata_config),
         batched=True,
         num_proc=args.preprocessing_num_workers,
         load_from_cache_file=not args.overwrite_cache,

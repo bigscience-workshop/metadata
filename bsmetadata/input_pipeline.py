@@ -1,37 +1,20 @@
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import Optional
+
+from bsmetadata.metadata_utils import MetadataConfig
 
 
 @dataclass
 class DataConfig:
+    metadata_config: MetadataConfig = field(
+        default_factory=lambda: MetadataConfig(), metadata={"help": "The configuration related to the metadata."}
+    )
     experiment: str = field(default="sample", metadata={"help": "The name of the experiment."})
     per_device_eval_batch_size: int = field(
         default=2, metadata={"help": "The per-device batch size to use for evaluation."}
     )
     per_device_train_batch_size: int = field(
         default=2, metadata={"help": "The per-device batch size to use for training."}
-    )
-    metadata_list: List[str] = field(
-        default_factory=list,
-        metadata={"help": "The list of metadata types to use. Metadata is added in order of appearance in this list."},
-    )
-    metadata_sep: str = field(
-        default=" | ",
-        metadata={"help": "The character sequence that is used to separate two instances of global metadata."},
-    )
-    metadata_key_value_sep: str = field(
-        default=": ",
-        metadata={"help": "The character sequence that is used by default to separate a metadata key and its value."},
-    )
-    metadata_probability: float = field(
-        default=1, metadata={"help": "The probability of adding metadata to an input example."}
-    )
-    global_metadata_sep: str = field(
-        default=" |||",
-        metadata={"help": "The character sequence that is used to separate all global metadata from the actual text."},
-    )
-    max_seq_len: int = field(
-        default=512, metadata={"help": "The maximum number of tokens to use for each training chunk."}
     )
     dataset_name: Optional[str] = field(
         default=None, metadata={"help": "The name of the dataset to use (via the datasets library)"}

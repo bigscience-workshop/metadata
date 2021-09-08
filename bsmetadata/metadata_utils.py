@@ -20,12 +20,11 @@ from typing import Any, Dict, List, Tuple
 
 from transformers import PreTrainedTokenizerFast
 
-from bsmetadata.input_pipeline import DataConfig
-from bsmetadata.metadata_processors import PROCESSORS, MetadataProcessor
+from bsmetadata.metadata_processors import PROCESSORS, MetadataConfig, MetadataProcessor
 
 
 def add_metadata_and_chunk_examples(
-    examples: Dict[str, List], tokenizer: PreTrainedTokenizerFast, cfg: DataConfig
+    examples: Dict[str, List], tokenizer: PreTrainedTokenizerFast, cfg: MetadataConfig
 ) -> Dict[str, List]:
     """Adds metadata to the provided input examples, encodes them and groups them in chunks of size `cfg.max_seq_len`.
 
@@ -99,7 +98,7 @@ def add_metadata_and_chunk_examples(
     return linearized_examples
 
 
-def create_global_metadata_prefix(example: Dict[str, Any], cfg: DataConfig) -> str:
+def create_global_metadata_prefix(example: Dict[str, Any], cfg: MetadataConfig) -> str:
     """Creates a prefix containing all global metadata information (including URLs, timestamps, etc).
 
     Args:

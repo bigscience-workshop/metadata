@@ -3,11 +3,9 @@ import sys
 
 import hydra
 import transformers.utils.logging as logging_transformers
-from datasets import load_dataset
 from hydra.core.config_store import ConfigStore
-from transformers import AdamW, AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from bsmetadata.input_pipeline import DataConfig
 from bsmetadata.train import CFG, show_help
 
 
@@ -28,10 +26,10 @@ cs.store(name="config", node=CFG)
 @hydra.main(config_path=None, config_name="config")
 def main(args: CFG) -> None:
     # get dataloaders
-    tokenizer = AutoTokenizer.from_pretrained(args.model_name)
+    _ = AutoTokenizer.from_pretrained(args.model_name)
 
     # get model
-    model = AutoModelForCausalLM.from_pretrained(args.model_name)
+    _ = AutoModelForCausalLM.from_pretrained(args.model_name)
 
 
 if __name__ == "__main__":

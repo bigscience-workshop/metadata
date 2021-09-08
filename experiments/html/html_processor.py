@@ -1,6 +1,5 @@
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
-from urllib.parse import unquote_plus
 
 from bsmetadata.input_pipeline import DataConfig
 from bsmetadata.metadata_processors import MetadataProcessor

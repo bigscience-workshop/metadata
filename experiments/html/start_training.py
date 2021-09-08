@@ -1,7 +1,5 @@
-import logging
 import sys
-from dataclasses import dataclass, field
-from typing import Optional
+from dataclasses import dataclass
 
 from html_processor import AllTagsRules, HTMLParserConfig, HtmlProcessor, TagToRemove
 from hydra.core.config_store import ConfigStore

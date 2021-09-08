@@ -7,9 +7,6 @@ from transformers import GPT2TokenizerFast
 from bsmetadata.metadata_processors import PROCESSORS
 from bsmetadata.metadata_utils import (
     add_local_metadata_to_text,
-    add_metadata_and_chunk_examples,
-    chunks,
-    create_global_metadata_prefix,
 )
 
 

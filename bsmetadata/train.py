@@ -18,7 +18,7 @@ from hydra.core.config_store import ConfigStore
 from omegaconf import OmegaConf
 from tqdm.auto import tqdm as original_tqdm
 from transformers import AdamW, AutoModelForCausalLM, AutoTokenizer, get_scheduler, set_seed
-from transformers.trainer_utils import EvaluationStrategy, IntervalStrategy
+from transformers.trainer_utils import IntervalStrategy
 
 from bsmetadata.input_pipeline import DataConfig, get_dataloaders
 

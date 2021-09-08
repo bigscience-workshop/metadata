@@ -207,7 +207,7 @@ class MetadataUtilsTester(unittest.TestCase):
             self.assertTrue(all(not x for x in example["metadata_mask"]))
 
     def test_add_html_tags(self):
-        cfg = DataConfig()
+        cfg = MetadataConfig()
         cfg.metadata_list = ["html"]
         PROCESSORS["html"] = HtmlProcessor
 

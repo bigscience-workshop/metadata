@@ -130,7 +130,7 @@ class MetadataIdxStorage:
     end_idx_tag_without_content: dict = field(default_factory=(lambda: defaultdict(list)))
 
 
-def add_local_metadata_to_text(example: Dict[str, Any], cfg: DataConfig) -> Tuple[str, List[bool]]:
+def add_local_metadata_to_text(example: Dict[str, Any], cfg: MetadataConfig) -> Tuple[str, List[bool]]:
     """Adds local metadata (such as HTML tags and entity names) to the given input text.
 
     Args:

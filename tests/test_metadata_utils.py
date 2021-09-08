@@ -4,9 +4,9 @@ import unittest
 from datasets import Dataset
 from transformers import GPT2TokenizerFast
 
-from bsmetadata.input_pipeline import DataConfig
 from bsmetadata.metadata_processors import PROCESSORS, MetadataProcessor
 from bsmetadata.metadata_utils import (
+    MetadataConfig,
     add_local_metadata_to_text,
     add_metadata_and_chunk_examples,
     chunks,
@@ -70,7 +70,7 @@ class MetadataUtilsTester(unittest.TestCase):
         self.assertEqual(list([x for _, x in chunks(3, list1, list2)]), [[0, 1, 2], [3, 4, 5], [6]])
 
     def test_create_global_metadata_prefix(self):
-        cfg = DataConfig()
+        cfg = MetadataConfig()
         cfg.metadata_key_value_sep = ": "
         cfg.metadata_sep = " | "
         cfg.global_metadata_sep = " |||"
@@ -89,7 +89,7 @@ class MetadataUtilsTester(unittest.TestCase):
         )
 
     def test_add_local_metadata_to_text(self):
-        cfg = DataConfig()
+        cfg = MetadataConfig()
         cfg.metadata_list = ["html", "entity"]
         PROCESSORS["html"] = MetadataProcessor
         PROCESSORS["entity"] = MetadataProcessor
@@ -115,7 +115,7 @@ class MetadataUtilsTester(unittest.TestCase):
         )
 
     def test_add_no_metadata_and_chunk_examples(self):
-        cfg = DataConfig()
+        cfg = MetadataConfig()
         cfg.metadata_list = ["url", "timestamp", "html", "entity"]
         cfg.max_seq_len = 64
         cfg.metadata_probability = 0
@@ -134,7 +134,7 @@ class MetadataUtilsTester(unittest.TestCase):
             self.assertTrue(all(not x for x in example["metadata_mask"]))
 
     def test_add_metadata_and_chunk_examples(self):
-        cfg = DataConfig()
+        cfg = MetadataConfig()
         cfg.metadata_list = ["url", "timestamp", "html", "entity"]
         cfg.max_seq_len = 64
         cfg.metadata_probability = 1

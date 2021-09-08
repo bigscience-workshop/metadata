@@ -58,5 +58,5 @@ cd $WORK/repos/sync/metadata/
 # We check that the dataset can indeed be loaded
 python experiments/jz/utils/loading_script_utils/load_dataset.py \
     dataset_name="${REPO_DIR}" \
-    train_file="XXX" \ # (change me! e.g "nq-train-*.jsonl.gz" or remove arg)
-    validation_file="XXX" # (change me! e.g. "nq-dev-*.jsonl.gz" or remove arg)
+    train_file="XXX" \ # (change me and remove the comment! e.g "nq-train-*.jsonl.gz" or remove arg)
+    validation_file="XXX" # (change me and remove the comment! e.g. "nq-dev-*.jsonl.gz" or remove arg)

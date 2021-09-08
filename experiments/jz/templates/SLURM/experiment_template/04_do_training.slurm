@@ -45,13 +45,13 @@ while [[ $string ]]; do
 done
 REPO_DIR="${DATASETS_CUSTOM}/${myarray[-1]}"
 
-python bsmetadata/train.py \ # (change me! if you have a specific script)
+python bsmetadata/train.py \ # (change me and remove the comment! if you have a specific script)
     data_config.experiment="with_metadata" \
     data_config.metadata_list=["html"] \
     data_config.max_seq_len=1024 \
     data_config.dataset_name="${REPO_DIR}" \
-    data_config.train_file="XXX" \ # (change me! e.g "nq-train-0\[0-2\].jsonl.gz" or remove arg)
-    data_config.validation_file"XXX" \ # (change me! e.g "nq-dev-00.jsonl.gz" or remove arg)
+    data_config.train_file="XXX" \ # (change me and remove the comment! e.g "nq-train-0\[0-2\].jsonl.gz" or remove arg)
+    data_config.validation_file"XXX" \ # (change me and remove the comment! e.g "nq-dev-00.jsonl.gz" or remove arg)
     data_config.preprocessing_num_workers=80 \
     data_config.per_device_eval_batch_size=3 \
     data_config.per_device_train_batch_size=3 \
@@ -62,4 +62,4 @@ python bsmetadata/train.py \ # (change me! if you have a specific script)
     eval_steps=10 \
     save_strategy=STEPS \
     save_steps=10 \
-    gradient_accumulation_steps=50\ # (change me!)
+    gradient_accumulation_steps=50\ # (change me and remove the comment!)

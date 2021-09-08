@@ -20,7 +20,6 @@ from urllib.parse import unquote_plus
 from bsmetadata.input_pipeline import DataConfig
 
 
-
 class MetadataProcessor:
     """A metadata processor can be used to add both global and local metadata information to a given input text."""
 

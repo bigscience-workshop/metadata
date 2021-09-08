@@ -53,14 +53,24 @@ class CFG:
         default="STEPS",
         metadata={"help": "The evaluation strategy to use."},
     )
-    eval_num_per_epoch: int = field(default=3, metadata={"help": "If evaluation strategy is `epoch`. The number of evaluations to perform per epoch during training."})
-    eval_steps: int = field(default=100, metadata={"help": "If evaluation strategy is `steps`. Run an evaluation every X steps."})
+    eval_num_per_epoch: int = field(
+        default=3,
+        metadata={
+            "help": "If evaluation strategy is `epoch`. The number of evaluations to perform per epoch during training."
+        },
+    )
+    eval_steps: int = field(
+        default=100, metadata={"help": "If evaluation strategy is `steps`. Run an evaluation every X steps."}
+    )
 
     save_strategy: IntervalStrategy = field(
         default="STEPS",
         metadata={"help": "The checkpoint save strategy to use."},
     )
-    save_num_per_epoch: int = field(default=3, metadata={"help": "If save strategy is `epoch`. The number of savings to perform per epoch during training."})
+    save_num_per_epoch: int = field(
+        default=3,
+        metadata={"help": "If save strategy is `epoch`. The number of savings to perform per epoch during training."},
+    )
     save_steps: int = field(default=500, metadata={"help": "Save checkpoint every X updates steps."})
     save_total_limit: Optional[int] = field(
         default=None,
@@ -70,7 +80,7 @@ class CFG:
                 "Deletes the older checkpoints in the output_dir. Default is unlimited checkpoints"
             )
         },
-    ) #TODO!!!
+    )  # TODO!!!
 
     model_name: str = field(default="gpt2", metadata={"help": "The name of the pretrained model to use."})
     project_name: str = field(default="metadata_lm", metadata={"help": "The project name."})
@@ -205,8 +215,8 @@ def main(args: CFG) -> None:
         else:
             eval_per_n_step = args.max_train_steps // args.eval_num_per_epoch
     elif args.evaluation_strategy == IntervalStrategy.STEPS:
-        eval_per_n_step = args.eval_steps    
-    else: # IntervalStrategy.NO
+        eval_per_n_step = args.eval_steps
+    else:  # IntervalStrategy.NO
         eval_per_n_step = args.max_train_steps + 1
 
     if args.save_strategy == IntervalStrategy.EPOCH:
@@ -215,8 +225,8 @@ def main(args: CFG) -> None:
         else:
             save_per_n_step = args.max_train_steps // args.save_num_per_epoch
     elif args.save_strategy == IntervalStrategy.STEPS:
-        save_per_n_step = args.save_steps    
-    else: # IntervalStrategy.NO
+        save_per_n_step = args.save_steps
+    else:  # IntervalStrategy.NO
         save_per_n_step = args.max_train_steps + 1
 
     scheduler = get_scheduler(
@@ -250,7 +260,7 @@ def main(args: CFG) -> None:
         progress_bar = tqdm(range(args.max_train_steps), desc="training")
         completed_steps = 0
         logger_metrics = Logger(is_local_main_process, project=args.project_name, config=args)
-        
+
         do_eval = args.do_eval
         if do_eval:
             logger.info("***** Evaluation *****")
@@ -269,7 +279,7 @@ def main(args: CFG) -> None:
                 batch["labels"] = labels
                 loss = loss_fn(batch, outputs, metadata_mask)
 
-                logger_metrics.log({"loss": loss, "lr": optimizer.param_groups[0]['lr']})
+                logger_metrics.log({"loss": loss, "lr": optimizer.param_groups[0]["lr"]})
                 loss = loss / args.gradient_accumulation_steps
                 accelerator.backward(loss)
 
@@ -283,7 +293,7 @@ def main(args: CFG) -> None:
                     completed_steps += 1
                 else:
                     continue
-                
+
                 do_eval = args.do_eval and completed_steps > 0 and completed_steps % eval_per_n_step == 0
                 if do_eval:
                     logger.info("***** Evaluation *****")

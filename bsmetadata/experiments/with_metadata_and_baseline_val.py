@@ -185,20 +185,22 @@ def get_dataloaders(tokenizer, args):
     )
     logger.info("Creating labels column finished")
     val_dataset2 = val_dataset_without_metadata
-    
 
     logger.info(f"  Num train examples = {len(train_dataset)}")
     logger.info(f"  Num validation examples dataloader 1 = {len(val_dataset1)}")
     logger.info(f"  Num validation examples dataloader 2 = {len(val_dataset2)}")
 
-    logger.info(f'  Train examples = {train_dataset[0]}')
-    logger.info(f'  Validation examples dataloader 1 = {val_dataset1[0]}')
-    logger.info(f'  Validation examples dataloader 2 = {val_dataset2[0]}')
+    logger.info(f"  Train examples = {train_dataset[0]}")
+    logger.info(f"  Validation examples dataloader 1 = {val_dataset1[0]}")
+    logger.info(f"  Validation examples dataloader 2 = {val_dataset2[0]}")
 
     logger.info(f'  Train examples = {tokenizer.convert_ids_to_tokens(train_dataset[0]["input_ids"])}')
-    logger.info(f'  Validation examples dataloader 1 = {tokenizer.convert_ids_to_tokens(val_dataset1[0]["input_ids"])}')
-    logger.info(f'  Validation examples dataloader 2 = {tokenizer.convert_ids_to_tokens(val_dataset2[0]["input_ids"])}')
-
+    logger.info(
+        f'  Validation examples dataloader 1 = {tokenizer.convert_ids_to_tokens(val_dataset1[0]["input_ids"])}'
+    )
+    logger.info(
+        f'  Validation examples dataloader 2 = {tokenizer.convert_ids_to_tokens(val_dataset2[0]["input_ids"])}'
+    )
 
     # DataLoaders creation:
     train_dataloader = DataLoader(
@@ -217,4 +219,4 @@ def get_dataloaders(tokenizer, args):
         collate_fn=default_data_collator,
         batch_size=args.per_device_eval_batch_size,
     )
-    return train_dataloader, {"val1": val_dataloader1 , "val2": val_dataloader2  }
+    return train_dataloader, {"val1": val_dataloader1, "val2": val_dataloader2}

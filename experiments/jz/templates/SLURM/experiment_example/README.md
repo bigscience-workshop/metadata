@@ -1,13 +1,3 @@
-# Experiment 1
+# Experiment example
 
-## Run experiment on JZ
-
-1. Download the tokenizer and the model
-2. Download the dataset on a partition with internet
-3. Preprocess the dataset on a cpu-only partition
-4. Run the training on a gpu 16gb partition
-
-Are you downloading a new:
-- model ?
-- tokenizer ?
-- dataset ? 
+This is a toy experiment example that can be run on JZ. This experience is made up of sub-experiments, each corresponding to a run.

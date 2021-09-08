@@ -5,9 +5,7 @@ from start_training import DataConfigWithHTML
 from transformers import GPT2TokenizerFast
 
 from bsmetadata.metadata_processors import PROCESSORS
-from bsmetadata.metadata_utils import (
-    add_local_metadata_to_text,
-)
+from bsmetadata.metadata_utils import add_local_metadata_to_text
 
 
 class MetadataUtilsTester(unittest.TestCase):

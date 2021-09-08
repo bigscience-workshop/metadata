@@ -8,7 +8,7 @@ from hydra.core.config_store import ConfigStore
 
 from bsmetadata.input_pipeline import DataConfig
 from bsmetadata.metadata_processors import PROCESSORS
-from bsmetadata.train import main, show_help, CFG
+from bsmetadata.train import CFG, main, show_help
 
 
 tags_to_remove_alone = [

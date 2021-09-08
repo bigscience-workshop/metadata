@@ -1,8 +1,8 @@
 import logging
 import sys
 
-import transformers.utils.logging as logging_transformers
 import hydra
+import transformers.utils.logging as logging_transformers
 from datasets import load_dataset
 from hydra.core.config_store import ConfigStore
 from transformers import AdamW, AutoModelForCausalLM, AutoTokenizer

@@ -1,13 +1,13 @@
 import logging
 import sys
-from datasets import config
 
 import hydra
-from datasets import load_dataset
+from datasets import config, load_dataset
 from hydra.core.config_store import ConfigStore
 
 from bsmetadata.input_pipeline import DataConfig
 from bsmetadata.train import show_help
+
 
 logger = logging.getLogger(__name__)
 

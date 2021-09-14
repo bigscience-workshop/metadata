@@ -64,7 +64,8 @@ def add_metadata_and_chunk_examples(
 
         if global_metadata_prefix_encoded:
             text_with_local_metadata = " " + text_with_local_metadata
-        char_level_metadata_mask = [False] + char_level_metadata_mask
+            char_level_metadata_mask = [False] + char_level_metadata_mask
+        
         text_with_local_metadata_encoded = tokenizer.encode_plus(text_with_local_metadata)
 
         def is_metadata(idx: int) -> bool:

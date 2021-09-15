@@ -1,6 +1,7 @@
 import dataclasses
 import gc
 import json
+import logging
 import math
 import os
 import sys
@@ -17,8 +18,12 @@ from hydra.core.config_store import ConfigStore
 from omegaconf import OmegaConf
 from tqdm.auto import tqdm as original_tqdm
 from transformers import AdamW, AutoModelForCausalLM, AutoTokenizer, get_scheduler, set_seed
+from transformers.trainer_utils import IntervalStrategy
 
 from bsmetadata.input_pipeline import DataConfig, get_dataloaders
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -42,9 +47,43 @@ class CFG:
     out_dir: str = field(
         default="output_dir", metadata={"help": "The output directory in which the trained model is saved."}
     )
-    num_eval: int = field(default=3, metadata={"help": "The number of evaluations to perform during training."})
     model_name: str = field(default="gpt2", metadata={"help": "The name of the pretrained model to use."})
     project_name: str = field(default="metadata_lm", metadata={"help": "The project name."})
+    start_with_eval: bool = field(default=False, metadata={"help": "Start by evaluating the model"})
+    evaluation_strategy: IntervalStrategy = field(
+        default="STEPS",
+        metadata={"help": "The evaluation strategy to use."},
+    )
+    eval_num_per_epoch: int = field(
+        default=3,
+        metadata={
+            "help": "If evaluation strategy is `epoch`. The number of evaluations to perform per epoch during training."
+        },
+    )
+    eval_steps: int = field(
+        default=100, metadata={"help": "If evaluation strategy is `steps`. Run an evaluation every X steps."}
+    )
+
+    save_strategy: IntervalStrategy = field(
+        default="STEPS",
+        metadata={"help": "The checkpoint save strategy to use."},
+    )
+    save_num_per_epoch: int = field(
+        default=3,
+        metadata={"help": "If save strategy is `epoch`. The number of savings to perform per epoch during training."},
+    )
+    save_steps: int = field(default=500, metadata={"help": "Save checkpoint every X update steps."})
+    # save_total_limit: Optional[int] = field(
+    #     default=None,
+    #     metadata={
+    #         "help": (
+    #             "Limit the total amount of checkpoints."
+    #             "Deletes the older checkpoints in the output_dir. Default is unlimited checkpoints"
+    #         )
+    #     },
+    # )  # might be usefull to had, especially for google colab experiment
+    do_train: bool = field(default=True, metadata={"help": "Whether to run training."})
+    do_eval: bool = field(default=True, metadata={"help": "Whether to run eval on the dev set."})
 
 
 cs = ConfigStore.instance()
@@ -104,7 +143,7 @@ def loss_fn(batch, outputs, metadata_mask=None):
     return loss
 
 
-@hydra.main(config_name="config")
+@hydra.main(config_path=None, config_name="config")
 def main(args: CFG) -> None:
     print(OmegaConf.to_yaml(args))
 
@@ -156,10 +195,26 @@ def main(args: CFG) -> None:
     else:
         args.num_train_epochs = math.ceil(args.max_train_steps / num_update_steps_per_epoch)
 
-    if args.num_eval < 1:
+    if args.evaluation_strategy == IntervalStrategy.EPOCH:
+        if args.eval_num_per_epoch < 1:
+            eval_per_n_step = args.max_train_steps + 1
+        else:
+            eval_per_n_step = args.max_train_steps // args.eval_num_per_epoch
+    elif args.evaluation_strategy == IntervalStrategy.STEPS:
+        eval_per_n_step = args.eval_steps
+    else:  # IntervalStrategy.NO
         eval_per_n_step = args.max_train_steps + 1
-    else:
-        eval_per_n_step = args.max_train_steps // args.num_eval
+
+    if args.save_strategy == IntervalStrategy.EPOCH:
+        if args.save_num_per_epoch < 1:
+            save_per_n_step = args.max_train_steps + 1
+        else:
+            save_per_n_step = args.max_train_steps // args.save_num_per_epoch
+    elif args.save_strategy == IntervalStrategy.STEPS:
+        save_per_n_step = args.save_steps
+    else:  # IntervalStrategy.NO
+        save_per_n_step = args.max_train_steps + 1
+
     scheduler = get_scheduler(
         name=args.lr_scheduler_type,
         optimizer=optimizer,
@@ -185,9 +240,27 @@ def main(args: CFG) -> None:
         model.train()
         return {"perplexity": perplexity}
 
+    if not args.do_train or not args.do_eval:
+        return
+
     progress_bar = tqdm(range(args.max_train_steps), desc="training")
     completed_steps = 0
-    logger = Logger(is_local_main_process, project=args.project_name, config=args)
+    metrics_logger = Logger(is_local_main_process, project=args.project_name, config=args)
+
+    do_eval = args.do_eval and args.start_with_eval
+    if do_eval:
+        logger.info("Start with an evaluation")
+        for key, eval_dataloader in eval_dataloaders.items():
+            metrics = evaluate(eval_dataloader)
+            metrics_logger.log({key: metrics})
+        logger.info("Evaluation finished")
+
+    if not args.do_train:
+        return
+
+    logger.info("Start training")
+    logger.info(f"  Evaluation will be done every {eval_per_n_step} steps")
+    logger.info(f"  Saving will be done every {save_per_n_step} steps")
     for epoch in range(args.num_train_epochs):
         model.train()
         for step, batch in enumerate(train_dataloader):
@@ -198,7 +271,7 @@ def main(args: CFG) -> None:
             batch["labels"] = labels
             loss = loss_fn(batch, outputs, metadata_mask)
 
-            logger.log({"loss": loss})
+            metrics_logger.log({"loss": loss})
             loss = loss / args.gradient_accumulation_steps
             accelerator.backward(loss)
 
@@ -212,29 +285,35 @@ def main(args: CFG) -> None:
                 completed_steps += 1
             else:
                 continue
-            do_eval = completed_steps > 0 and completed_steps % eval_per_n_step == 0
+
+            do_eval = args.do_eval and completed_steps > 0 and completed_steps % eval_per_n_step == 0
             if do_eval:
                 for key, eval_dataloader in eval_dataloaders.items():
                     metrics = evaluate(eval_dataloader)
-                    logger.log({key: metrics})
+                    metrics_logger.log({key: metrics})
+                    # logger.info(f"epoch {epoch}: perplexity: {perplexity}")
 
-                # logger.info(f"epoch {epoch}: perplexity: {perplexity}")
-                if is_local_main_process:
-                    save_dict = {
-                        "epoch": epoch + 1,
-                        "state_dict": accelerator.unwrap_model(model).state_dict(),
-                        "optimizer": optimizer.state_dict(),
-                        "scheduler": scheduler.state_dict(),
-                    }
-                    torch.save(
-                        save_dict,
-                        os.path.join(args.out_dir, f"checkpoint-{completed_steps}step.pt"),
-                    )
-                    del save_dict
-                    gc.collect()
+            do_save = is_local_main_process and completed_steps > 0 and completed_steps % save_per_n_step == 0
+            if do_save:
+                save_path = os.path.join(args.out_dir, f"checkpoint-{completed_steps}step.pt")
+                logger.info(f"Save model at {save_path}")
+                save_dict = {
+                    "epoch": epoch + 1,
+                    "state_dict": accelerator.unwrap_model(model).state_dict(),
+                    "optimizer": optimizer.state_dict(),
+                    "scheduler": scheduler.state_dict(),
+                }
+                torch.save(
+                    save_dict,
+                    save_path,
+                )
+                del save_dict
+                gc.collect()
+
             if completed_steps >= args.max_train_steps:
                 break
-    logger.close()
+    metrics_logger.close()
+    logger.info("Training finished")
 
     if is_local_main_process and args.out_dir is not None:
         accelerator.wait_for_everyone()

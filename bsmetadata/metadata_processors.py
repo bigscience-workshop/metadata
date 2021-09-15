@@ -107,9 +107,8 @@ class WebsiteDescriptionProcessor(MetadataProcessor):
     """An example metadata processor for URLs."""
 
     def process_global(self, metadata_attrs: Dict[str, Any]) -> Optional[str]:
-        # We represent a URL with unquoted format such that less confusion for a tokenizer.
-        # Example: "foo.bar/Year 2021/" instead of "foo.bar/Year%202021/".
-        return "".join([metadata_attrs["key"], self.cfg.metadata_key_value_sep, unquote_plus(metadata_attrs["value"])])
+        # Example: "website_description: BBC is a news organization".
+        return "".join([metadata_attrs["key"], self.cfg.metadata_key_value_sep, metadata_attrs["value"]])
 
 
 PROCESSORS = {

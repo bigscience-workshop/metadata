@@ -94,6 +94,7 @@ class MetadataUtilsTester(unittest.TestCase):
         self.assertEqual(
             create_global_metadata_prefix(self.examples[2], cfg), "url: callto:RickAndMorty/Year 2021/ |||"
         )
+        cfg.metadata_list = ["website_description"]
         self.assertEqual(
             create_global_metadata_prefix(self.examples[3], cfg), "website_description: Amazon.com, Inc. ( AM-ə-zon) is an American multinational conglomerate which focuses on e-commerce, cloud computing, digital streaming, and artificial intelligence. |||"
         )

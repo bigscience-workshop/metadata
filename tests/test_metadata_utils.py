@@ -4,7 +4,7 @@ import unittest
 from datasets import Dataset
 from transformers import GPT2TokenizerFast
 
-from bsmetadata.metadata_processors import PROCESSORS, MetadataProcessor
+from bsmetadata.metadata_processors import PROCESSORS, HtmlProcessor, MetadataProcessor
 from bsmetadata.metadata_utils import (
     MetadataConfig,
     add_local_metadata_to_text,
@@ -55,6 +55,79 @@ class MetadataUtilsTester(unittest.TestCase):
                 "text": "Wubba Lubba Dub Dub!",
                 "metadata": [
                     {"key": "url", "type": "global", "value": "callto:RickAndMorty/Year%202021/"},
+                ],
+            },
+            {
+                "id": "0004",
+                "text": "useless text The Walking Dead (season 8)\n",
+                "metadata": [
+                    {
+                        "char_start_idx": 0,
+                        "value": {"tag": "a", "attrs": {"attr": [], "value": []}},
+                        "char_end_idx": 12,
+                        "key": "html",
+                        "type": "local",
+                    },
+                    {
+                        "char_start_idx": 13,
+                        "value": {
+                            "tag": "div",
+                            "attrs": {"attr": ["id", "class"], "value": ["mw-page-base", "noprint"]},
+                        },
+                        "char_end_idx": 13,
+                        "key": "html",
+                        "type": "local",
+                    },
+                    {
+                        "char_start_idx": 13,
+                        "value": {
+                            "tag": "div",
+                            "attrs": {"attr": ["id", "class"], "value": ["mw-head-base", "noprint"]},
+                        },
+                        "char_end_idx": 13,
+                        "key": "html",
+                        "type": "local",
+                    },
+                    {
+                        "char_start_idx": 13,
+                        "value": {"tag": "a", "attrs": {"attr": ["id"], "value": ["top"]}},
+                        "char_end_idx": 13,
+                        "key": "html",
+                        "type": "local",
+                    },
+                    {
+                        "char_start_idx": 13,
+                        "value": {
+                            "tag": "div",
+                            "attrs": {
+                                "attr": ["id", "class"],
+                                "value": ["siteNotice centralNotice", "mw-body-content"],
+                            },
+                        },
+                        "char_end_idx": 13,
+                        "key": "html",
+                        "type": "local",
+                    },
+                    {
+                        "char_start_idx": 13,
+                        "value": {"tag": "i", "attrs": {"attr": [], "value": []}},
+                        "char_end_idx": 29,
+                        "key": "html",
+                        "type": "local",
+                    },
+                    {
+                        "char_start_idx": 13,
+                        "value": {
+                            "tag": "h1",
+                            "attrs": {
+                                "attr": ["id", "class", "lang"],
+                                "value": ["firstHeading", "firstHeading", "en"],
+                            },
+                        },
+                        "char_end_idx": 40,
+                        "key": "html",
+                        "type": "local",
+                    },
                 ],
             },
         ]
@@ -132,6 +205,16 @@ class MetadataUtilsTester(unittest.TestCase):
 
         for example in mapped_ds:
             self.assertTrue(all(not x for x in example["metadata_mask"]))
+
+    def test_add_html_tags(self):
+        cfg = MetadataConfig()
+        cfg.metadata_list = ["html"]
+        PROCESSORS["html"] = HtmlProcessor
+
+        text1, mask1 = add_local_metadata_to_text(self.examples[3], cfg)
+        target_text = '<a>useless text</a> <div id:"siteNotice centralNotice" class:"mw-body-content"><a id:"top"><div id:"mw-head-base" class:"noprint"><div id:"mw-page-base" class:"noprint"></div></div></a></div><h1 id:"firstHeading" class:"firstHeading" lang:"en"><i>The Walking Dead</i> (season 8)</h1>\n'
+
+        self.assertEqual(text1, target_text)
 
     def test_add_metadata_and_chunk_examples(self):
         cfg = MetadataConfig()

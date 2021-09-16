@@ -128,6 +128,7 @@ class UrlProcessor(MetadataProcessor):
         # Example: "foo.bar/Year 2021/" instead of "foo.bar/Year%202021/".
         return "".join([metadata_attrs["key"], self.cfg.metadata_key_value_sep, unquote_plus(metadata_attrs["value"])])
 
+
 class WebsiteDescriptionProcessor(MetadataProcessor):
     """An example metadata processor for website descriptions."""
 
@@ -141,5 +142,5 @@ PROCESSORS = {
     "entity": EntityProcessor,
     "html": HtmlProcessor,
     "url": UrlProcessor,
-    "website_description":WebsiteDescriptionProcessor
+    "website_description": WebsiteDescriptionProcessor,
 }

@@ -134,7 +134,7 @@ class WebsiteDescriptionProcessor(MetadataProcessor):
 
     def process_global(self, metadata_attrs: Dict[str, Any]) -> Optional[str]:
         # Example: "website_description: BBC is a news organization".
-        return "".join([metadata_attrs["key"], self.cfg.metadata_key_value_sep, metadata_attrs["value"]])
+        return "".join(["Website Description", self.cfg.metadata_key_value_sep, metadata_attrs["value"]])
 
 
 PROCESSORS = {

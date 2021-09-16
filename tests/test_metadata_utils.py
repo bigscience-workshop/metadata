@@ -101,7 +101,7 @@ class MetadataUtilsTester(unittest.TestCase):
         cfg.metadata_list = ["website_description"]
         self.assertEqual(
             create_global_metadata_prefix(self.examples[3], cfg),
-            "website_description: Amazon.com, Inc. ( AM-ə-zon) is an American multinational conglomerate which focuses on e-commerce, cloud computing, digital streaming, and artificial intelligence. |||",
+            "Website Description: Amazon.com, Inc. ( AM-ə-zon) is an American multinational conglomerate which focuses on e-commerce, cloud computing, digital streaming, and artificial intelligence. |||",
         )
 
     def test_add_local_metadata_to_text(self):
@@ -1212,10 +1212,8 @@ class MetadataUtilsTester(unittest.TestCase):
         self.assertEqual(
             self.tokenizer.convert_ids_to_tokens(mapped_ds[5]["input_ids"]),
             [
-                "we",
-                "bsite",
-                "_",
-                "description",
+                "Website",
+                "ĠDescription",
                 ":",
                 "ĠAmazon",
                 ".",
@@ -1276,8 +1274,11 @@ class MetadataUtilsTester(unittest.TestCase):
                 "ĠReviews",
                 "63",
                 "<|endoftext|>",
+                "<|endoftext|>",
+                "<|endoftext|>",
             ],
         )
+
         self.assertEqual(
             mapped_ds[5]["attention_mask"],
             [
@@ -1342,11 +1343,12 @@ class MetadataUtilsTester(unittest.TestCase):
                 1,
                 1,
                 1,
-                1,
-                1,
+                0,
+                0,
                 0,
             ],
         )
+
         self.assertEqual(
             mapped_ds[5]["metadata_mask"],
             [
@@ -1391,8 +1393,8 @@ class MetadataUtilsTester(unittest.TestCase):
                 1,
                 1,
                 1,
-                1,
-                1,
+                0,
+                0,
                 0,
                 0,
                 0,

@@ -14,12 +14,24 @@
 This script provides utility functions for linearizing, encoding and chunking a given input text with metadata information.
 """
 import random
-from collections import defaultdict
-from typing import Any, Dict, List, Tuple
+from collections import OrderedDict, defaultdict
+from dataclasses import asdict, dataclass
+from typing import Any, DefaultDict, Dict, List, Optional, Tuple
 
 from transformers import PreTrainedTokenizerFast
 
 from bsmetadata.metadata_processors import PROCESSORS, MetadataConfig, MetadataProcessor
+
+
+@dataclass
+class BasicMetadata:
+    char_start_idx: int
+    key: str
+    type: str
+    value: str
+    char_end_idx: Optional[int] = None
+    relative_start_pos: Optional[int] = None
+    relative_end_pos: Optional[int] = None
 
 
 def add_metadata_and_chunk_examples(
@@ -122,6 +134,59 @@ def create_global_metadata_prefix(example: Dict[str, Any], cfg: MetadataConfig) 
     return cfg.metadata_sep.join(sorted_metadata) + cfg.global_metadata_sep if sorted_metadata else ""
 
 
+def _collate_metadata(metadata_list: List[dict], cfg: MetadataConfig):
+    # TODO
+    processor = PROCESSORS.get(metadata_list[0]["key"], MetadataProcessor)(cfg)
+
+    new_metadata_list = []
+
+    metadata_dict_idx = DefaultDict(dict)
+    for metadata_node in metadata_list:
+        processed_metadata = processor.process_local(metadata_node)
+        if processed_metadata is None:
+            continue
+
+        metadata_node = BasicMetadata(
+            char_start_idx=metadata_node["char_start_idx"],
+            key=metadata_node["key"],
+            type=metadata_node["type"],
+            value=metadata_node["value"],
+            char_end_idx=metadata_node["char_end_idx"],
+            relative_start_pos=metadata_node["relative_start_pos"],
+            relative_end_pos=metadata_node["relative_end_pos"],
+        )
+        start_text, end_text = processed_metadata
+
+        assert metadata_node.relative_start_pos not in metadata_dict_idx[metadata_node.char_start_idx]
+        assert metadata_node.relative_end_pos not in metadata_dict_idx[metadata_node.char_end_idx]
+
+        metadata_dict_idx[metadata_node.char_start_idx][metadata_node.relative_start_pos] = start_text
+        metadata_dict_idx[metadata_node.char_end_idx][metadata_node.relative_end_pos] = end_text
+
+    for absolute_idx, value in metadata_dict_idx.items():
+        pos_sorted = sorted(list(value.keys()))
+        local_metadata = ""
+        for pos in pos_sorted:
+            local_metadata += metadata_dict_idx[absolute_idx][pos]
+        print("absolute_idx ", absolute_idx)
+        print("local_metadata ", local_metadata)
+        new_metadata_list.append(
+            asdict(
+                BasicMetadata(
+                    char_start_idx=absolute_idx,
+                    key="basic_start_local",
+                    type="local",
+                    value=local_metadata,
+                    char_end_idx=-1,
+                    relative_start_pos=None,
+                    relative_end_pos=None,
+                )
+            )
+        )
+    print(new_metadata_list)
+    return new_metadata_list
+
+
 def add_local_metadata_to_text(example: Dict[str, Any], cfg: MetadataConfig) -> Tuple[str, List[bool]]:
     """Adds local metadata (such as HTML tags and entity names) to the given input text.
 
@@ -137,7 +202,27 @@ def add_local_metadata_to_text(example: Dict[str, Any], cfg: MetadataConfig) -> 
     metadata_start_texts, metadata_end_texts = defaultdict(list), defaultdict(list)
 
     # Filter and sort all metadata so that they are processed in the requested order.
-    filtered_metadata = [md for md in example["metadata"] if md["type"] == "local" and md["key"] in cfg.metadata_list]
+
+    # Ordre ici import car il va définir quel type de métadonnées locales sera parentes de l'autre
+    filtered_metadata = OrderedDict(
+        {
+            "html": [],
+            "entity": [],
+            "timestamp": [],
+            "url": [],
+        }
+    )
+    for md in example["metadata"]:
+        if md["type"] == "local" and md["key"] in cfg.metadata_list:
+            filtered_metadata[md["key"]].append(md)
+
+    for metadata_type, metadata_list in filtered_metadata.items():
+        if metadata_list and "relative_start_pos" in metadata_list[0] and "relative_end_pos" in metadata_list[0]:
+            filtered_metadata[metadata_type] = _collate_metadata(metadata_list, cfg)
+
+    filtered_metadata = sum(filtered_metadata.values(), [])
+    cfg.metadata_list.append("basic_start_local")
+
     sorted_metadata = sorted(
         filtered_metadata, key=lambda md: (cfg.metadata_list.index(md["key"]), md["char_end_idx"])
     )

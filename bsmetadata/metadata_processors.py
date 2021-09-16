@@ -117,7 +117,13 @@ class HtmlProcessor(MetadataProcessor):
     def process_local(self, metadata_attrs: Dict[str, Any]) -> Optional[Tuple[str, str]]:
         # We represent a html tag `T` by enclosing the corresponding text span with "<T>" and "</T>".
         # Example: An <b>apple</b> is an edible fruit.
-        return f"<{metadata_attrs['value']}>", f"</{metadata_attrs['value']}>"
+        attributes = " ".join(
+            f"{attr}:{value}"
+            for attr, value in zip(metadata_attrs["html_attrs"]["attrs"], metadata_attrs["html_attrs"]["values"])
+        )
+        if attributes:
+            attributes = " " + attributes
+        return f"<{metadata_attrs['value']}{attributes}>", f"</{metadata_attrs['value']}>"
 
 
 class UrlProcessor(MetadataProcessor):
@@ -129,9 +135,16 @@ class UrlProcessor(MetadataProcessor):
         return "".join([metadata_attrs["key"], self.cfg.metadata_key_value_sep, unquote_plus(metadata_attrs["value"])])
 
 
+class BasicStartLocalProcessor(MetadataProcessor):
+    def process_local(self, metadata_attrs: Dict[str, Any]) -> Optional[Tuple[str, str]]:
+        # This is a basic processor that just creates a local start tag from the value stored in the metadata
+        return metadata_attrs["value"], ""
+
+
 PROCESSORS = {
     "timestamp": TimestampProcessor,
     "entity": EntityProcessor,
     "html": HtmlProcessor,
     "url": UrlProcessor,
+    "basic_start_local": BasicStartLocalProcessor,
 }

@@ -1,6 +1,6 @@
 import logging
 
-from datasets import load_dataset
+from datasets import config, load_dataset
 from torch.utils.data import DataLoader
 from transformers import default_data_collator
 
@@ -37,49 +37,62 @@ def get_dataloaders(tokenizer, args):
     #
     # In distributed training, the load_dataset function guarantees that only one local process can concurrently
     # download the dataset.
+    data_files = {}
+    if args.train_file is not None:
+        data_files["train"] = args.train_file
+    if args.validation_file is not None:
+        data_files["validation"] = args.validation_file
+
+    if not data_files:
+        data_files = None
+
+    logger.info(f"Start to load dataset, the result will be cached at {config.HF_DATASETS_CACHE}")
     if args.dataset_name is not None:
+        logger.info(
+            "Downloading with arguments: "
+            f"dataset_name={args.dataset_name}, "
+            f"dataset_config_name={args.dataset_config_name}, "
+            f"data_files={data_files}, "
+            f"cache_dir={args.cache_dir},"
+        )
         # Downloading and loading a dataset from the hub.
-        raw_datasets = load_dataset(
+        datasets = load_dataset(
             args.dataset_name,
             args.dataset_config_name,
             cache_dir=args.cache_dir,
             keep_in_memory=False,
         )
 
-        if "validation" not in raw_datasets.keys():
-            raw_datasets["validation"] = load_dataset(
+        if "validation" not in datasets.keys():
+            datasets["validation"] = load_dataset(
                 args.dataset_name,
                 args.dataset_config_name,
                 split=f"train[:{args.validation_split_percentage}%]",
                 cache_dir=args.cache_dir,
             )
-            raw_datasets["train"] = load_dataset(
+            datasets["train"] = load_dataset(
                 args.dataset_name,
                 args.dataset_config_name,
                 split=f"train[{args.validation_split_percentage}%:]",
                 cache_dir=args.cache_dir,
             )
     else:
-        data_files = {}
-        if args.train_file is not None:
-            data_files["train"] = args.train_file
-        if args.validation_file is not None:
-            data_files["validation"] = args.validation_file
-        extension = args.train_file.split(".")[-1]
+        logger.info("Loading dataset from extension script")
+        extension = args.train_file.split(".")[-1] if not args.extension else args.extension
         if extension == "txt":
             extension = "text"
         if extension == "jsonl":
             extension = "json"
-        raw_datasets = load_dataset(extension, data_files=data_files, cache_dir=args.cache_dir)
+        datasets = load_dataset(extension, data_files=data_files, cache_dir=args.cache_dir)
 
-        if "validation" not in raw_datasets.keys():
-            raw_datasets["validation"] = load_dataset(
+        if "validation" not in datasets.keys():
+            datasets["validation"] = load_dataset(
                 extension,
                 data_files=data_files,
                 split=f"train[:{args.validation_split_percentage}%]",
                 cache_dir=args.cache_dir,
             )
-            raw_datasets["train"] = load_dataset(
+            datasets["train"] = load_dataset(
                 extension,
                 data_files=data_files,
                 split=f"train[{args.validation_split_percentage}%:]",
@@ -90,20 +103,23 @@ def get_dataloaders(tokenizer, args):
 
     # Preprocessing the datasets.
     # First we tokenize all the texts.
-    column_names = raw_datasets["train"].column_names
+    column_names = datasets["train"].column_names
     text_column_name = "text" if "text" in column_names else column_names[0]
 
     def tokenize_function(examples):
         return tokenizer(examples[text_column_name])
 
-    tokenized_datasets = raw_datasets.map(
+    logger.info("Tokenize dataset")
+    tokenized_datasets = datasets.map(
         tokenize_function,
         batched=True,
         num_proc=args.preprocessing_num_workers,
         remove_columns=column_names,
         load_from_cache_file=not args.overwrite_cache,
         desc="Running tokenizer on dataset",
+        batch_size=args.map_batch_size,
     )
+    logger.info("Tokenize dataset finished")
 
     if args.block_size is None:
         block_size = tokenizer.model_max_length
@@ -145,16 +161,22 @@ def get_dataloaders(tokenizer, args):
     # To speed up this part, we use multiprocessing. See the documentation of the map method for more information:
     # https://huggingface.co/docs/datasets/package_reference/main_classes.html#datasets.Dataset.map
 
-    lm_datasets = tokenized_datasets.map(
+    logger.info("Group texts")
+    datasets = tokenized_datasets.map(
         group_texts,
         batched=True,
         num_proc=args.preprocessing_num_workers,
         load_from_cache_file=not args.overwrite_cache,
         desc=f"Grouping texts in chunks of {block_size}",
+        batch_size=args.map_batch_size,
     )
+    logger.info("Group texts finished")
 
-    train_dataset = lm_datasets["train"]
-    val_dataset = lm_datasets["validation"]
+    train_dataset = datasets["train"]
+    val_dataset = datasets["validation"]
+
+    logger.info(f"  Num train examples = {len(train_dataset)}")
+    logger.info(f"  Num validation examples = {len(val_dataset)}")
 
     # DataLoaders creation:
     train_dataloader = DataLoader(

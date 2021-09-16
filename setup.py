@@ -11,7 +11,8 @@ install_requires = req_file("requirements.txt")
 
 setup(
     name="bsmetadata",
-    version="0.0.0",
+    python_requires=">=3.7.11, <3.10",
+    version="0.1.0",
     url="https://github.com/bigscience-workshop/metadata.git",
     author="Multiple Authors",
     author_email="xxx",

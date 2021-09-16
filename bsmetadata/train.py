@@ -108,10 +108,14 @@ def loss_fn(batch, outputs, metadata_mask=None):
 def main(args: CFG) -> None:
     print(OmegaConf.to_yaml(args))
 
+    # The dataset library use the hash of the arguments to create the cache
+    # name. Without this transformation the hash of args is not deterministic
+    args = OmegaConf.to_object(args)
+
     set_seed(args.seed)
     accelerator = Accelerator()
     is_local_main_process = accelerator.is_local_main_process
-    tqdm = partial(original_tqdm, disable=not is_local_main_process)
+    tqdm = partial(original_tqdm, disable=not is_local_main_process, position=0)
 
     os.makedirs(args.out_dir, exist_ok=True)
 

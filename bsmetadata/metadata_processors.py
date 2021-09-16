@@ -129,9 +129,18 @@ class UrlProcessor(MetadataProcessor):
         return "".join([metadata_attrs["key"], self.cfg.metadata_key_value_sep, unquote_plus(metadata_attrs["value"])])
 
 
+class WebsiteDescriptionProcessor(MetadataProcessor):
+    """An example metadata processor for website descriptions."""
+
+    def process_global(self, metadata_attrs: Dict[str, Any]) -> Optional[str]:
+        # Example: "website_description: BBC is a news organization".
+        return "".join(["Website Description", self.cfg.metadata_key_value_sep, metadata_attrs["value"]])
+
+
 PROCESSORS = {
     "timestamp": TimestampProcessor,
     "entity": EntityProcessor,
     "html": HtmlProcessor,
     "url": UrlProcessor,
+    "website_description": WebsiteDescriptionProcessor,
 }

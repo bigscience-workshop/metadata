@@ -23,6 +23,7 @@ from bsmetadata.metadata_utils import (
 
 class MetadataUtilsTester(unittest.TestCase):
     def setUp(self) -> None:
+        self.maxDiff = None
         self.tokenizer = GPT2TokenizerFast.from_pretrained("gpt2-xl")
         self.examples = [
             {
@@ -45,7 +46,6 @@ class MetadataUtilsTester(unittest.TestCase):
                 "text": "An apple is an edible fruit produced by an apple tree (Malus domestica).",
                 "metadata": [
                     {"key": "url", "type": "global", "value": "https://en.wikipedia.org/wiki/Apple"},
-                    # {"key": "html", "relative_start_pos": 0, "relative_end_pos":0, "type": "local", "value": "b","html_attrs": { "attrs": [], "values": [] }, "char_start_idx": 3, "char_end_idx": 8},
                     {
                         "key": "html",
                         "relative_start_pos": 0,
@@ -73,7 +73,6 @@ class MetadataUtilsTester(unittest.TestCase):
                         "char_start_idx": 43,
                         "char_end_idx": 53,
                     },
-                    # {"key": "html", "relative_start_pos": 0, "relative_end_pos":1, "type": "local", "value": "b", "html_attrs": { "attrs": ["class"], "values": ["level1"] }, "char_start_idx": 43, "char_end_idx": 53},
                     {
                         "key": "html",
                         "relative_start_pos": 2,
@@ -291,7 +290,7 @@ class MetadataUtilsTester(unittest.TestCase):
 
         self.assertEqual(
             text2,
-            "An [entity: Malus domestica][html: b]apple[/html: b][/entity: Malus domestica] is an edible fruit produced by an [html: b][html: i]apple[/html: i] tree[/html: b] (Malus domestica).",
+            "An [html: b][entity: Malus domestica]apple[/entity: Malus domestica][/html: b] is an edible fruit produced by an [html: b][html: i]apple[/html: i] tree[/html: b] (Malus domestica).",
         )
         self.assertEqual(
             "".join(str(int(x)) for x in mask2),
@@ -979,29 +978,29 @@ class MetadataUtilsTester(unittest.TestCase):
                 "|",
                 "ĠAn",
                 "Ġ[",
+                "html",
+                ":",
+                "Ġb",
+                "][",
                 "entity",
                 ":",
                 "ĠMal",
                 "us",
                 "Ġdomest",
                 "ica",
-                "][",
-                "html",
-                ":",
-                "Ġb",
                 "]",
                 "apple",
                 "[/",
-                "html",
-                ":",
-                "Ġb",
-                "][/",
                 "entity",
                 ":",
                 "ĠMal",
                 "us",
                 "Ġdomest",
                 "ica",
+                "][/",
+                "html",
+                ":",
+                "Ġb",
                 "]",
                 "Ġis",
                 "Ġan",
@@ -1400,10 +1399,6 @@ class MetadataUtilsTester(unittest.TestCase):
         )
 
         self.maxDiff = None
-
-        print(self.tokenizer.decode(mapped_ds[0]["input_ids"]))
-        print(self.tokenizer.decode(mapped_ds[1]["input_ids"]))
-        print(self.tokenizer.decode(mapped_ds[2]["input_ids"]))
 
         self.assertEqual(
             self.tokenizer.decode(mapped_ds[0]["input_ids"]),

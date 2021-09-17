@@ -19,12 +19,11 @@ from typing import Any, Dict, List, Tuple
 
 from transformers import PreTrainedTokenizerFast
 
-from bsmetadata.input_pipeline import DataConfig
-from bsmetadata.metadata_processors import PROCESSORS, MetadataProcessor
+from bsmetadata.metadata_processors import PROCESSORS, MetadataConfig, MetadataProcessor
 
 
 def add_metadata_and_chunk_examples(
-    examples: Dict[str, List], tokenizer: PreTrainedTokenizerFast, cfg: DataConfig
+    examples: Dict[str, List], tokenizer: PreTrainedTokenizerFast, cfg: MetadataConfig
 ) -> Dict[str, List]:
     """Adds metadata to the provided input examples, encodes them and groups them in chunks of size `cfg.max_seq_len`.
 
@@ -65,7 +64,8 @@ def add_metadata_and_chunk_examples(
 
         if global_metadata_prefix_encoded:
             text_with_local_metadata = " " + text_with_local_metadata
-        char_level_metadata_mask = [False] + char_level_metadata_mask
+            char_level_metadata_mask = [False] + char_level_metadata_mask
+
         text_with_local_metadata_encoded = tokenizer.encode_plus(text_with_local_metadata)
 
         def is_metadata(idx: int) -> bool:
@@ -98,7 +98,7 @@ def add_metadata_and_chunk_examples(
     return linearized_examples
 
 
-def create_global_metadata_prefix(example: Dict[str, Any], cfg: DataConfig) -> str:
+def create_global_metadata_prefix(example: Dict[str, Any], cfg: MetadataConfig) -> str:
     """Creates a prefix containing all global metadata information (including URLs, timestamps, etc).
 
     Args:
@@ -122,7 +122,7 @@ def create_global_metadata_prefix(example: Dict[str, Any], cfg: DataConfig) -> s
     return cfg.metadata_sep.join(sorted_metadata) + cfg.global_metadata_sep if sorted_metadata else ""
 
 
-def add_local_metadata_to_text(example: Dict[str, Any], cfg: DataConfig) -> Tuple[str, List[bool]]:
+def add_local_metadata_to_text(example: Dict[str, Any], cfg: MetadataConfig) -> Tuple[str, List[bool]]:
     """Adds local metadata (such as HTML tags and entity names) to the given input text.
 
     Args:

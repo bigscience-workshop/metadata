@@ -25,6 +25,7 @@ def test_toy_training_without_metadata(tmpdir):
             f'data_config.train_file={os.path.join(path_test_folder,"data","train_toy_raw_wikitext.jsonl")}',
             f'data_config.validation_file={os.path.join(path_test_folder,"data","val_toy_raw_wikitext.jsonl")}',
             "num_eval=2",
+            "data_config.block_size=20",
             f"out_dir={tmpdir}",
             "max_train_steps=4",
         ],

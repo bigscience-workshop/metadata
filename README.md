@@ -5,7 +5,7 @@ This repository contains code for including metadata such as URLs, timestamps, w
 ## Usage
 
 ```sh
-accelerate launch --fp16 train.py max_train_steps=100 num_eval=1 data_config.per_device_eval_batch_size=4
+accelerate launch --fp16 train.py max_train_steps=100 eval_num_per_epoch=1 data_config.per_device_eval_batch_size=4
 ```
 
 ## Get Help

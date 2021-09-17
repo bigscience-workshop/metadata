@@ -195,25 +195,19 @@ def main(args: CFG) -> None:
     else:
         args.num_train_epochs = math.ceil(args.max_train_steps / num_update_steps_per_epoch)
 
-    if args.evaluation_strategy == IntervalStrategy.EPOCH:
-        if args.eval_num_per_epoch < 1:
-            eval_per_n_step = args.max_train_steps + 1
-        else:
-            eval_per_n_step = args.max_train_steps // args.eval_num_per_epoch
+    if args.evaluation_strategy == IntervalStrategy.EPOCH and args.eval_num_per_epoch >= 1:
+        eval_per_n_step = args.max_train_steps // (args.eval_num_per_epoch * args.num_train_epochs)
     elif args.evaluation_strategy == IntervalStrategy.STEPS:
         eval_per_n_step = args.eval_steps
-    else:  # IntervalStrategy.NO
-        eval_per_n_step = args.max_train_steps + 1
+    else:  # IntervalStrategy.NO or (args.eval_num_per_epoch < 1 and args.evaluation_strategy == IntervalStrategy.EPOCH)
+        eval_per_n_step = args.max_train_steps + 1  # will never eval
 
-    if args.save_strategy == IntervalStrategy.EPOCH:
-        if args.save_num_per_epoch < 1:
-            save_per_n_step = args.max_train_steps + 1
-        else:
-            save_per_n_step = args.max_train_steps // args.save_num_per_epoch
+    if args.save_strategy == IntervalStrategy.EPOCH and args.save_num_per_epoch >= 1:
+        save_per_n_step = args.max_train_steps // (args.save_num_per_epoch * args.num_train_epochs)
     elif args.save_strategy == IntervalStrategy.STEPS:
         save_per_n_step = args.save_steps
-    else:  # IntervalStrategy.NO
-        save_per_n_step = args.max_train_steps + 1
+    else:  # IntervalStrategy.NO or (args.save_num_per_epoch < 1 and args.save_strategy == IntervalStrategy.EPOCH)
+        save_per_n_step = args.max_train_steps + 1  # will never eval
 
     scheduler = get_scheduler(
         name=args.lr_scheduler_type,
@@ -303,10 +297,7 @@ def main(args: CFG) -> None:
                     "optimizer": optimizer.state_dict(),
                     "scheduler": scheduler.state_dict(),
                 }
-                torch.save(
-                    save_dict,
-                    save_path,
-                )
+                torch.save(save_dict, save_path)
                 del save_dict
                 gc.collect()
 

@@ -21,8 +21,10 @@ class HtmlTag:
 @dataclass
 class Metadata:
     char_start_idx: int
+    relative_start_pos: int
     value: HtmlTag
     char_end_idx: Optional[int] = None
+    relative_end_pos: Optional[int] = None
     key: str = "html"
     type: str = "local"
 
@@ -135,15 +137,16 @@ class HtmlProcessor(MetadataProcessor):
                 char_end_idx=metadata_attrs["char_end_idx"],
                 key=metadata_attrs["key"],
                 type=metadata_attrs["type"],
+                relative_start_pos=metadata_attrs["relative_start_pos"],
+                relative_end_pos=metadata_attrs["relative_end_pos"],
             )
         ):
             return None
 
         attributes = " ".join(
-            f'{attr}="{value}"'
-            for attr, value in zip(metadata_attrs["value"]["attrs"]["attr"], metadata_attrs["value"]["attrs"]["value"])
-            if (self._attributes_to_keep is None or attr in self._attributes_to_keep)
+            f"{attr}:{value}"
+            for attr, value in zip(metadata_attrs["html_attrs"]["attrs"], metadata_attrs["html_attrs"]["values"])
         )
         if attributes:
             attributes = " " + attributes
-        return f"<{metadata_attrs['value']['tag']}{attributes}>", f"</{metadata_attrs['value']['tag']}>"
+        return f"<{metadata_attrs['value']}{attributes}>", f"</{metadata_attrs['value']}>"

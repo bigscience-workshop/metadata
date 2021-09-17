@@ -93,6 +93,17 @@ class MetadataUtilsTester(unittest.TestCase):
                 ],
             },
             {
+                "id": "0004",
+                "text": "Amazon.com: Customer Reviews: Contracts and the Legal Environment for Engineers and Architects\nCustomer Reviews63",
+                "metadata": [
+                    {
+                        "key": "website_description",
+                        "type": "global",
+                        "value": "Amazon.com, Inc. ( AM-ə-zon) is an American multinational conglomerate which focuses on e-commerce, cloud computing, digital streaming, and artificial intelligence.",
+                    },
+                ],
+            },
+            {
                 "id": "0002",
                 "text": "An apple is an edible fruit produced by an apple tree (Malus domestica).",
                 "metadata": [
@@ -257,7 +268,7 @@ class MetadataUtilsTester(unittest.TestCase):
         cfg.metadata_key_value_sep = ": "
         cfg.metadata_sep = " | "
         cfg.global_metadata_sep = " |||"
-        cfg.metadata_list = ["url", "timestamp"]
+        cfg.metadata_list = ["url", "timestamp", "website_description"]
         PROCESSORS["timestamp"] = MetadataProcessor
 
         self.assertEqual(
@@ -269,6 +280,11 @@ class MetadataUtilsTester(unittest.TestCase):
         )
         self.assertEqual(
             create_global_metadata_prefix(self.examples[2], cfg), "url: callto:RickAndMorty/Year 2021/ |||"
+        )
+        cfg.metadata_list = ["website_description"]
+        self.assertEqual(
+            create_global_metadata_prefix(self.examples[3], cfg),
+            "Website Description: Amazon.com, Inc. ( AM-ə-zon) is an American multinational conglomerate which focuses on e-commerce, cloud computing, digital streaming, and artificial intelligence. |||",
         )
 
     def test_add_local_metadata_to_text(self):
@@ -318,13 +334,16 @@ class MetadataUtilsTester(unittest.TestCase):
 
     def test_add_metadata_and_chunk_examples(self):
         cfg = MetadataConfig()
-        cfg.metadata_list = ["url", "timestamp", "html", "entity"]
+        cfg.metadata_list = ["url", "timestamp", "html", "entity", "website_description"]
         cfg.max_seq_len = 64
         cfg.metadata_probability = 1
 
         PROCESSORS["timestamp"] = MetadataProcessor
-
-        ds_dict = {key: [self.examples[0][key], self.examples[1][key]] for key in self.examples[0].keys()}
+        ds_dict = {
+            key: [self.examples[0][key], self.examples[1][key], self.examples[3][key]]
+            for key in self.examples[0].keys()
+        }
+        print(ds_dict)
         ds = Dataset.from_dict(ds_dict)
 
         mapped_ds = ds.map(
@@ -1373,6 +1392,215 @@ class MetadataUtilsTester(unittest.TestCase):
                 0,
             ],
         )
+        self.assertEqual(
+            self.tokenizer.convert_ids_to_tokens(mapped_ds[5]["input_ids"]),
+            [
+                "Website",
+                "ĠDescription",
+                ":",
+                "ĠAmazon",
+                ".",
+                "com",
+                ",",
+                "ĠInc",
+                ".",
+                "Ġ(",
+                "ĠAM",
+                "-",
+                "É",
+                "Ļ",
+                "-",
+                "zon",
+                ")",
+                "Ġis",
+                "Ġan",
+                "ĠAmerican",
+                "Ġmultinational",
+                "Ġconglomerate",
+                "Ġwhich",
+                "Ġfocuses",
+                "Ġon",
+                "Ġe",
+                "-",
+                "commerce",
+                ",",
+                "Ġcloud",
+                "Ġcomputing",
+                ",",
+                "Ġdigital",
+                "Ġstreaming",
+                ",",
+                "Ġand",
+                "Ġartificial",
+                "Ġintelligence",
+                ".",
+                "Ġ||",
+                "|",
+                "ĠAmazon",
+                ".",
+                "com",
+                ":",
+                "ĠCustomer",
+                "ĠReviews",
+                ":",
+                "ĠContracts",
+                "Ġand",
+                "Ġthe",
+                "ĠLegal",
+                "ĠEnvironment",
+                "Ġfor",
+                "ĠEngineers",
+                "Ġand",
+                "ĠArchitects",
+                "Ċ",
+                "Customer",
+                "ĠReviews",
+                "63",
+                "<|endoftext|>",
+                "<|endoftext|>",
+                "<|endoftext|>",
+            ],
+        )
+
+        self.assertEqual(
+            mapped_ds[5]["attention_mask"],
+            [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                0,
+                0,
+                0,
+            ],
+        )
+
+        self.assertEqual(
+            mapped_ds[5]["metadata_mask"],
+            [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+            ],
+        )
 
     def test_add_metadata_and_chunk_examples_with_true_processor(self):
         cfg = MetadataConfig()
@@ -1386,7 +1614,7 @@ class MetadataUtilsTester(unittest.TestCase):
         PROCESSORS["entity"] = EntityProcessor
 
         ds_dict = {
-            key: [self.examples[1][key], self.examples[3][key], self.examples[4][key]]
+            key: [self.examples[1][key], self.examples[4][key], self.examples[4][key]]
             for key in self.examples[0].keys()
         }
         ds = Dataset.from_dict(ds_dict)

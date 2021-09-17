@@ -135,6 +135,13 @@ class UrlProcessor(MetadataProcessor):
         return "".join([metadata_attrs["key"], self.cfg.metadata_key_value_sep, unquote_plus(metadata_attrs["value"])])
 
 
+class WebsiteDescriptionProcessor(MetadataProcessor):
+    """An example metadata processor for website descriptions."""
+
+    def process_global(self, metadata_attrs: Dict[str, Any]) -> Optional[str]:
+        # Example: "website_description: BBC is a news organization".
+        return "".join(["Website Description", self.cfg.metadata_key_value_sep, metadata_attrs["value"]])
+
 class BasicStartLocalProcessor(MetadataProcessor):
     def process_local(self, metadata_attrs: Dict[str, Any]) -> Optional[Tuple[str, str]]:
         # This is a basic processor that just creates a local start tag from the value stored in the metadata
@@ -146,5 +153,6 @@ PROCESSORS = {
     "entity": EntityProcessor,
     "html": HtmlProcessor,
     "url": UrlProcessor,
+    "website_description": WebsiteDescriptionProcessor,
     "basic_start_local": BasicStartLocalProcessor,
 }

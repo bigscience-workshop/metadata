@@ -159,7 +159,6 @@ def _collate_metadata(metadata_list: List[dict], cfg: MetadataConfig):
     Returns:
         A list of metadata with only one metadata per `char_start_idx`
     """
-    # TODO
     processor = PROCESSORS.get(metadata_list[0]["key"], MetadataProcessor)(cfg)
 
     new_metadata_list = []
@@ -239,7 +238,7 @@ def add_local_metadata_to_text(example: Dict[str, Any], cfg: MetadataConfig) -> 
 
     filtered_metadata = sum(filtered_metadata.values(), [])
 
-    # A list is created to define to define the seniority rules between the metadata types
+    # A list is created to define the order between the metadata types
     metadata_list_priority = [
         metadata_key if pos == 0 else f"basic_start_local_{metadata_key}"
         for metadata_key in cfg.metadata_list

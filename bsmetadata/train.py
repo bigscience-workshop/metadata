@@ -73,15 +73,6 @@ class CFG:
         metadata={"help": "If save strategy is `epoch`. The number of savings to perform per epoch during training."},
     )
     save_steps: int = field(default=500, metadata={"help": "Save checkpoint every X update steps."})
-    # save_total_limit: Optional[int] = field(
-    #     default=None,
-    #     metadata={
-    #         "help": (
-    #             "Limit the total amount of checkpoints."
-    #             "Deletes the older checkpoints in the output_dir. Default is unlimited checkpoints"
-    #         )
-    #     },
-    # )  # might be usefull to had, especially for google colab experiment
     do_train: bool = field(default=True, metadata={"help": "Whether to run training."})
     do_eval: bool = field(default=True, metadata={"help": "Whether to run eval on the dev set."})
 
@@ -253,8 +244,14 @@ def main(args: CFG) -> None:
         return
 
     logger.info("Start training")
-    logger.info(f"  Evaluation will be done every {eval_per_n_step} steps")
-    logger.info(f"  Saving will be done every {save_per_n_step} steps")
+    logger.info(
+        f"  Evaluation will be done every {eval_per_n_step} steps, "
+        f"for a total of {args.max_train_steps//eval_per_n_step} times."
+    )
+    logger.info(
+        f"  Saving will be done every {save_per_n_step} steps, "
+        f"for a total of {args.max_train_steps//save_per_n_step} times."
+    )
     for epoch in range(args.num_train_epochs):
         model.train()
         for step, batch in enumerate(train_dataloader):

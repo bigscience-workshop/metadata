@@ -230,6 +230,11 @@ def add_local_metadata_to_text(example: Dict[str, Any], cfg: MetadataConfig) -> 
 
     for metadata_type, metadata_list in filtered_metadata.items():
         if metadata_list and metadata_list[0].get("relative_start_pos") is not None:
+            assert all("relative_start_pos" is not None in md for md in metadata_list), (
+                "We have a type of tag that has its `relative_start_pos` field partially defined and "
+                "we don't know how to handle this case."
+            )
+
             filtered_metadata[metadata_type] = _collate_metadata(metadata_list, cfg)
 
     filtered_metadata = sum(filtered_metadata.values(), [])

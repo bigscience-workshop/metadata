@@ -146,14 +146,14 @@ def _collate_metadata(metadata_list: List[dict], cfg: MetadataConfig):
     """Transforms a list of local metadata that may be more than one at a same `char_start_idx` or `char_end_idx` index
     into a list of metadata with only one metadata per `char_start_idx`.
     The new metadata at `char_start_idx` corresponds to the concatenation of the local metadata that appear at the
-    same idx (for its start value and/or its end value). The order is determined by the values of `relative_start_pos` 
+    same idx (for its start value and/or its end value). The order is determined by the values of `relative_start_pos`
     and `relative_end_pos`.
 
-    Note that this function requires that for each metadata have `char_start_idx`, `char_end_idx`,
+    Note that this function requires that for each metadata has `char_start_idx`, `char_end_idx`,
     `relative_start_pos` and `relative_end_pos`
 
     Args:
-        metadata_list: [description]
+        metadata_list: list of metadata dict to collate
         cfg: The data config to use.
 
     Returns:

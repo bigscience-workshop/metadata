@@ -41,6 +41,10 @@ Local metadata is required to have the following fields:
 - ``char_end_idx``: The index of the first character in ``text`` that is **not** associated with this metadata instance.
 - ``value``: The actual value associated with this metadata instance (e.g., an entity name or HTML tag).
 
+And there are also two optional keys (which must be set or not set for all metadata sharing the same ``key`` value):
+- ``relative_start_pos`` position at which the start metadata is placed at a given character index. 
+- ``relative_end_pos`` position at which the end metadata is placed at a given character index.
+The counter is common between ``relative_start_pos`` and ``relative_end_pos`` for a given ``key`` value.
 ### Example
 
 Below is a valid input example consisting of a text with two global metadata instances (``url`` and ``timestamp``) and one local metadata instance (``entity``).
@@ -70,6 +74,16 @@ Note that this entire input should be in *a single line* in the actual dataset.
     ]
 }
 ```
+
+Below is a table showing ``relative_start_pos`` (`start`) and ``relative_end_pos`` (`end`) fields work on some HTML tags examples.
+
+
+| Input | `start` (`<i>`) | `end`(`<i>`) | `start` (`<b>`) | `end`(`<b>`) |
+| - | - | - | - | - |
+| ``<i></i><b> ... </b>`` | 0 | 1 | 2 | 0 |
+| ``<i><b> ... </b></i>`` | 0 | 1 | 1 | 0 |
+| ``<i> ... </i><b></b>`` | 0 | 0 | 1 | 2 |
+| ``<i> ... <b></b></i>`` | 0 | 2 | 0 | 1 |
 
 ## Contribute 🧠
 

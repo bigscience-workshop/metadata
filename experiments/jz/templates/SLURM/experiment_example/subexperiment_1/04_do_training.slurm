@@ -18,7 +18,7 @@ set -x -e
 # - load several modules (git)
 # Note: We can afford to have two conda environments: one stable for running experiments and one for development.
 # If there are new dependencies to install, you have to tell me about them and not do it in this script
-source $HOME/start-user
+source $HOME/start-modelling-metadata-user
 
 # We are on an offline partition
 export HF_DATASETS_OFFLINE=1

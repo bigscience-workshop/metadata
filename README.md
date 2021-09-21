@@ -47,8 +47,15 @@ And there are also two optional keys (which must be set or not set for all metad
 The counter is common between ``relative_start_pos`` and ``relative_end_pos`` for a given ``key`` value.
 ### Example
 
-Below is a valid input example consisting of a text with two global metadata instances (``url`` and ``timestamp``) and five local metadata instances (1 ``entity`` and 4 ``html``).
-Note that this entire input should be in *a single line* in the actual dataset.
+Assume that the following text is extracted from `https://www.bbc.com/sport/live/olympics/50974152`, which is an article that was published on `2018-12-10T13:45:00.000Z` (line 2-3 show the output of an entity tagger applied to this text).
+
+```html
+<body><div><p>It was a brilliant first round. You have to break down the Cuban's rhythm you can't let them get into rhythm. The risk with that is <a>Yafai</a> has got to go him.</p>\n</div></body>
+                                                                                                                                                     ^^^^^
+                                                                                                                                                     Entity: Galal Yafai
+```
+
+This text would be represented as the following input example with two global metadata instances (``url`` and ``timestamp``) and five local metadata instances (1 ``entity`` and 4 ``html``). Note that this entire input should be in *a single line* in the actual dataset.
 
 ```javascript
 {

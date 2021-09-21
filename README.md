@@ -47,30 +47,20 @@ And there are also two optional keys (which must be set or not set for all metad
 The counter is common between ``relative_start_pos`` and ``relative_end_pos`` for a given ``key`` value.
 ### Example
 
-Below is a valid input example consisting of a text with two global metadata instances (``url`` and ``timestamp``) and one local metadata instance (``entity``).
+Below is a valid input example consisting of a text with two global metadata instances (``url`` and ``timestamp``) and five local metadata instances (1 ``entity`` and 4 ``html``).
 Note that this entire input should be in *a single line* in the actual dataset.
 
 ```javascript
 {
-    "text": "It was a brilliant first round. You have to break down the Cuban's rhythm you can't let them get into rhythm. The risk with that is Yafai has got to go him.",
+    "text": "It was a brilliant first round. You have to break down the Cuban's rhythm you can't let them get into rhythm. The risk with that is Yafai has got to go him.\n",
     "metadata": [
-        {
-            "key": "url",
-            "type": "global",
-            "value": "https://www.bbc.com/sport/live/olympics/50974152"
-        },
-        {
-            "key": "timestamp",
-            "type": "global",
-            "value": "2018-12-10T13:45:00.000Z"
-        },
-        {
-            "key": "entity",
-            "type": "local",
-            "char_start_idx": 132,
-            "char_end_idx": 137,
-            "value": "Galal Yafai"
-        }
+        {"key": "url", "type": "global", "value": "https://www.bbc.com/sport/live/olympics/50974152"},
+        {"key": "timestamp", "type": "global", "value": "2018-12-10T13:45:00.000Z"},
+        {"key": "entity", "type": "local", "char_start_idx": 132, "char_end_idx": 137, "value": "Galal Yafai"},
+        {'key': 'html', 'type': 'local', 'char_start_idx': 132, 'relative_start_pos': 0, 'char_end_idx': 137, 'relative_end_pos': 0, 'value': 'a', 'html_attrs': {'attrs': [], 'values': []}},
+        {'key': 'html', 'type': 'local', 'char_start_idx': 0, 'relative_start_pos': 2, 'char_end_idx': 156, 'relative_end_pos': 0, 'value': 'p', 'html_attrs': {'attrs': [], 'values': []}},
+        {'key': 'html', 'type': 'local', 'char_start_idx': 0, 'relative_start_pos': 1, 'char_end_idx': 157, 'relative_end_pos': 0, 'value': 'div', 'html_attrs': {'attrs': [], 'values': []}},
+        {'key': 'html', 'type': 'local', 'char_start_idx': 0, 'relative_start_pos': 0, 'char_end_idx': 157, 'relative_end_pos': 1, 'value': 'body', 'html_attrs': {'attrs': [], 'values': []}},
     ]
 }
 ```

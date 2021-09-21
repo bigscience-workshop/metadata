@@ -88,7 +88,6 @@ def show_help(context="", cls=CFG):
             show_help(context=f"{context}{field_.name}.", cls=field_.type)
         else:
             kwargs = field_.metadata.copy()
-            # print(field)
             help = kwargs.get("help", "")
             default = getattr(default_instance, field_.name)  # init and tell the default
             print(f"{context}{field_.name}: {help} (default={json.dumps(default)})")

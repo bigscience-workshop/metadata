@@ -4,7 +4,14 @@ import unittest
 from datasets import Dataset
 from transformers import GPT2TokenizerFast
 
-from bsmetadata.metadata_processors import PROCESSORS, MetadataProcessor
+from bsmetadata.metadata_processors import (
+    PROCESSORS,
+    EntityProcessor,
+    HtmlProcessor,
+    MetadataProcessor,
+    TimestampProcessor,
+    UrlProcessor,
+)
 from bsmetadata.metadata_utils import (
     MetadataConfig,
     add_local_metadata_to_text,
@@ -16,6 +23,7 @@ from bsmetadata.metadata_utils import (
 
 class MetadataUtilsTester(unittest.TestCase):
     def setUp(self) -> None:
+        self.maxDiff = None
         self.tokenizer = GPT2TokenizerFast.from_pretrained("gpt2-xl")
         self.examples = [
             {
@@ -38,7 +46,16 @@ class MetadataUtilsTester(unittest.TestCase):
                 "text": "An apple is an edible fruit produced by an apple tree (Malus domestica).",
                 "metadata": [
                     {"key": "url", "type": "global", "value": "https://en.wikipedia.org/wiki/Apple"},
-                    {"key": "html", "type": "local", "value": "b", "char_start_idx": 3, "char_end_idx": 8},
+                    {
+                        "key": "html",
+                        "relative_start_pos": 0,
+                        "relative_end_pos": 0,
+                        "type": "local",
+                        "value": "b",
+                        "html_attrs": {"attrs": [], "values": []},
+                        "char_start_idx": 3,
+                        "char_end_idx": 8,
+                    },
                     {
                         "key": "entity",
                         "type": "local",
@@ -46,8 +63,26 @@ class MetadataUtilsTester(unittest.TestCase):
                         "char_start_idx": 3,
                         "char_end_idx": 8,
                     },
-                    {"key": "html", "type": "local", "value": "b", "char_start_idx": 43, "char_end_idx": 53},
-                    {"key": "html", "type": "local", "value": "i", "char_start_idx": 43, "char_end_idx": 48},
+                    {
+                        "key": "html",
+                        "relative_start_pos": 1,
+                        "relative_end_pos": 0,
+                        "type": "local",
+                        "value": "b",
+                        "html_attrs": {"attrs": ["class"], "values": ["level1"]},
+                        "char_start_idx": 43,
+                        "char_end_idx": 53,
+                    },
+                    {
+                        "key": "html",
+                        "relative_start_pos": 2,
+                        "relative_end_pos": 0,
+                        "type": "local",
+                        "value": "i",
+                        "html_attrs": {"attrs": ["class"], "values": ["level2"]},
+                        "char_start_idx": 43,
+                        "char_end_idx": 48,
+                    },
                 ],
             },
             {
@@ -65,6 +100,154 @@ class MetadataUtilsTester(unittest.TestCase):
                         "key": "website_description",
                         "type": "global",
                         "value": "Amazon.com, Inc. ( AM-ə-zon) is an American multinational conglomerate which focuses on e-commerce, cloud computing, digital streaming, and artificial intelligence.",
+                    },
+                ],
+            },
+            {
+                "id": "0002",
+                "text": "An apple is an edible fruit produced by an apple tree (Malus domestica).",
+                "metadata": [
+                    {"key": "url", "type": "global", "value": "https://en.wikipedia.org/wiki/Apple"},
+                    {
+                        "key": "html",
+                        "relative_start_pos": 0,
+                        "relative_end_pos": 0,
+                        "type": "local",
+                        "value": "b",
+                        "html_attrs": {"attrs": [], "values": []},
+                        "char_start_idx": 3,
+                        "char_end_idx": 8,
+                    },
+                    {
+                        "key": "entity",
+                        "type": "local",
+                        "value": "Malus domestica",
+                        "char_start_idx": 3,
+                        "char_end_idx": 8,
+                    },
+                    {
+                        "key": "html",
+                        "relative_start_pos": 0,
+                        "relative_end_pos": 1,
+                        "type": "local",
+                        "value": "a",
+                        "html_attrs": {"attrs": [], "values": []},
+                        "char_start_idx": 43,
+                        "char_end_idx": 43,
+                    },
+                    {
+                        "key": "html",
+                        "relative_start_pos": 6,
+                        "relative_end_pos": 7,
+                        "type": "local",
+                        "value": "a",
+                        "html_attrs": {"attrs": [], "values": []},
+                        "char_start_idx": 43,
+                        "char_end_idx": 43,
+                    },
+                    {
+                        "key": "html",
+                        "relative_start_pos": 4,
+                        "relative_end_pos": 0,
+                        "type": "local",
+                        "value": "b",
+                        "html_attrs": {"attrs": ["class"], "values": ["level2"]},
+                        "char_start_idx": 43,
+                        "char_end_idx": 53,
+                    },
+                    {
+                        "key": "html",
+                        "relative_start_pos": 3,
+                        "relative_end_pos": 1,
+                        "type": "local",
+                        "value": "b",
+                        "html_attrs": {"attrs": ["class"], "values": ["level1"]},
+                        "char_start_idx": 43,
+                        "char_end_idx": 53,
+                    },
+                    {
+                        "key": "html",
+                        "relative_start_pos": 5,
+                        "relative_end_pos": 0,
+                        "type": "local",
+                        "value": "i",
+                        "html_attrs": {"attrs": ["class"], "values": ["level3"]},
+                        "char_start_idx": 43,
+                        "char_end_idx": 48,
+                    },
+                ],
+            },
+            {
+                "id": "0002",
+                "text": "An apple is an edible fruit produced by an apple tree (Malus domestica).",
+                "metadata": [
+                    {"key": "url", "type": "global", "value": "https://en.wikipedia.org/wiki/Apple"},
+                    {
+                        "key": "html",
+                        "relative_start_pos": 0,
+                        "relative_end_pos": 0,
+                        "type": "local",
+                        "value": "b",
+                        "html_attrs": {"attrs": [], "values": []},
+                        "char_start_idx": 3,
+                        "char_end_idx": 8,
+                    },
+                    {
+                        "key": "html",
+                        "relative_start_pos": 0,
+                        "relative_end_pos": 1,
+                        "type": "local",
+                        "value": "a",
+                        "html_attrs": {"attrs": [], "values": []},
+                        "char_start_idx": 43,
+                        "char_end_idx": 43,
+                    },
+                    {
+                        "key": "html",
+                        "relative_start_pos": 6,
+                        "relative_end_pos": 7,
+                        "type": "local",
+                        "value": "a",
+                        "html_attrs": {"attrs": [], "values": []},
+                        "char_start_idx": 43,
+                        "char_end_idx": 43,
+                    },
+                    {
+                        "key": "html",
+                        "relative_start_pos": 4,
+                        "relative_end_pos": 0,
+                        "type": "local",
+                        "value": "b",
+                        "html_attrs": {"attrs": ["class"], "values": ["level2"]},
+                        "char_start_idx": 43,
+                        "char_end_idx": 53,
+                    },
+                    {
+                        "key": "html",
+                        "relative_start_pos": 3,
+                        "relative_end_pos": 1,
+                        "type": "local",
+                        "value": "b",
+                        "html_attrs": {"attrs": ["class"], "values": ["level1"]},
+                        "char_start_idx": 43,
+                        "char_end_idx": 53,
+                    },
+                    {
+                        "key": "html",
+                        "relative_start_pos": 5,
+                        "relative_end_pos": 0,
+                        "type": "local",
+                        "value": "i",
+                        "html_attrs": {"attrs": ["class"], "values": ["level3"]},
+                        "char_start_idx": 43,
+                        "char_end_idx": 48,
+                    },
+                    {
+                        "key": "entity",
+                        "type": "local",
+                        "value": "Malus domestica",
+                        "char_start_idx": 3,
+                        "char_end_idx": 8,
                     },
                 ],
             },
@@ -123,7 +306,7 @@ class MetadataUtilsTester(unittest.TestCase):
 
         self.assertEqual(
             text2,
-            "An [entity: Malus domestica][html: b]apple[/html: b][/entity: Malus domestica] is an edible fruit produced by an [html: b][html: i]apple[/html: i] tree[/html: b] (Malus domestica).",
+            "An [html: b][entity: Malus domestica]apple[/entity: Malus domestica][/html: b] is an edible fruit produced by an [html: b][html: i]apple[/html: i] tree[/html: b] (Malus domestica).",
         )
         self.assertEqual(
             "".join(str(int(x)) for x in mask2),
@@ -814,29 +997,29 @@ class MetadataUtilsTester(unittest.TestCase):
                 "|",
                 "ĠAn",
                 "Ġ[",
+                "html",
+                ":",
+                "Ġb",
+                "][",
                 "entity",
                 ":",
                 "ĠMal",
                 "us",
                 "Ġdomest",
                 "ica",
-                "][",
-                "html",
-                ":",
-                "Ġb",
                 "]",
                 "apple",
                 "[/",
-                "html",
-                ":",
-                "Ġb",
-                "][/",
                 "entity",
                 ":",
                 "ĠMal",
                 "us",
                 "Ġdomest",
                 "ica",
+                "][/",
+                "html",
+                ":",
+                "Ġb",
                 "]",
                 "Ġis",
                 "Ġan",
@@ -1417,6 +1600,45 @@ class MetadataUtilsTester(unittest.TestCase):
                 0,
                 0,
             ],
+        )
+
+    def test_add_metadata_and_chunk_examples_with_true_processor(self):
+        cfg = MetadataConfig()
+        cfg.metadata_list = ["url", "timestamp", "html", "entity"]
+        cfg.max_seq_len = 80
+        cfg.metadata_probability = 1
+
+        PROCESSORS["url"] = UrlProcessor
+        PROCESSORS["timestamp"] = TimestampProcessor
+        PROCESSORS["html"] = HtmlProcessor
+        PROCESSORS["entity"] = EntityProcessor
+
+        ds_dict = {
+            key: [self.examples[1][key], self.examples[4][key], self.examples[4][key]]
+            for key in self.examples[0].keys()
+        }
+        ds = Dataset.from_dict(ds_dict)
+
+        mapped_ds = ds.map(
+            functools.partial(add_metadata_and_chunk_examples, tokenizer=self.tokenizer, cfg=cfg),
+            batched=True,
+            remove_columns=ds.column_names,
+            load_from_cache_file=False,
+        )
+
+        self.maxDiff = None
+
+        self.assertEqual(
+            self.tokenizer.decode(mapped_ds[0]["input_ids"]),
+            "url: https://en.wikipedia.org/wiki/Apple ||| An <b>apple [[Malus domestica]]</b> is an edible fruit produced by an <b class:level1><i class:level2>apple</i> tree</b> (Malus domestica).<|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|>",
+        )
+        self.assertEqual(
+            self.tokenizer.decode(mapped_ds[1]["input_ids"]),
+            "url: https://en.wikipedia.org/wiki/Apple ||| An <b>apple [[Malus domestica]]</b> is an edible fruit produced by an <a></a><b class:level1><b class:level2><i class:level3><a></a>apple</i> tree</b></b> (Malus domestica).<|endoftext|>",
+        )
+        self.assertEqual(
+            self.tokenizer.decode(mapped_ds[2]["input_ids"]),
+            "url: https://en.wikipedia.org/wiki/Apple ||| An <b>apple [[Malus domestica]]</b> is an edible fruit produced by an <a></a><b class:level1><b class:level2><i class:level3><a></a>apple</i> tree</b></b> (Malus domestica).<|endoftext|>",
         )
 
 

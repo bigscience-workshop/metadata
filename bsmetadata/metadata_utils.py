@@ -15,11 +15,31 @@ This script provides utility functions for linearizing, encoding and chunking a 
 """
 import random
 from collections import defaultdict
-from typing import Any, Dict, List, Tuple
+from dataclasses import asdict, dataclass, field
+from typing import Any, DefaultDict, Dict, List, Optional, Tuple
 
 from transformers import PreTrainedTokenizerFast
 
 from bsmetadata.metadata_processors import PROCESSORS, MetadataConfig, MetadataProcessor
+
+
+@dataclass
+class MetadataIdxStorage:
+    start_idx_tag_with_content: dict = field(default_factory=(lambda: defaultdict(list)))
+    end_idx_tag_with_content: dict = field(default_factory=(lambda: defaultdict(list)))
+    start_idx_tag_without_content: dict = field(default_factory=(lambda: defaultdict(list)))
+    end_idx_tag_without_content: dict = field(default_factory=(lambda: defaultdict(list)))
+
+
+@dataclass
+class BasicMetadata:
+    char_start_idx: int
+    key: str
+    type: str
+    value: str
+    char_end_idx: Optional[int] = None
+    relative_start_pos: Optional[int] = None
+    relative_end_pos: Optional[int] = None
 
 
 def add_metadata_and_chunk_examples(
@@ -122,6 +142,71 @@ def create_global_metadata_prefix(example: Dict[str, Any], cfg: MetadataConfig) 
     return cfg.metadata_sep.join(sorted_metadata) + cfg.global_metadata_sep if sorted_metadata else ""
 
 
+def _collate_metadata(metadata_list: List[dict], cfg: MetadataConfig):
+    """Transforms a list of local metadata that may be more than one at a same `char_start_idx` or `char_end_idx` index
+    into a list of metadata with only one metadata per `char_start_idx`.
+    The new metadata at `char_start_idx` corresponds to the concatenation of the local metadata that appear at the
+    same idx (for its start value and/or its end value). The order is determined by the values of `relative_start_pos`
+    and `relative_end_pos`.
+
+    Note that this function requires that for each metadata has `char_start_idx`, `char_end_idx`,
+    `relative_start_pos` and `relative_end_pos`
+
+    Args:
+        metadata_list: list of metadata dict to collate
+        cfg: The data config to use.
+
+    Returns:
+        A list of metadata with only one metadata per `char_start_idx`
+    """
+    processor = PROCESSORS.get(metadata_list[0]["key"], MetadataProcessor)(cfg)
+
+    new_metadata_list = []
+
+    metadata_dict_idx = DefaultDict(dict)
+    for metadata_node in metadata_list:
+        processed_metadata = processor.process_local(metadata_node)
+        if processed_metadata is None:
+            continue
+
+        metadata_node = BasicMetadata(
+            char_start_idx=metadata_node["char_start_idx"],
+            key=metadata_node["key"],
+            type=metadata_node["type"],
+            value=metadata_node["value"],
+            char_end_idx=metadata_node["char_end_idx"],
+            relative_start_pos=metadata_node["relative_start_pos"],
+            relative_end_pos=metadata_node["relative_end_pos"],
+        )
+        start_text, end_text = processed_metadata
+
+        assert metadata_node.relative_start_pos not in metadata_dict_idx[metadata_node.char_start_idx]
+        assert metadata_node.relative_end_pos not in metadata_dict_idx[metadata_node.char_end_idx]
+
+        metadata_dict_idx[metadata_node.char_start_idx][metadata_node.relative_start_pos] = start_text
+        metadata_dict_idx[metadata_node.char_end_idx][metadata_node.relative_end_pos] = end_text
+
+    for absolute_idx, value in metadata_dict_idx.items():
+        pos_sorted = sorted(list(value.keys()))
+        local_metadata = ""
+        for pos in pos_sorted:
+            local_metadata += metadata_dict_idx[absolute_idx][pos]
+        new_metadata_list.append(
+            asdict(
+                BasicMetadata(
+                    char_start_idx=absolute_idx,
+                    key=f"basic_start_local_{metadata_list[0]['key']}",
+                    type="local",
+                    value=local_metadata,
+                    char_end_idx=absolute_idx,
+                    relative_start_pos=None,
+                    relative_end_pos=None,
+                )
+            )
+        )
+    return new_metadata_list
+
+
 def add_local_metadata_to_text(example: Dict[str, Any], cfg: MetadataConfig) -> Tuple[str, List[bool]]:
     """Adds local metadata (such as HTML tags and entity names) to the given input text.
 
@@ -134,13 +219,39 @@ def add_local_metadata_to_text(example: Dict[str, Any], cfg: MetadataConfig) -> 
             - the first element is the text with metadata;
             - the second element is a boolean mask where `mask[i]` is set iff `text[i]` is some kind of metadata.
     """
-    metadata_start_texts, metadata_end_texts = defaultdict(list), defaultdict(list)
+    metadata_idx_storage = MetadataIdxStorage()
 
     # Filter and sort all metadata so that they are processed in the requested order.
-    filtered_metadata = [md for md in example["metadata"] if md["type"] == "local" and md["key"] in cfg.metadata_list]
+
+    filtered_metadata = defaultdict(list)
+    for md in example["metadata"]:
+        if md["type"] == "local" and md["key"] in cfg.metadata_list:
+            filtered_metadata[md["key"]].append(md)
+
+    for metadata_type, metadata_list in filtered_metadata.items():
+        if metadata_list and metadata_list[0].get("relative_start_pos") is not None:
+            assert all(md.get("relative_start_pos") is not None for md in metadata_list), (
+                "We have a type of tag that has its `relative_start_pos` field partially defined and "
+                "we don't know how to handle this case."
+            )
+
+            filtered_metadata[metadata_type] = _collate_metadata(metadata_list, cfg)
+
+    filtered_metadata = sum(filtered_metadata.values(), [])
+
+    # A list is created to define the order between the metadata types
+    metadata_list_priority = [
+        metadata_key if pos == 0 else f"basic_start_local_{metadata_key}"
+        for metadata_key in cfg.metadata_list
+        for pos in (0, 1)
+    ]
     sorted_metadata = sorted(
-        filtered_metadata, key=lambda md: (cfg.metadata_list.index(md["key"]), md["char_end_idx"])
+        filtered_metadata, key=lambda md: (metadata_list_priority.index(md["key"]), md["char_end_idx"])
     )
+
+    for md in filtered_metadata:
+        if "basic_start_local" in md["key"]:
+            md["key"] = "basic_start_local"
 
     # Compute the text sequences to add at the start and end of each metadata entry.
     for metadata in sorted_metadata:
@@ -152,27 +263,58 @@ def add_local_metadata_to_text(example: Dict[str, Any], cfg: MetadataConfig) -> 
         char_start_idx = metadata.get("char_start_idx", -1)
         char_end_idx = metadata.get("char_end_idx", -1)
 
-        metadata_start_texts[char_start_idx].insert(0, start_text)
-        metadata_end_texts[char_end_idx].append(end_text)
+        if char_start_idx == char_end_idx:
+            metadata_idx_storage.start_idx_tag_without_content[char_start_idx].insert(0, start_text)
+            metadata_idx_storage.end_idx_tag_without_content[char_end_idx].append(end_text)
+        else:
+            metadata_idx_storage.start_idx_tag_with_content[char_start_idx].insert(0, start_text)
+            metadata_idx_storage.end_idx_tag_with_content[char_end_idx].append(end_text)
 
     # Build the final text with local metadata and the corresponding mask.
     text_with_local_metadata = []
     metadata_mask = []
 
-    for idx, char in enumerate(example["text"]):
+    def _add_metadata_to_text(metadata_text_list, text_with_local_metadata, metadata_mask):
+        for metadata_text in metadata_text_list:
+            text_with_local_metadata.append(metadata_text)
+            metadata_mask += [True] * len(metadata_text)
 
-        if idx in metadata_start_texts:
-            for start_text in metadata_start_texts[idx]:
-                text_with_local_metadata.append(start_text)
-                metadata_mask += [True] * len(start_text)
+    for idx, char in enumerate(example["text"]):
+        if idx in metadata_idx_storage.end_idx_tag_with_content:
+            metadata_text_list = metadata_idx_storage.end_idx_tag_with_content[idx]
+            _add_metadata_to_text(metadata_text_list, text_with_local_metadata, metadata_mask)
+
+        if idx in metadata_idx_storage.start_idx_tag_without_content:
+            metadata_text_list = metadata_idx_storage.start_idx_tag_without_content[idx]
+            _add_metadata_to_text(metadata_text_list, text_with_local_metadata, metadata_mask)
+
+        if idx in metadata_idx_storage.end_idx_tag_without_content:
+            metadata_text_list = metadata_idx_storage.end_idx_tag_without_content[idx]
+            _add_metadata_to_text(metadata_text_list, text_with_local_metadata, metadata_mask)
+
+        if idx in metadata_idx_storage.start_idx_tag_with_content:
+            metadata_text_list = metadata_idx_storage.start_idx_tag_with_content[idx]
+            _add_metadata_to_text(metadata_text_list, text_with_local_metadata, metadata_mask)
 
         text_with_local_metadata.append(char)
         metadata_mask += [False]
 
-        if idx + 1 in metadata_end_texts:
-            for end_text in metadata_end_texts[idx + 1]:
-                text_with_local_metadata.append(end_text)
-                metadata_mask += [True] * len(end_text)
+    idx += 1
+    if idx in metadata_idx_storage.end_idx_tag_with_content:
+        metadata_text_list = metadata_idx_storage.end_idx_tag_with_content[idx]
+        _add_metadata_to_text(metadata_text_list, text_with_local_metadata, metadata_mask)
+
+    if idx in metadata_idx_storage.start_idx_tag_without_content:
+        metadata_text_list = metadata_idx_storage.start_idx_tag_without_content[idx]
+        _add_metadata_to_text(metadata_text_list, text_with_local_metadata, metadata_mask)
+
+    if idx in metadata_idx_storage.end_idx_tag_without_content:
+        metadata_text_list = metadata_idx_storage.end_idx_tag_without_content[idx]
+        _add_metadata_to_text(metadata_text_list, text_with_local_metadata, metadata_mask)
+
+    if idx in metadata_idx_storage.start_idx_tag_with_content:
+        metadata_text_list = metadata_idx_storage.start_idx_tag_with_content[idx]
+        _add_metadata_to_text(metadata_text_list, text_with_local_metadata, metadata_mask)
 
     return "".join(text_with_local_metadata), metadata_mask
 

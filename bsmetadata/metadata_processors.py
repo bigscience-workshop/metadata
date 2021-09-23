@@ -70,6 +70,13 @@ class MetadataConfig:
             "help": "The character sequence to be concatenated at the beginning of character sequence of special tokens for metadata generation."
         },
     )
+    treat_local_metadata_as_regular_text: bool = field(
+        default=False,
+        metadata={
+            "help": "If True, local metadata token will be associated to a `0` int the metadata_mask list. If False, "
+            "local metadata token will be associated to a `1` int the metadata_mask list"
+        },
+    )
     max_seq_len: int = field(
         default=512, metadata={"help": "The maximum number of tokens to use for each training chunk."}
     )

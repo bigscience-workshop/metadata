@@ -120,9 +120,12 @@ def add_metadata_and_chunk_examples(
             char_range = range(char_span.start, char_span.end)
             return any(char_level_metadata_mask[c] for c in char_range)
 
-        token_level_metadata_mask = [
-            is_metadata(idx) for idx, _ in enumerate(text_with_local_metadata_encoded.input_ids)
-        ]
+        if cfg.treat_local_metadata_as_regular_text:
+            token_level_metadata_mask = [0] * len(text_with_local_metadata_encoded.input_ids)
+        else:
+            token_level_metadata_mask = [
+                is_metadata(idx) for idx, _ in enumerate(text_with_local_metadata_encoded.input_ids)
+            ]
 
         # Create chunks of `max_seq_len` tokens.
         prefix_special_tokens_encoded = (

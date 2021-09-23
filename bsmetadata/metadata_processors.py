@@ -36,9 +36,23 @@ class MetadataConfig:
     metadata_probability: float = field(
         default=1, metadata={"help": "The probability of adding metadata to an input example."}
     )
+    add_special_token_for_metadata_generation: bool = field(
+        default=True,
+        metadata={
+            "help": "If True, some special tokens are added at the begining of the sample to indicate the type of "
+            "metadata added in the sample. The special tokens used are equal to the string used in `metadata_list`"
+        },
+    )
     global_metadata_sep: str = field(
         default=" |||",
         metadata={"help": "The character sequence that is used to separate all global metadata from the actual text."},
+    )
+    special_token_for_metadata_generation_sep: str = field(
+        default=" |||",
+        metadata={
+            "help": "The character sequence that is used to separate the special tokens controlling the generation of "
+            "metadata from (eventually) the global metadata and the actual text."
+        },
     )
     max_seq_len: int = field(
         default=512, metadata={"help": "The maximum number of tokens to use for each training chunk."}

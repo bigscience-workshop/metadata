@@ -319,8 +319,8 @@ class MetadataUtilsTester(unittest.TestCase):
         cfg.metadata_list = ["html", "entity"]
         PROCESSORS["html"] = MetadataProcessor
         PROCESSORS["entity"] = MetadataProcessor
-        text1, mask1, local_metadata_special_tokens_prefix1 = add_local_metadata_to_text(self.examples[0], cfg)
-        text2, mask2, local_metadata_special_tokens_prefix2 = add_local_metadata_to_text(self.examples[1], cfg)
+        text1, mask1, local_metadata_special_tokens_prefix_1 = add_local_metadata_to_text(self.examples[0], cfg)
+        text2, mask2, local_metadata_special_tokens_prefix_2 = add_local_metadata_to_text(self.examples[1], cfg)
 
         self.assertEqual(
             text1,
@@ -331,7 +331,7 @@ class MetadataUtilsTester(unittest.TestCase):
             "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001111111111111111111110000011111111111111111111110000000000000000000",
         )
         self.assertEqual(
-            local_metadata_special_tokens_prefix1,
+            local_metadata_special_tokens_prefix_1,
             "entity",
         )
 
@@ -344,7 +344,7 @@ class MetadataUtilsTester(unittest.TestCase):
             "000111111111111111111111111111111111100000111111111111111111111111111111111111000000000000000000000000000000000001111111111111111110000011111111110000011111111110000000000000000000",
         )
         self.assertEqual(
-            local_metadata_special_tokens_prefix2,
+            local_metadata_special_tokens_prefix_2,
             "html entity",
         )
 
@@ -354,7 +354,10 @@ class MetadataUtilsTester(unittest.TestCase):
         cfg.max_seq_len = 64
         cfg.metadata_probability = 0
 
-        ds_dict = {key: [self.examples[0][key], self.examples[1][key]] for key in self.examples[0].keys()}
+        ds_dict = {
+            key: [self.examples[0][key], self.examples[1][key], self.examples[2][key], self.examples[3][key]]
+            for key in self.examples[0].keys()
+        }
         ds = Dataset.from_dict(ds_dict)
 
         mapped_ds = ds.map(
@@ -378,7 +381,7 @@ class MetadataUtilsTester(unittest.TestCase):
             key: [self.examples[0][key], self.examples[1][key], self.examples[3][key]]
             for key in self.examples[0].keys()
         }
-        print(ds_dict)
+
         ds = Dataset.from_dict(ds_dict)
 
         mapped_ds = ds.map(

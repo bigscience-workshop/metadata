@@ -29,6 +29,10 @@ class MetadataConfig:
         default=" | ",
         metadata={"help": "The character sequence that is used to separate two instances of global metadata."},
     )
+    special_tokens_metadata_sep: str = field(
+        default=" ",
+        metadata={"help": "The character sequence that is used to separate two instances of special token metadata."},
+    )
     metadata_key_value_sep: str = field(
         default=": ",
         metadata={"help": "The character sequence that is used by default to separate a metadata key and its value."},
@@ -36,22 +40,34 @@ class MetadataConfig:
     metadata_probability: float = field(
         default=1, metadata={"help": "The probability of adding metadata to an input example."}
     )
-    add_special_token_for_metadata_generation: bool = field(
+    metadata_add_special_token_for_generation: bool = field(
         default=False,
         metadata={
             "help": "If True, some special tokens are added at the begining of the sample to indicate the type of "
             "metadata added in the sample. The special tokens used are equal to the string used in `metadata_list`"
         },
     )
-    global_metadata_sep: str = field(
+    metadata_global_sep: str = field(
         default=" |||",
         metadata={"help": "The character sequence that is used to separate all global metadata from the actual text."},
     )
-    special_token_for_metadata_generation_sep: str = field(
+    metadata_global_start_seq: str = field(
+        default="",
+        metadata={
+            "help": "The character sequence to be concatenated at the beginning of the global metadata-specific character sequence."
+        },
+    )
+    metadata_special_token_for_generation_sep: str = field(
         default=" |||",
         metadata={
             "help": "The character sequence that is used to separate the special tokens controlling the generation of "
             "metadata from (eventually) the global metadata and the actual text."
+        },
+    )
+    metadata_special_token_for_generation_start_seq: str = field(
+        default="",
+        metadata={
+            "help": "The character sequence to be concatenated at the beginning of character sequence of special tokens for metadata generation."
         },
     )
     max_seq_len: int = field(

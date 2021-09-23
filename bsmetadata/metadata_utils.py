@@ -157,14 +157,16 @@ def add_metadata_and_chunk_examples(
 
 
 def create_global_metadata_prefix(example: Dict[str, Any], cfg: MetadataConfig) -> str:
-    """Creates a prefix containing all global metadata information (including URLs, timestamps, etc). TODO complete
+    """Creates a prefix containing all global metadata information (including URLs, timestamps, etc).
 
     Args:
         example: The example to create a global metadata prefix for.
         cfg: The data config to use.
 
     Returns:
-        A string containing the global metadata prefix.
+        A tuple of two elements, where:
+            - the first element a string containing the global metadata prefix;
+            - the second element is a string contening the name of the metadata types added.
     """
     processed_metadata = {}
     for metadata in example["metadata"]:
@@ -255,9 +257,10 @@ def add_local_metadata_to_text(example: Dict[str, Any], cfg: MetadataConfig) -> 
         cfg: The data config to use.
 
     Returns:
-        A tuple of two elements, where:
+        A tuple of three elements, where:
             - the first element is the text with metadata;
-            - the second element is a boolean mask where `mask[i]` is set iff `text[i]` is some kind of metadata.
+            - the second element is a boolean mask where `mask[i]` is set iff `text[i]` is some kind of metadata;
+            - the third element is a string listing the types of metadata added
     """
     metadata_idx_storage = MetadataIdxStorage()
 

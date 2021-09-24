@@ -169,18 +169,22 @@ def create_global_metadata_prefix(example: Dict[str, Any], cfg: MetadataConfig) 
             - the second element is a string contening the name of the metadata types added.
     """
     processed_metadata = {}
+    global_metadata_special_tokens = []
     for metadata in example["metadata"]:
         key, type_ = metadata["key"], metadata["type"]
         if type_ != "global" or key not in cfg.metadata_list:
             continue
+        
+        if key not in global_metadata_special_tokens:
+            global_metadata_special_tokens.append(key)
 
         processor = PROCESSORS.get(key, MetadataProcessor)(cfg)
         processed_metadata[key] = processor.process_global(metadata)
 
-    sorted_metadata = [(md, processed_metadata.get(md, None)) for md in cfg.metadata_list]
-    sorted_metadata = [(md_key, md) for (md_key, md) in sorted_metadata if md is not None]
-    return cfg.metadata_sep.join([md for (_, md) in sorted_metadata]), cfg.special_tokens_metadata_sep.join(
-        [md_key for (md_key, _) in sorted_metadata]
+    sorted_metadata = [processed_metadata.get(md, None) for md in cfg.metadata_list]
+    sorted_metadata = [md for md in sorted_metadata if md is not None]
+    return cfg.metadata_sep.join([md for md in sorted_metadata]), cfg.special_tokens_metadata_sep.join(
+        [md_key for md_key in cfg.metadata_list if md_key in global_metadata_special_tokens]
     )
 
 

@@ -174,7 +174,7 @@ def create_global_metadata_prefix(example: Dict[str, Any], cfg: MetadataConfig) 
         key, type_ = metadata["key"], metadata["type"]
         if type_ != "global" or key not in cfg.metadata_list:
             continue
-        
+
         if key not in global_metadata_special_tokens:
             global_metadata_special_tokens.append(key)
 

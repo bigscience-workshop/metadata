@@ -271,18 +271,10 @@ class MetadataUtilsTester(unittest.TestCase):
         cfg.metadata_list = ["url", "timestamp", "website_description"]
         PROCESSORS["timestamp"] = MetadataProcessor
 
-        global_metadata_prefix_1 = create_global_metadata_prefix(
-            self.examples[0], cfg
-        )
-        global_metadata_prefix_2 = create_global_metadata_prefix(
-            self.examples[1], cfg
-        )
-        global_metadata_prefix_3 = create_global_metadata_prefix(
-            self.examples[2], cfg
-        )
-        global_metadata_prefix_4 = create_global_metadata_prefix(
-            self.examples[3], cfg
-        )
+        global_metadata_prefix_1 = create_global_metadata_prefix(self.examples[0], cfg)
+        global_metadata_prefix_2 = create_global_metadata_prefix(self.examples[1], cfg)
+        global_metadata_prefix_3 = create_global_metadata_prefix(self.examples[2], cfg)
+        global_metadata_prefix_4 = create_global_metadata_prefix(self.examples[3], cfg)
 
         self.assertEqual(
             global_metadata_prefix_1,
@@ -323,7 +315,6 @@ class MetadataUtilsTester(unittest.TestCase):
             "".join(str(int(x)) for x in mask2),
             "000111111111111111111111111111111111100000111111111111111111111111111111111111000000000000000000000000000000000001111111111111111110000011111111110000011111111110000000000000000000",
         )
-
 
     def test_add_no_metadata_and_chunk_examples(self):
         cfg = MetadataConfig()

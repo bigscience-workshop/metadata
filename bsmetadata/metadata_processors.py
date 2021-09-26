@@ -49,13 +49,13 @@ class MetadataConfig:
     )
     metadata_prefix_sep: str = field(
         default=" |||",
-        metadata={"help": "The character sequence that is used to separate all global metadata and eventually the local metadata special token from the actual text."},
+        metadata={
+            "help": "The character sequence that is used to separate all global metadata and eventually the local metadata special token from the actual text."
+        },
     )
     metadata_prefix_start_seq: str = field(
         default="",
-        metadata={
-            "help": "The character sequence to be concatenated at the beginning of the metadata prefix."
-        },
+        metadata={"help": "The character sequence to be concatenated at the beginning of the metadata prefix."},
     )
     max_seq_len: int = field(
         default=512, metadata={"help": "The maximum number of tokens to use for each training chunk."}

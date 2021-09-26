@@ -85,7 +85,7 @@ def add_metadata_and_chunk_examples(
             text_with_local_metadata = example["text"]
             char_level_metadata_mask = [False] * len(text_with_local_metadata)
 
-        if global_metadata_prefix_encoded :
+        if global_metadata_prefix_encoded:
             text_with_local_metadata = " " + text_with_local_metadata
             char_level_metadata_mask = [False] + char_level_metadata_mask
 
@@ -327,6 +327,7 @@ def add_local_metadata_to_text(example: Dict[str, Any], cfg: MetadataConfig) -> 
         _add_metadata_to_text(metadata_text_list, text_with_local_metadata, metadata_mask)
 
     return "".join(text_with_local_metadata), metadata_mask
+
 
 def chunks(n: int, *lists):
     """Yield successive n-sized chunks from the provided lists."""

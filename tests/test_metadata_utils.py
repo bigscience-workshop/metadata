@@ -1652,7 +1652,7 @@ class MetadataUtilsTester(unittest.TestCase):
         cfg.metadata_list = ["url", "timestamp", "html", "entity"]
         cfg.max_seq_len = 84
         cfg.metadata_probability = 1
-        cfg.metadata_add_special_token_for_generation = True
+        cfg.add_local_metadata_special_tokens_in_prefix = True
         cfg.metadata_prefix_start_seq = " "
 
         PROCESSORS["url"] = UrlProcessor
@@ -1699,7 +1699,7 @@ class MetadataUtilsTester(unittest.TestCase):
         cfg.metadata_list = ["html", "entity"]
         cfg.max_seq_len = 69
         cfg.metadata_probability = 1
-        cfg.metadata_add_special_token_for_generation = True
+        cfg.add_local_metadata_special_tokens_in_prefix = True
         cfg.metadata_prefix_start_seq = " "
 
         PROCESSORS["url"] = UrlProcessor

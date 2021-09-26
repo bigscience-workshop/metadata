@@ -27,11 +27,10 @@ class MetadataConfig:
     )
     metadata_sep: str = field(
         default=" | ",
-        metadata={"help": "The character sequence that is used to separate two instances of global metadata."},
-    )
-    special_tokens_metadata_sep: str = field(
-        default=" ",
-        metadata={"help": "The character sequence that is used to separate two instances of special token metadata."},
+        metadata={
+            "help": "The character sequence that is used to separate two instances of global metadata and/or local "
+            "metadata special tokens (if `add_local_metadata_special_tokens_in_prefix` is `True`)."
+        },
     )
     metadata_key_value_sep: str = field(
         default=": ",
@@ -40,17 +39,19 @@ class MetadataConfig:
     metadata_probability: float = field(
         default=1, metadata={"help": "The probability of adding metadata to an input example."}
     )
-    metadata_add_special_token_for_generation: bool = field(
+    add_local_metadata_special_tokens_in_prefix: bool = field(
         default=False,
         metadata={
-            "help": "If True, some special tokens are added at the begining of the sample to indicate the type of "
-            "metadata added in the sample. The special tokens used are equal to the string used in `metadata_list`"
+            "help": "If True, local metadata special tokens are added at the begining of the sample to indicate the "
+            "type of metadata added in the sample. The special tokens used are equal to the string used in "
+            "`metadata_list`"
         },
     )
     metadata_prefix_sep: str = field(
         default=" |||",
         metadata={
-            "help": "The character sequence that is used to separate all global metadata and eventually the local metadata special token from the actual text."
+            "help": "The character sequence that is used to separate all global metadata and/or local metadata "
+            "special tokens (if `add_local_metadata_special_tokens_in_prefix` is `True`) from the actual text."
         },
     )
     metadata_prefix_start_seq: str = field(

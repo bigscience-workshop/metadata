@@ -71,7 +71,7 @@ def add_metadata_and_chunk_examples(
             # Get the global metadata prefix that is prepended to each training example.
             global_metadata_prefix = create_global_metadata_prefix(example, cfg)
             global_metadata_prefix_encoded = (
-                tokenizer.encode_plus(cfg.metadata_global_start_seq + global_metadata_prefix).input_ids
+                tokenizer.encode_plus(cfg.metadata_prefix_start_seq + global_metadata_prefix).input_ids
                 if global_metadata_prefix
                 else []
             )
@@ -151,7 +151,7 @@ def create_global_metadata_prefix(example: Dict[str, Any], cfg: MetadataConfig) 
 
     sorted_metadata = [processed_metadata.get(md, None) for md in cfg.metadata_list]
     sorted_metadata = [md for md in sorted_metadata if md is not None]
-    return cfg.metadata_sep.join(sorted_metadata) + cfg.metadata_global_sep if sorted_metadata else ""
+    return cfg.metadata_sep.join(sorted_metadata) + cfg.metadata_prefix_sep if sorted_metadata else ""
 
 
 def _collate_metadata(metadata_list: List[dict], cfg: MetadataConfig):

@@ -47,27 +47,14 @@ class MetadataConfig:
             "metadata added in the sample. The special tokens used are equal to the string used in `metadata_list`"
         },
     )
-    metadata_global_sep: str = field(
+    metadata_prefix_sep: str = field(
         default=" |||",
-        metadata={"help": "The character sequence that is used to separate all global metadata from the actual text."},
+        metadata={"help": "The character sequence that is used to separate all global metadata and eventually the local metadata special token from the actual text."},
     )
-    metadata_global_start_seq: str = field(
+    metadata_prefix_start_seq: str = field(
         default="",
         metadata={
-            "help": "The character sequence to be concatenated at the beginning of the global metadata-specific character sequence."
-        },
-    )
-    metadata_special_token_for_generation_sep: str = field(
-        default=" |||",
-        metadata={
-            "help": "The character sequence that is used to separate the special tokens controlling the generation of "
-            "metadata from (eventually) the global metadata and the actual text."
-        },
-    )
-    metadata_special_token_for_generation_start_seq: str = field(
-        default="",
-        metadata={
-            "help": "The character sequence to be concatenated at the beginning of character sequence of special tokens for metadata generation."
+            "help": "The character sequence to be concatenated at the beginning of the metadata prefix."
         },
     )
     max_seq_len: int = field(

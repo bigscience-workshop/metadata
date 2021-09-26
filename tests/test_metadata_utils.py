@@ -267,7 +267,7 @@ class MetadataUtilsTester(unittest.TestCase):
         cfg = MetadataConfig()
         cfg.metadata_key_value_sep = ": "
         cfg.metadata_sep = " | "
-        cfg.metadata_global_sep = " |||"
+        cfg.metadata_prefix_sep = " |||"
         cfg.metadata_list = ["url", "timestamp", "website_description"]
         PROCESSORS["timestamp"] = MetadataProcessor
 
@@ -1662,8 +1662,7 @@ class MetadataUtilsTester(unittest.TestCase):
         cfg.max_seq_len = 84
         cfg.metadata_probability = 1
         cfg.metadata_add_special_token_for_generation = True
-        cfg.metadata_special_token_for_generation_start_seq = " "
-        cfg.metadata_global_start_seq = " "
+        cfg.metadata_prefix_start_seq = " "
 
         PROCESSORS["url"] = UrlProcessor
         PROCESSORS["timestamp"] = TimestampProcessor
@@ -1710,8 +1709,7 @@ class MetadataUtilsTester(unittest.TestCase):
         cfg.max_seq_len = 69
         cfg.metadata_probability = 1
         cfg.metadata_add_special_token_for_generation = True
-        cfg.metadata_special_token_for_generation_start_seq = " "
-        cfg.metadata_global_start_seq = " "
+        cfg.metadata_prefix_start_seq = " "
 
         PROCESSORS["url"] = UrlProcessor
         PROCESSORS["timestamp"] = TimestampProcessor

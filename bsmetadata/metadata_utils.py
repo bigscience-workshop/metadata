@@ -69,14 +69,14 @@ def add_metadata_and_chunk_examples(
 
         if add_metadata:
             # Get the global metadata prefix that is prepended to each training example.
-            global_metadata_prefix = create_global_metadata_prefix(example, cfg)
-            global_metadata_prefix_encoded = (
-                tokenizer.encode_plus(cfg.metadata_prefix_start_seq + global_metadata_prefix).input_ids
-                if global_metadata_prefix
+            metadata_prefix = create_metadata_prefix(example, cfg)
+            metadata_prefix_encoded = (
+                tokenizer.encode_plus(cfg.metadata_prefix_start_seq + metadata_prefix).input_ids
+                if metadata_prefix
                 else []
             )
         else:
-            global_metadata_prefix_encoded = []
+            metadata_prefix_encoded = []
 
         if add_metadata:
             # Get the actual text with local metadata inserted.
@@ -85,7 +85,7 @@ def add_metadata_and_chunk_examples(
             text_with_local_metadata = example["text"]
             char_level_metadata_mask = [False] * len(text_with_local_metadata)
 
-        if global_metadata_prefix_encoded:
+        if metadata_prefix_encoded:
             text_with_local_metadata = " " + text_with_local_metadata
             char_level_metadata_mask = [False] + char_level_metadata_mask
 
@@ -101,7 +101,7 @@ def add_metadata_and_chunk_examples(
         ]
 
         # Create chunks of `max_seq_len` tokens.
-        prefix_len = len(global_metadata_prefix_encoded)
+        prefix_len = len(metadata_prefix_encoded)
         max_text_len = cfg.max_seq_len - prefix_len
 
         for text_chunk_encoded, chunk_metadata_mask in chunks(
@@ -110,7 +110,7 @@ def add_metadata_and_chunk_examples(
             total_len = prefix_len + len(text_chunk_encoded)
             padding_len = max_text_len - len(text_chunk_encoded)
 
-            input_ids = global_metadata_prefix_encoded + text_chunk_encoded + [tokenizer.eos_token_id] * padding_len
+            input_ids = metadata_prefix_encoded + text_chunk_encoded + [tokenizer.eos_token_id] * padding_len
             attention_mask = [1] * total_len + [0] * padding_len
             metadata_mask = [1] * prefix_len + [int(x) for x in chunk_metadata_mask] + [0] * padding_len
 
@@ -121,27 +121,22 @@ def add_metadata_and_chunk_examples(
     return linearized_examples
 
 
-def create_global_metadata_prefix(example: Dict[str, Any], cfg: MetadataConfig) -> str:
-    """Creates a prefix containing all global metadata information (including URLs, timestamps, etc).
+def create_metadata_prefix(example: Dict[str, Any], cfg: MetadataConfig) -> str:
+    """Creates a prefix containing all global metadata information (including URLs, timestamps, etc)
+    and/or local metadata special tokens
 
     Args:
-        example: The example to create a global metadata prefix for.
+        example: The example to create a metadata prefix for.
         cfg: The data config to use.
 
     Returns:
-        A tuple of two elements, where:
-            - the first element a string containing the global metadata prefix;
-            - the second element is a string contening the name of the metadata types added.
+        A string containing the metadata prefix.
     """
     processed_metadata = {}
-    global_metadata_special_tokens = []
     for metadata in example["metadata"]:
         key, type_ = metadata["key"], metadata["type"]
         if key not in cfg.metadata_list:
             continue
-
-        if key not in global_metadata_special_tokens:
-            global_metadata_special_tokens.append(key)
 
         if type_ == "global":
             processor = PROCESSORS.get(key, MetadataProcessor)(cfg)

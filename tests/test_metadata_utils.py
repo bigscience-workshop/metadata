@@ -17,7 +17,7 @@ from bsmetadata.metadata_utils import (
     add_local_metadata_to_text,
     add_metadata_and_chunk_examples,
     chunks,
-    create_global_metadata_prefix,
+    create_metadata_prefix,
 )
 
 
@@ -263,7 +263,7 @@ class MetadataUtilsTester(unittest.TestCase):
         self.assertEqual(list([x for x, _ in chunks(3, list1, list2)]), [["a", "b", "c"], ["d", "e", "f"], ["g"]])
         self.assertEqual(list([x for _, x in chunks(3, list1, list2)]), [[0, 1, 2], [3, 4, 5], [6]])
 
-    def test_create_global_metadata_prefix(self):
+    def test_create_metadata_prefix_with_only_global_metadata(self):
         cfg = MetadataConfig()
         cfg.metadata_key_value_sep = ": "
         cfg.metadata_sep = " | "
@@ -271,10 +271,10 @@ class MetadataUtilsTester(unittest.TestCase):
         cfg.metadata_list = ["url", "timestamp", "website_description"]
         PROCESSORS["timestamp"] = MetadataProcessor
 
-        global_metadata_prefix_1 = create_global_metadata_prefix(self.examples[0], cfg)
-        global_metadata_prefix_2 = create_global_metadata_prefix(self.examples[1], cfg)
-        global_metadata_prefix_3 = create_global_metadata_prefix(self.examples[2], cfg)
-        global_metadata_prefix_4 = create_global_metadata_prefix(self.examples[3], cfg)
+        global_metadata_prefix_1 = create_metadata_prefix(self.examples[0], cfg)
+        global_metadata_prefix_2 = create_metadata_prefix(self.examples[1], cfg)
+        global_metadata_prefix_3 = create_metadata_prefix(self.examples[2], cfg)
+        global_metadata_prefix_4 = create_metadata_prefix(self.examples[3], cfg)
 
         self.assertEqual(
             global_metadata_prefix_1,

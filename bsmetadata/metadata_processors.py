@@ -25,6 +25,16 @@ class MetadataConfig:
         default_factory=list,
         metadata={"help": "The list of metadata types to use. Metadata is added in order of appearance in this list."},
     )
+    local_metadata_special_tokens: Optional[Dict[str, str]] = field(
+        default=None,
+        metadata={
+            "help": "A dictionary whose keys correspond to a local metadata type and values to the associated  "
+            "generation control token special. This dictionary will be used if "
+            "`add_local_metadata_special_tokens_in_prefix` is `True`. If `add_local_metadata_special_tokens_in_prefix`"
+            " is `True` and this argument is equal to `None` then the name of the local metadata will be used directly"
+            " as special token.."
+        },
+    )
     metadata_sep: str = field(
         default=" | ",
         metadata={

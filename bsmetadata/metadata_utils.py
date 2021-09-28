@@ -218,9 +218,9 @@ def entity_start_text(start_text, cfg: MetadataConfig):
         The start_text merged with the semi_local_metadata_sep in required order
     """
     if ((("[[" or "]]") in start_text) and cfg.entity_setting == "beg"):
-        return f"{cfg.semi_local_metadata_sep}{start_text} "
+        return f"<ENTITY_CHAIN>{start_text} </ENTITY_CHAIN> "
     elif ((("[[" or "]]") in start_text) and cfg.entity_setting == "end"):
-        return f"{cfg.semi_local_metadata_sep}{start_text}"
+        return f" <ENTITY_CHAIN>{start_text} </ENTITY_CHAIN>"
     else:
         return start_text 
 

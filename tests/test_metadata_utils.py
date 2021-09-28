@@ -371,6 +371,29 @@ class MetadataUtilsTester(unittest.TestCase):
             "Website Description: Amazon.com, Inc. ( AM-ə-zon) is an American multinational conglomerate which focuses on e-commerce, cloud computing, digital streaming, and artificial intelligence. |||",
         )
 
+    def test_entity_settings(self):
+        cfg = MetadataConfig()
+        PROCESSORS["entity"] = EntityProcessor
+        cfg.metadata_list = ["entity"]
+        cfg.entity_setting = "end"
+        text3, mask3 = add_local_metadata_to_text(self.examples[6], cfg)
+        cfg.entity_setting = "beg"
+        text4, mask4 = add_local_metadata_to_text(self.examples[7], cfg)
+        cfg.entity_setting = "normal"
+        text5, mask5 = add_local_metadata_to_text(self.examples[0], cfg)
+        self.assertEqual(
+            text3,
+            "It was a brilliant first round. You have to break down the Cuban's rhythm you can't let them get into rhythm. <ENTITY_CHAIN> [[Galal Yafai]] [[Cuban]] </ENTITY_CHAIN> \nThe risk with that is Yafai has got to go him <ENTITY_CHAIN> [[Next Para 1]] [[Next Para 2]] </ENTITY_CHAIN>.",
+        )
+        self.assertEqual(
+            text4,
+            "<ENTITY_CHAIN> [[Galal Yafai]] [[Cuban]] </ENTITY_CHAIN> It was a brilliant first round. You have to break down the Cuban's rhythm you can't let them get into rhythm. \n<ENTITY_CHAIN> [[Next Para 1]] [[Next Para 2]] </ENTITY_CHAIN> The risk with that is Yafai has got to go him.",
+        )
+        self.assertEqual(
+            text5,
+            "It was a brilliant first round. You have to break down the Cuban's rhythm you can't let them get into rhythm. The risk with that is Yafai [[Galal Yafai]] has got to go him.",
+        )
+
     def test_add_local_metadata_to_text(self):
         cfg = MetadataConfig()
         cfg.metadata_list = ["html", "entity"]

@@ -40,10 +40,6 @@ class MetadataConfig:
         default=" |||",
         metadata={"help": "The character sequence that is used to separate all global metadata from the actual text."},
     )
-    semi_local_metadata_sep: str = field(
-        default=" <ENTITY_CHAIN>",
-        metadata={"help": "The character sequence that is used to separate the list of semi-local metadata with same char_start_idx from the actual text."},
-    )
     entity_setting: str = field(
         default="normal",
         metadata={"help": "The settings in which you want to use entites. Valid choices: (beg, end, normal)"},
@@ -116,7 +112,10 @@ class EntityProcessor(MetadataProcessor):
     def process_local(self, metadata_attrs: Dict[str, Any]) -> Optional[Tuple[str, str]]:
         # We represent an entity by adding the entity name after the entity mention in double square brackets.
         # Example: "Biden [[Joe Biden]] studied at ..."
-        return "", f" [[{metadata_attrs['value']}]]"
+        if (MetadataConfig.entity_setting == "end" or MetadataConfig.entity_setting == "normal"):
+            return "", f" [[{metadata_attrs['value']}]]"
+        elif (MetadataConfig.entity_setting == "beg"):
+            return f"[[{metadata_attrs['value']}]] ", ""
 
 
 class HtmlProcessor(MetadataProcessor):

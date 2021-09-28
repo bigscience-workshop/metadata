@@ -251,6 +251,90 @@ class MetadataUtilsTester(unittest.TestCase):
                     },
                 ],
             },
+            {
+                "id": "0001",                       #To be used for entity_setting = "end"
+                "text": "It was a brilliant first round. You have to break down the Cuban's rhythm you can't let them get into rhythm. \nThe risk with that is Yafai has got to go him.",
+                "metadata": [
+                    {
+                        "key": "entity",
+                        "type": "local",
+                        "relative_start_pos": 0,
+                        "relative_end_pos": 2,
+                        "char_start_idx": 109,
+                        "char_end_idx": 109,
+                        "value": "Galal Yafai",
+                    },
+                    {
+                        "key": "entity",
+                        "type": "local",
+                        "relative_start_pos": 1,
+                        "relative_end_pos": 3,
+                        "char_start_idx": 109,                 
+                        "char_end_idx": 109,
+                        "value": "Cuban",
+                    },
+                    {
+                        "key": "entity",
+                        "type": "local",
+                        "relative_start_pos": 0,
+                        "relative_end_pos": 2,
+                        "char_start_idx": 156,
+                        "char_end_idx": 156,
+                        "value": "Next Para 1",
+                    },
+                    {
+                        "key": "entity",
+                        "type": "local",
+                        "relative_start_pos": 1,
+                        "relative_end_pos": 3,
+                        "char_start_idx": 156,
+                        "char_end_idx": 156,
+                        "value": "Next Para 2",
+                    },
+                ],
+            },
+            {
+                "id": "0001",                               #To be used for entity_setting = "beg"
+                "text": "It was a brilliant first round. You have to break down the Cuban's rhythm you can't let them get into rhythm. \nThe risk with that is Yafai has got to go him.",
+                "metadata": [
+                    {
+                        "key": "entity",
+                        "type": "local",
+                        "relative_start_pos": 0,
+                        "relative_end_pos": 2,
+                        "char_start_idx": 0,
+                        "char_end_idx": 0,
+                        "value": "Galal Yafai",
+                    },
+                    {
+                        "key": "entity",
+                        "type": "local",
+                        "relative_start_pos": 1,
+                        "relative_end_pos": 3,
+                        "char_start_idx": 0,
+                        "char_end_idx": 0,
+                        "value": "Cuban",
+                    },
+                    {
+                        "key": "entity",
+                        "type": "local",
+                        "relative_start_pos": 0,
+                        "relative_end_pos": 2,
+                        "char_start_idx": 111,
+                        "char_end_idx": 111,
+                        "value": "Next Para 1",
+                    },
+                    {
+                        "key": "entity",
+                        "type": "local",
+                        "relative_start_pos": 1,
+                        "relative_end_pos": 3,
+                        "char_start_idx": 111,
+                        "char_end_idx": 111,
+                        "value": "Next Para 2",
+                    },
+                ],
+            },
         ]
 
     def test_chunks(self):

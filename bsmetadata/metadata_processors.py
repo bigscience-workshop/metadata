@@ -40,6 +40,14 @@ class MetadataConfig:
         default=" |||",
         metadata={"help": "The character sequence that is used to separate all global metadata from the actual text."},
     )
+    semi_local_metadata_sep: str = field(
+        default=" <ENTITY_CHAIN>",
+        metadata={"help": "The character sequence that is used to separate the list of semi-local metadata with same char_start_idx from the actual text."},
+    )
+    entity_setting: str = field(
+        default="normal",
+        metadata={"help": "The settings in which you want to use entites. Valid choices: (beg, end, normal)"},
+    )
     max_seq_len: int = field(
         default=512, metadata={"help": "The maximum number of tokens to use for each training chunk."}
     )

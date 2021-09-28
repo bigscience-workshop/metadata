@@ -206,6 +206,7 @@ def _collate_metadata(metadata_list: List[dict], cfg: MetadataConfig):
         )
     return new_metadata_list
 
+
 def entity_start_text(start_text, cfg: MetadataConfig):
     """
     Seperates list of entities with same char_start_idx from the input text.
@@ -217,12 +218,13 @@ def entity_start_text(start_text, cfg: MetadataConfig):
     Returns:
         The start_text merged with the semi_local_metadata_sep in required order
     """
-    if ((("[[" or "]]") in start_text) and cfg.entity_setting == "beg"):
+    if (("[[" or "]]") in start_text) and cfg.entity_setting == "beg":
         return f"<ENTITY_CHAIN>{start_text} </ENTITY_CHAIN> "
-    elif ((("[[" or "]]") in start_text) and cfg.entity_setting == "end"):
+    elif (("[[" or "]]") in start_text) and cfg.entity_setting == "end":
         return f" <ENTITY_CHAIN>{start_text} </ENTITY_CHAIN>"
     else:
-        return start_text 
+        return start_text
+
 
 def add_local_metadata_to_text(example: Dict[str, Any], cfg: MetadataConfig) -> Tuple[str, List[bool]]:
     """Adds local metadata (such as HTML tags and entity names) to the given input text.
@@ -277,7 +279,7 @@ def add_local_metadata_to_text(example: Dict[str, Any], cfg: MetadataConfig) -> 
         if processed_metadata is None:
             continue
         start_text, end_text = processed_metadata
-        if (cfg.entity_setting == "beg" or cfg.entity_setting == "end"):
+        if cfg.entity_setting == "beg" or cfg.entity_setting == "end":
             start_text = entity_start_text(start_text, cfg)
         char_start_idx = metadata.get("char_start_idx", -1)
         char_end_idx = metadata.get("char_end_idx", -1)

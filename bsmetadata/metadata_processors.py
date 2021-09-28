@@ -112,9 +112,9 @@ class EntityProcessor(MetadataProcessor):
     def process_local(self, metadata_attrs: Dict[str, Any]) -> Optional[Tuple[str, str]]:
         # We represent an entity by adding the entity name after the entity mention in double square brackets.
         # Example: "Biden [[Joe Biden]] studied at ..."
-        if (MetadataConfig.entity_setting == "end" or MetadataConfig.entity_setting == "normal"):
+        if MetadataConfig.entity_setting == "end" or MetadataConfig.entity_setting == "normal":
             return "", f" [[{metadata_attrs['value']}]]"
-        elif (MetadataConfig.entity_setting == "beg"):
+        elif MetadataConfig.entity_setting == "beg":
             return f"[[{metadata_attrs['value']}]] ", ""
 
 

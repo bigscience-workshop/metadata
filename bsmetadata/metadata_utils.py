@@ -218,12 +218,11 @@ def entity_start_text(start_text, cfg: MetadataConfig):
     Returns:
         The start_text merged with the semi_local_metadata_sep in required order
     """
-    if (("[[" or "]]") in start_text) and cfg.entity_setting == "beg":
-        return f"<ENTITY_CHAIN>{start_text} </ENTITY_CHAIN> "
-    elif (("[[" or "]]") in start_text) and cfg.entity_setting == "end":
-        return f" <ENTITY_CHAIN>{start_text} </ENTITY_CHAIN>"
-    else:
-        return start_text
+    beg_space = "" if cfg.entity_setting == "beg" else " "
+    end_space = "" if cfg.entity_setting == "end" else " "
+    if ("[[" or "]]") in start_text:
+        return f"{beg_space}<ENTITY_CHAIN>{start_text} </ENTITY_CHAIN>{end_space}"
+    return start_text
 
 
 def add_local_metadata_to_text(example: Dict[str, Any], cfg: MetadataConfig) -> Tuple[str, List[bool]]:

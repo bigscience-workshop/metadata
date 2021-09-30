@@ -259,8 +259,8 @@ class MetadataUtilsTester(unittest.TestCase):
                         "key": "entity",
                         "type": "local",
                         "relative_start_pos": 0,
-                        "relative_end_pos": 2,
-                        "char_start_idx": 109,
+                        "relative_end_pos": 0,
+                        "char_start_idx": 0,
                         "char_end_idx": 109,
                         "value": "Galal Yafai",
                     },
@@ -268,8 +268,8 @@ class MetadataUtilsTester(unittest.TestCase):
                         "key": "entity",
                         "type": "local",
                         "relative_start_pos": 1,
-                        "relative_end_pos": 3,
-                        "char_start_idx": 109,
+                        "relative_end_pos": 1,
+                        "char_start_idx": 0,
                         "char_end_idx": 109,
                         "value": "Cuban",
                     },
@@ -277,8 +277,8 @@ class MetadataUtilsTester(unittest.TestCase):
                         "key": "entity",
                         "type": "local",
                         "relative_start_pos": 0,
-                        "relative_end_pos": 2,
-                        "char_start_idx": 156,
+                        "relative_end_pos": 0,
+                        "char_start_idx": 111,
                         "char_end_idx": 156,
                         "value": "Next Para 1",
                     },
@@ -286,51 +286,9 @@ class MetadataUtilsTester(unittest.TestCase):
                         "key": "entity",
                         "type": "local",
                         "relative_start_pos": 1,
-                        "relative_end_pos": 3,
-                        "char_start_idx": 156,
+                        "relative_end_pos": 1,
+                        "char_start_idx": 111,
                         "char_end_idx": 156,
-                        "value": "Next Para 2",
-                    },
-                ],
-            },
-            {
-                "id": "0001",  # To be used for entity_setting = "beg"
-                "text": "It was a brilliant first round. You have to break down the Cuban's rhythm you can't let them get into rhythm. \nThe risk with that is Yafai has got to go him.",
-                "metadata": [
-                    {
-                        "key": "entity",
-                        "type": "local",
-                        "relative_start_pos": 0,
-                        "relative_end_pos": 2,
-                        "char_start_idx": 0,
-                        "char_end_idx": 0,
-                        "value": "Galal Yafai",
-                    },
-                    {
-                        "key": "entity",
-                        "type": "local",
-                        "relative_start_pos": 1,
-                        "relative_end_pos": 3,
-                        "char_start_idx": 0,
-                        "char_end_idx": 0,
-                        "value": "Cuban",
-                    },
-                    {
-                        "key": "entity",
-                        "type": "local",
-                        "relative_start_pos": 0,
-                        "relative_end_pos": 2,
-                        "char_start_idx": 111,
-                        "char_end_idx": 111,
-                        "value": "Next Para 1",
-                    },
-                    {
-                        "key": "entity",
-                        "type": "local",
-                        "relative_start_pos": 1,
-                        "relative_end_pos": 3,
-                        "char_start_idx": 111,
-                        "char_end_idx": 111,
                         "value": "Next Para 2",
                     },
                 ],
@@ -375,16 +333,24 @@ class MetadataUtilsTester(unittest.TestCase):
         cfg = MetadataConfig()
         PROCESSORS["entity"] = EntityProcessor
         cfg.metadata_list = ["entity"]
+
+        cfg.local_metadata_special_token_start = {"entity":" <ENTITY_CHAIN>"}
+        cfg.local_metadata_special_token_end = {"entity":" </ENTITY_CHAIN>"}
         cfg.entity_setting = "end"
         text3, mask3 = add_local_metadata_to_text(self.examples[6], cfg)
+
+        cfg.local_metadata_special_token_start = {"entity": "<ENTITY_CHAIN>"}
+        cfg.local_metadata_special_token_end = {"entity":" </ENTITY_CHAIN> "}
         cfg.entity_setting = "beg"
-        text4, mask4 = add_local_metadata_to_text(self.examples[7], cfg)
+        text4, mask4 = add_local_metadata_to_text(self.examples[6], cfg)
+
         cfg.entity_setting = "normal"
         text5, mask5 = add_local_metadata_to_text(self.examples[0], cfg)
         self.assertEqual(
             text3,
             "It was a brilliant first round. You have to break down the Cuban's rhythm you can't let them get into rhythm. <ENTITY_CHAIN> [[Galal Yafai]] [[Cuban]] </ENTITY_CHAIN> \nThe risk with that is Yafai has got to go him <ENTITY_CHAIN> [[Next Para 1]] [[Next Para 2]] </ENTITY_CHAIN>.",
         )
+        print(text4)
         self.assertEqual(
             text4,
             "<ENTITY_CHAIN> [[Galal Yafai]] [[Cuban]] </ENTITY_CHAIN> It was a brilliant first round. You have to break down the Cuban's rhythm you can't let them get into rhythm. \n<ENTITY_CHAIN> [[Next Para 1]] [[Next Para 2]] </ENTITY_CHAIN> The risk with that is Yafai has got to go him.",

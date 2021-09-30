@@ -47,6 +47,16 @@ class MetadataConfig:
     max_seq_len: int = field(
         default=512, metadata={"help": "The maximum number of tokens to use for each training chunk."}
     )
+    local_metadata_special_token_start : Optional[Dict[str, str]] = field(
+        default=None,
+        metadata={
+            "help": "A dictionary whose keys correspond to a local metadata type and values ...."
+        },)
+    local_metadata_special_token_end : Optional[Dict[str, str]] = field(
+        default=None,
+        metadata={
+            "help": "A dictionary whose keys correspond to a local metadata type and values..."
+        },)
 
 
 class MetadataProcessor:
@@ -112,10 +122,10 @@ class EntityProcessor(MetadataProcessor):
     def process_local(self, metadata_attrs: Dict[str, Any]) -> Optional[Tuple[str, str]]:
         # We represent an entity by adding the entity name after the entity mention in double square brackets.
         # Example: "Biden [[Joe Biden]] studied at ..."
-        if MetadataConfig.entity_setting == "end" or MetadataConfig.entity_setting == "normal":
+        if self.cfg.entity_setting == "end" or self.cfg.entity_setting == "normal":
             return "", f" [[{metadata_attrs['value']}]]"
-        elif MetadataConfig.entity_setting == "beg":
-            return f"[[{metadata_attrs['value']}]] ", ""
+        elif self.cfg.entity_setting == "beg":
+            return f" [[{metadata_attrs['value']}]]", ""
 
 
 class HtmlProcessor(MetadataProcessor):

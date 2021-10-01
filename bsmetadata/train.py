@@ -47,7 +47,7 @@ class CFG:
     out_dir: str = field(
         default="output_dir", metadata={"help": "The output directory in which the trained model is saved."}
     )
-    resume_from_checkpoint: Optional[str] = field(default=None, metadata={"help": "The directory where schcekpoint to resume from is saved"})
+    resume_from_checkpoint_dir: Optional[str] = field(default=None, metadata={"help": "The directory where schcekpoint to resume from is saved"})
     model_name: str = field(default="gpt2", metadata={"help": "The name of the pretrained model to use."})
     project_name: str = field(default="metadata_lm", metadata={"help": "The project name."})
     start_with_eval: bool = field(default=False, metadata={"help": "Start by evaluating the model"})
@@ -144,7 +144,7 @@ def main(args: CFG) -> None:
 
     # If resume_from_checkpoint is not None, we load the model before preparing
     # see this for details: https://github.com/huggingface/accelerate/issues/95
-    model_name = args.model_name if not args.resume_from_checkpoint else args.resume_from_checkpoint
+    model_name = args.model_name if not args.resume_from_checkpoint_dir else args.resume_from_checkpoint_dir
 
     # The dataset library use the hash of the arguments to create the cache
     # name. Without this transformation the hash of args is not deterministic
@@ -188,7 +188,7 @@ def main(args: CFG) -> None:
 
     if args.resume_from_checkpoint_dir is not None:
         
-        states = torch.load(args.resume_from_scheckpoint)
+        states = torch.load(args.resume_from_checkpoint_dir)
 
         logger.info("Loading states from checkpoint dir ..")
         optimizer.load_state_dict(states["optimizer"])

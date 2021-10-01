@@ -47,6 +47,7 @@ class CFG:
     out_dir: str = field(
         default="output_dir", metadata={"help": "The output directory in which the trained model is saved."}
     )
+    resume_from_checkpoint: Optional[str] = filed(default=None, metadata={"help": "The directory where schcekpoint to resume from is saved"})
     model_name: str = field(default="gpt2", metadata={"help": "The name of the pretrained model to use."})
     project_name: str = field(default="metadata_lm", metadata={"help": "The project name."})
     start_with_eval: bool = field(default=False, metadata={"help": "Start by evaluating the model"})
@@ -132,10 +133,18 @@ def loss_fn(batch, outputs, metadata_mask=None):
     # ppl = torch.exp((loss * shift_mask).sum(-1) / shift_mask.sum(-1))
     return loss
 
+def save_model(accelerator, model, path):
+    accelerator.wait_for_everyone()
+    unwrapped_model = accelerator.unwrap_model(model)
+    unwrapped_model.save_pretrained(path, save_function=accelerator.save)
 
 @hydra.main(config_path=None, config_name="config")
 def main(args: CFG) -> None:
     print(OmegaConf.to_yaml(args))
+
+    # If resume_from_checkpoint is not None, we load the model before preparing
+    # see this for details: https://github.com/huggingface/accelerate/issues/95
+    model_name = args.model_name if not args.resume_from_checkpoint else args.resume_from_checkpoint
 
     # The dataset library use the hash of the arguments to create the cache
     # name. Without this transformation the hash of args is not deterministic
@@ -149,12 +158,12 @@ def main(args: CFG) -> None:
     os.makedirs(args.out_dir, exist_ok=True)
 
     # get dataloaders
-    tokenizer = AutoTokenizer.from_pretrained(args.model_name)
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
     tokenizer.pad_token = tokenizer.eos_token
     train_dataloader, eval_dataloaders = get_dataloaders(tokenizer, args.data_config)
 
     # get model
-    model = AutoModelForCausalLM.from_pretrained(args.model_name)
+    model = AutoModelForCausalLM.from_pretrained(model_name)
 
     # Optimizer
     # Split weights in two groups, one with weight decay and the other not.
@@ -170,6 +179,20 @@ def main(args: CFG) -> None:
         },
     ]
     optimizer = AdamW(optimizer_grouped_parameters, lr=args.learning_rate)
+    scheduler = get_scheduler(
+        name=args.lr_scheduler_type,
+        optimizer=optimizer,
+        num_warmup_steps=args.num_warmup_steps,
+        num_training_steps=args.max_train_steps,
+    )
+
+    if args.resume_from_checkpoint_dir is not None:
+        
+        states = torch.load(args.resume_from_scheckpoint)
+
+        logger.info("Loading states from checkpoint dir ..")
+        optimizer.load_state_dict(states["optimizer"])
+        scheduler.load_state_dict(states["scheduler"])
 
     # Prepare everything
     model, optimizer, train_dataloader = accelerator.prepare(model, optimizer, train_dataloader)
@@ -198,13 +221,6 @@ def main(args: CFG) -> None:
         save_per_n_step = args.save_steps
     else:  # IntervalStrategy.NO or (args.save_num_per_epoch < 1 and args.save_strategy == IntervalStrategy.EPOCH)
         save_per_n_step = args.max_train_steps + 1  # will never eval
-
-    scheduler = get_scheduler(
-        name=args.lr_scheduler_type,
-        optimizer=optimizer,
-        num_warmup_steps=args.num_warmup_steps,
-        num_training_steps=args.max_train_steps,
-    )
 
     @torch.no_grad()
     def evaluate(eval_dataloader):
@@ -285,6 +301,9 @@ def main(args: CFG) -> None:
 
             do_save = is_local_main_process and completed_steps > 0 and completed_steps % save_per_n_step == 0
             if do_save:
+
+                save_model(accelerator, model, os.path.join(args.out_dir, f"checkpoint-{completed_steps}step"))
+
                 save_path = os.path.join(args.out_dir, f"checkpoint-{completed_steps}step.pt")
                 logger.info(f"Save model at {save_path}")
                 save_dict = {
@@ -303,9 +322,7 @@ def main(args: CFG) -> None:
     logger.info("Training finished")
 
     if is_local_main_process and args.out_dir is not None:
-        accelerator.wait_for_everyone()
-        unwrapped_model = accelerator.unwrap_model(model)
-        unwrapped_model.save_pretrained(args.out_dir, save_function=accelerator.save)
+        save_model(accelerator, model, args.out_dir)
 
 
 if __name__ == "__main__":

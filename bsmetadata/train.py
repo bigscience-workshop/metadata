@@ -306,7 +306,7 @@ def main(args: CFG) -> None:
 
             do_save = is_local_main_process and completed_steps > 0 and completed_steps % save_per_n_step == 0
             if do_save:
-
+                #currently saving all the models. might be useful to save only the best model
                 save_model_and_tokenizer(accelerator, model, tokenizer, os.path.join(args.out_dir, f"checkpoint-{completed_steps}step"))
 
                 save_path = os.path.join(args.out_dir, f"checkpoint-{completed_steps}step.pt")

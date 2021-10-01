@@ -179,20 +179,15 @@ def main(args: CFG) -> None:
         },
     ]
     optimizer = AdamW(optimizer_grouped_parameters, lr=args.learning_rate)
-    scheduler = get_scheduler(
-        name=args.lr_scheduler_type,
-        optimizer=optimizer,
-        num_warmup_steps=args.num_warmup_steps,
-        num_training_steps=args.max_train_steps,
-    )
 
+    resumed_state = None
     if args.resume_from_checkpoint_dir is not None:
-        
-        states = torch.load(args.resume_from_checkpoint_dir)
+        print("Loading states from checkpoint dir ..")
+        resumed_state = torch.load(args.resume_from_checkpoint_dir)
 
-        logger.info("Loading states from checkpoint dir ..")
-        optimizer.load_state_dict(states["optimizer"])
-        scheduler.load_state_dict(states["scheduler"])
+    if resumed_state:    
+        optimizer.load_state_dict(resumed_state["optimizer"])
+    
 
     # Prepare everything
     model, optimizer, train_dataloader = accelerator.prepare(model, optimizer, train_dataloader)
@@ -221,6 +216,15 @@ def main(args: CFG) -> None:
         save_per_n_step = args.save_steps
     else:  # IntervalStrategy.NO or (args.save_num_per_epoch < 1 and args.save_strategy == IntervalStrategy.EPOCH)
         save_per_n_step = args.max_train_steps + 1  # will never eval
+
+    scheduler = get_scheduler(
+        name=args.lr_scheduler_type,
+        optimizer=optimizer,
+        num_warmup_steps=args.num_warmup_steps,
+        num_training_steps=args.max_train_steps,
+    )
+    if resumed_state:
+        scheduler.load_state_dict(resumed_state["scheduler"])
 
     @torch.no_grad()
     def evaluate(eval_dataloader):

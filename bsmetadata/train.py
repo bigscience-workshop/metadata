@@ -47,7 +47,7 @@ class CFG:
     out_dir: str = field(
         default="output_dir", metadata={"help": "The output directory in which the trained model is saved."}
     )
-    resume_from_checkpoint: Optional[str] = filed(default=None, metadata={"help": "The directory where schcekpoint to resume from is saved"})
+    resume_from_checkpoint: Optional[str] = field(default=None, metadata={"help": "The directory where schcekpoint to resume from is saved"})
     model_name: str = field(default="gpt2", metadata={"help": "The name of the pretrained model to use."})
     project_name: str = field(default="metadata_lm", metadata={"help": "The project name."})
     start_with_eval: bool = field(default=False, metadata={"help": "Start by evaluating the model"})

@@ -47,7 +47,9 @@ class CFG:
     out_dir: str = field(
         default="output_dir", metadata={"help": "The output directory in which the trained model is saved."}
     )
-    resume_from_checkpoint_dir: Optional[str] = field(default=None, metadata={"help": "The directory where schcekpoint to resume from is saved"})
+    resume_from_checkpoint_dir: Optional[str] = field(
+        default=None, metadata={"help": "The directory where schcekpoint to resume from is saved"}
+    )
     model_name: str = field(default="gpt2", metadata={"help": "The name of the pretrained model to use."})
     project_name: str = field(default="metadata_lm", metadata={"help": "The project name."})
     start_with_eval: bool = field(default=False, metadata={"help": "Start by evaluating the model"})
@@ -133,11 +135,13 @@ def loss_fn(batch, outputs, metadata_mask=None):
     # ppl = torch.exp((loss * shift_mask).sum(-1) / shift_mask.sum(-1))
     return loss
 
+
 def save_model_and_tokenizer(accelerator, model, tokenizer, path):
     accelerator.wait_for_everyone()
     unwrapped_model = accelerator.unwrap_model(model)
     unwrapped_model.save_pretrained(path, save_function=accelerator.save)
     tokenizer.save_pretrained(path, save_function=accelerator.save)
+
 
 @hydra.main(config_path=None, config_name="config")
 def main(args: CFG) -> None:
@@ -186,9 +190,8 @@ def main(args: CFG) -> None:
         print("Loading states from checkpoint dir ..")
         resumed_state = torch.load(f"{args.resume_from_checkpoint_dir}.pt")
 
-    if resumed_state:    
+    if resumed_state:
         optimizer.load_state_dict(resumed_state["optimizer"])
-    
 
     # Prepare everything
     model, optimizer, train_dataloader = accelerator.prepare(model, optimizer, train_dataloader)
@@ -306,8 +309,10 @@ def main(args: CFG) -> None:
 
             do_save = is_local_main_process and completed_steps > 0 and completed_steps % save_per_n_step == 0
             if do_save:
-                #currently saving all the models. might be useful to save only the best model
-                save_model_and_tokenizer(accelerator, model, tokenizer, os.path.join(args.out_dir, f"checkpoint-{completed_steps}step"))
+                # currently saving all the models. might be useful to save only the best model
+                save_model_and_tokenizer(
+                    accelerator, model, tokenizer, os.path.join(args.out_dir, f"checkpoint-{completed_steps}step")
+                )
 
                 save_path = os.path.join(args.out_dir, f"checkpoint-{completed_steps}step.pt")
                 logger.info(f"Save model at {save_path}")

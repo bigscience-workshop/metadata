@@ -133,10 +133,11 @@ def loss_fn(batch, outputs, metadata_mask=None):
     # ppl = torch.exp((loss * shift_mask).sum(-1) / shift_mask.sum(-1))
     return loss
 
-def save_model(accelerator, model, path):
+def save_model_and_tokenizer(accelerator, model, tokenizer, path):
     accelerator.wait_for_everyone()
     unwrapped_model = accelerator.unwrap_model(model)
     unwrapped_model.save_pretrained(path, save_function=accelerator.save)
+    tokenizer.save_pretrained(path, save_function=accelerator.save)
 
 @hydra.main(config_path=None, config_name="config")
 def main(args: CFG) -> None:
@@ -183,7 +184,7 @@ def main(args: CFG) -> None:
     resumed_state = None
     if args.resume_from_checkpoint_dir is not None:
         print("Loading states from checkpoint dir ..")
-        resumed_state = torch.load(args.resume_from_checkpoint_dir)
+        resumed_state = torch.load(f"{args.resume_from_checkpoint_dir}.pt")
 
     if resumed_state:    
         optimizer.load_state_dict(resumed_state["optimizer"])
@@ -306,7 +307,7 @@ def main(args: CFG) -> None:
             do_save = is_local_main_process and completed_steps > 0 and completed_steps % save_per_n_step == 0
             if do_save:
 
-                save_model(accelerator, model, os.path.join(args.out_dir, f"checkpoint-{completed_steps}step"))
+                save_model_and_tokenizer(accelerator, model, tokenizer, os.path.join(args.out_dir, f"checkpoint-{completed_steps}step"))
 
                 save_path = os.path.join(args.out_dir, f"checkpoint-{completed_steps}step.pt")
                 logger.info(f"Save model at {save_path}")
@@ -326,7 +327,7 @@ def main(args: CFG) -> None:
     logger.info("Training finished")
 
     if is_local_main_process and args.out_dir is not None:
-        save_model(accelerator, model, args.out_dir)
+        save_model_and_tokenizer(accelerator, model, tokenizer, args.out_dir)
 
 
 if __name__ == "__main__":

@@ -334,13 +334,13 @@ class MetadataUtilsTester(unittest.TestCase):
         PROCESSORS["entity"] = EntityProcessor
         cfg.metadata_list = ["entity"]
 
-        cfg.local_metadata_special_token_start = {"entity":" <ENTITY_CHAIN>"}
-        cfg.local_metadata_special_token_end = {"entity":" </ENTITY_CHAIN>"}
+        cfg.local_metadata_special_token_start = {"entity": " <ENTITY_CHAIN>"}
+        cfg.local_metadata_special_token_end = {"entity": " </ENTITY_CHAIN>"}
         cfg.entity_setting = "end"
         text3, mask3 = add_local_metadata_to_text(self.examples[6], cfg)
 
         cfg.local_metadata_special_token_start = {"entity": "<ENTITY_CHAIN>"}
-        cfg.local_metadata_special_token_end = {"entity":" </ENTITY_CHAIN> "}
+        cfg.local_metadata_special_token_end = {"entity": " </ENTITY_CHAIN> "}
         cfg.entity_setting = "beg"
         text4, mask4 = add_local_metadata_to_text(self.examples[6], cfg)
 
@@ -350,7 +350,7 @@ class MetadataUtilsTester(unittest.TestCase):
             text3,
             "It was a brilliant first round. You have to break down the Cuban's rhythm you can't let them get into rhythm. <ENTITY_CHAIN> [[Galal Yafai]] [[Cuban]] </ENTITY_CHAIN> \nThe risk with that is Yafai has got to go him <ENTITY_CHAIN> [[Next Para 1]] [[Next Para 2]] </ENTITY_CHAIN>.",
         )
-        
+
         self.assertEqual(
             text4,
             "<ENTITY_CHAIN> [[Galal Yafai]] [[Cuban]] </ENTITY_CHAIN> It was a brilliant first round. You have to break down the Cuban's rhythm you can't let them get into rhythm. \n<ENTITY_CHAIN> [[Next Para 1]] [[Next Para 2]] </ENTITY_CHAIN> The risk with that is Yafai has got to go him.",

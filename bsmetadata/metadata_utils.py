@@ -203,7 +203,7 @@ def _collate_metadata(metadata_list: List[dict], cfg: MetadataConfig):
             local_special_token_start = cfg.local_metadata_special_token_start[metadata_list[0]["key"]]
             local_metadata = f"{local_special_token_start}{local_metadata}"
         if (
-            cfg.local_metadata_special_token_start
+            cfg.local_metadata_special_token_end
             and local_metadata
             and metadata_list[0]["key"] in cfg.local_metadata_special_token_end
         ):

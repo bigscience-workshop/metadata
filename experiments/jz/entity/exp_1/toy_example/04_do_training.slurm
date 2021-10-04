@@ -49,10 +49,9 @@ REPO_DIR="${DATASETS_CUSTOM}/${myarray[-1]}"
 python bsmetadata/train.py \
   data_config.experiment="with_metadata" \
   data_config.metadata_config.metadata_list=["entity"] \
-  data_config.metadata_config.max_seq_len=1024 \
   data_config.dataset_name="${REPO_DIR}" \
-  data_config.train_file="oscar_train.jsonl" \
-  data_config.validation_file="oscar_dev.jsonl" \
+  data_config.train_file="oscar_train.jsonl.gz" \
+  data_config.validation_file="oscar_dev.jsonl.gz" \
   data_config.preprocessing_num_workers=80 \
   data_config.per_device_eval_batch_size=3 \
   data_config.per_device_train_batch_size=3 \

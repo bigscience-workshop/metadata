@@ -49,6 +49,7 @@ class CFG:
     )
     model_name: str = field(default="gpt2", metadata={"help": "The name of the pretrained model to use."})
     project_name: str = field(default="metadata_lm", metadata={"help": "The project name."})
+    jobid: Optional[str] = field(default=None, metadata={"help": "The jobid of the run."})
     start_with_eval: bool = field(default=False, metadata={"help": "Start by evaluating the model"})
     evaluation_strategy: IntervalStrategy = field(
         default="STEPS",

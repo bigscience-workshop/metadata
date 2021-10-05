@@ -24,7 +24,7 @@ source $HOME/start-modelling-metadata-user
 # For the moment we can't directly use the new dataset feature on JZ which would avoid having to clone the dataset
 # repo from the HUB. So the first thing to do is to clone the repo of the XXX dataset if it does not already exist.
 
-HUB_REPO_NAME='shanya/website_metadata_c4_toy'
+HUB_REPO_NAME='bs-modeling-metadata/website_metadata_c4'
 
 # We define the name of the folder in which the clone will be made
 #Define multi-character delimiter

@@ -117,7 +117,7 @@ def loss_fn(batch, outputs, metadata_mask=None):
 
     shift_logits = lm_logits[..., :-1, :].contiguous()
     shift_labels = labels[..., 1:].contiguous()
-    
+
     loss_mask = attention_mask
     shift_mask = loss_mask[..., 1:].contiguous()
     # Flatten the tokens

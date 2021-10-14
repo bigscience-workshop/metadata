@@ -56,6 +56,7 @@ class MetadataConfig:
         metadata={"help": "A dictionary whose keys correspond to a local metadata type and values..."},
     )
 
+
 class MetadataProcessor:
     """A metadata processor can be used to add both global and local metadata information to a given input text."""
 

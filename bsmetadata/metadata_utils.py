@@ -193,7 +193,7 @@ def _collate_metadata(metadata_list: List[dict], cfg: MetadataConfig):
         local_metadata = ""
         for pos in pos_sorted:
             local_metadata += metadata_dict_idx[absolute_idx][pos]
-       
+
         # We add here a local special token if needed around the metadata list of a type if needed
         if (
             cfg.local_metadata_special_token_start
@@ -279,7 +279,7 @@ def add_local_metadata_to_text(example: Dict[str, Any], cfg: MetadataConfig) -> 
         if processed_metadata is None:
             continue
         start_text, end_text = processed_metadata
-        
+
         char_start_idx = metadata.get("char_start_idx", -1)
         char_end_idx = metadata.get("char_end_idx", -1)
 

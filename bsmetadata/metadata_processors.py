@@ -40,10 +40,21 @@ class MetadataConfig:
         default=" |||",
         metadata={"help": "The character sequence that is used to separate all global metadata from the actual text."},
     )
+    entity_setting: str = field(
+        default="normal",
+        metadata={"help": "The settings in which you want to use entites. Valid choices: (beg, end, normal)"},
+    )
     max_seq_len: int = field(
         default=512, metadata={"help": "The maximum number of tokens to use for each training chunk."}
     )
-
+    local_metadata_special_token_start: Optional[Dict[str, str]] = field(
+        default=None,
+        metadata={"help": "A dictionary whose keys correspond to a local metadata type and values ...."},
+    )
+    local_metadata_special_token_end: Optional[Dict[str, str]] = field(
+        default=None,
+        metadata={"help": "A dictionary whose keys correspond to a local metadata type and values..."},
+    )
 
 class MetadataProcessor:
     """A metadata processor can be used to add both global and local metadata information to a given input text."""
@@ -108,7 +119,10 @@ class EntityProcessor(MetadataProcessor):
     def process_local(self, metadata_attrs: Dict[str, Any]) -> Optional[Tuple[str, str]]:
         # We represent an entity by adding the entity name after the entity mention in double square brackets.
         # Example: "Biden [[Joe Biden]] studied at ..."
-        return "", f" [[{metadata_attrs['value']}]]"
+        if self.cfg.entity_setting == "end" or self.cfg.entity_setting == "normal":
+            return "", f" [[{metadata_attrs['value']}]]"
+        elif self.cfg.entity_setting == "beg":
+            return f" [[{metadata_attrs['value']}]]", ""
 
 
 class HtmlProcessor(MetadataProcessor):

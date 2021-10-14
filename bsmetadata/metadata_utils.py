@@ -183,14 +183,33 @@ def _collate_metadata(metadata_list: List[dict], cfg: MetadataConfig):
         assert metadata_node.relative_start_pos not in metadata_dict_idx[metadata_node.char_start_idx]
         assert metadata_node.relative_end_pos not in metadata_dict_idx[metadata_node.char_end_idx]
 
-        metadata_dict_idx[metadata_node.char_start_idx][metadata_node.relative_start_pos] = start_text
-        metadata_dict_idx[metadata_node.char_end_idx][metadata_node.relative_end_pos] = end_text
+        if start_text:
+            metadata_dict_idx[metadata_node.char_start_idx][metadata_node.relative_start_pos] = start_text
+        if end_text:
+            metadata_dict_idx[metadata_node.char_end_idx][metadata_node.relative_end_pos] = end_text
 
     for absolute_idx, value in metadata_dict_idx.items():
         pos_sorted = sorted(list(value.keys()))
         local_metadata = ""
         for pos in pos_sorted:
             local_metadata += metadata_dict_idx[absolute_idx][pos]
+       
+        # We add here a local special token if needed around the metadata list of a type if needed
+        if (
+            cfg.local_metadata_special_token_start
+            and local_metadata
+            and metadata_list[0]["key"] in cfg.local_metadata_special_token_start
+        ):
+            local_special_token_start = cfg.local_metadata_special_token_start[metadata_list[0]["key"]]
+            local_metadata = f"{local_special_token_start}{local_metadata}"
+        if (
+            cfg.local_metadata_special_token_end
+            and local_metadata
+            and metadata_list[0]["key"] in cfg.local_metadata_special_token_end
+        ):
+            local_special_token_end = cfg.local_metadata_special_token_end[metadata_list[0]["key"]]
+            local_metadata = f"{local_metadata}{local_special_token_end}"
+
         new_metadata_list.append(
             asdict(
                 BasicMetadata(
@@ -260,6 +279,7 @@ def add_local_metadata_to_text(example: Dict[str, Any], cfg: MetadataConfig) -> 
         if processed_metadata is None:
             continue
         start_text, end_text = processed_metadata
+        
         char_start_idx = metadata.get("char_start_idx", -1)
         char_end_idx = metadata.get("char_end_idx", -1)
 

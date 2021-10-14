@@ -19,10 +19,10 @@ set -x -e
 # - load several modules (git)
 # Note: We can afford to have two conda environments: one stable for running experiments and one for development.
 # If there are new dependencies to install, you have to tell me about them and not do it in this script
-source $HOME/start-modelling-metadata-user
+source $HOME/start-user
 
 # Folder for the clone of github.com/bigscience-workshop/metadata/
-cd $WORK/repos/metadata/
+cd $WORK/repos/sync/metadata/
 
 # Command to load the XXX model and tokenizer stored on https://huggingface.co/models
 python experiments/jz/utils/loading_script_utils/load_tokenizer_and_model.py \

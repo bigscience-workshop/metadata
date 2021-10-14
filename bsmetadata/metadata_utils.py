@@ -134,7 +134,7 @@ def add_metadata_and_chunk_examples(
             else []
         )
         prefix_encoded = (
-            prefix_special_tokens_encoded + global_metadata_prefix_encoded + tokenizer.encode(cfg.metadata_global_sep)
+            prefix_special_tokens_encoded + global_metadata_prefix_encoded + tokenizer.encode(cfg.metadata_prefix_sep)
             if global_metadata_prefix_encoded
             else prefix_special_tokens_encoded
         )

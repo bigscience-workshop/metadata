@@ -267,7 +267,7 @@ class MetadataUtilsTester(unittest.TestCase):
         cfg = MetadataConfig()
         cfg.metadata_key_value_sep = ": "
         cfg.metadata_sep = " | "
-        cfg.metadata_global_sep = " |||"
+        cfg.metadata_prefix_sep = " |||"
         cfg.metadata_list = ["url", "timestamp", "website_description"]
         PROCESSORS["timestamp"] = MetadataProcessor
 

@@ -47,7 +47,7 @@ class MetadataConfig:
             "metadata added in the sample. The special tokens used are equal to the string used in `metadata_list`"
         },
     )
-    metadata_global_sep: str = field(
+    metadata_prefix_sep: str = field(
         default=" |||",
         metadata={"help": "The character sequence that is used to separate all global metadata from the actual text."},
     )

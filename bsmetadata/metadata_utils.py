@@ -130,7 +130,7 @@ def add_metadata_and_chunk_examples(
         # Create chunks of `max_seq_len` tokens.
         prefix_special_tokens_encoded = (
             prefix_special_tokens_encoded + tokenizer.encode(cfg.metadata_special_token_for_generation_sep)
-            if prefix_special_tokens_encoded and cfg.metadata_add_special_token_for_generation
+            if prefix_special_tokens_encoded and cfg.add_local_metadata_special_tokens_in_prefix
             else []
         )
         prefix_encoded = (

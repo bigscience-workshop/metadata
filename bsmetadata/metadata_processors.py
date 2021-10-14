@@ -40,7 +40,7 @@ class MetadataConfig:
     metadata_probability: float = field(
         default=1, metadata={"help": "The probability of adding metadata to an input example."}
     )
-    metadata_add_special_token_for_generation: bool = field(
+    add_local_metadata_special_tokens_in_prefix: bool = field(
         default=False,
         metadata={
             "help": "If True, some special tokens are added at the begining of the sample to indicate the type of "

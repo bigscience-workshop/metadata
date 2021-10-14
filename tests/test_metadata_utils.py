@@ -1684,7 +1684,7 @@ class MetadataUtilsTester(unittest.TestCase):
         cfg.metadata_list = ["url", "timestamp", "html", "entity"]
         cfg.max_seq_len = 85
         cfg.metadata_probability = 1
-        cfg.metadata_add_special_token_for_generation = True
+        cfg.add_local_metadata_special_tokens_in_prefix = True
         cfg.metadata_special_token_for_generation_start_seq = " "
         cfg.metadata_global_start_seq = " "
 
@@ -1732,7 +1732,7 @@ class MetadataUtilsTester(unittest.TestCase):
         cfg.metadata_list = ["html", "entity"]
         cfg.max_seq_len = 68
         cfg.metadata_probability = 1
-        cfg.metadata_add_special_token_for_generation = True
+        cfg.add_local_metadata_special_tokens_in_prefix = True
         cfg.metadata_special_token_for_generation_start_seq = " "
         cfg.metadata_global_start_seq = " "
 
@@ -1784,7 +1784,7 @@ class MetadataUtilsTester(unittest.TestCase):
         cfg.metadata_list = ["html", "entity"]
         cfg.max_seq_len = 68
         cfg.metadata_probability = 1
-        cfg.metadata_add_special_token_for_generation = True
+        cfg.add_local_metadata_special_tokens_in_prefix = True
         cfg.metadata_special_token_for_generation_start_seq = " "
         cfg.metadata_global_start_seq = " "
         cfg.treat_local_metadata_as_regular_text = True
@@ -1837,7 +1837,7 @@ class MetadataUtilsTester(unittest.TestCase):
         cfg.metadata_list = ["url", "timestamp", "html", "entity"]
         cfg.max_seq_len = 85
         cfg.metadata_probability = 1
-        cfg.metadata_add_special_token_for_generation = True
+        cfg.add_local_metadata_special_tokens_in_prefix = True
         cfg.metadata_special_token_for_generation_start_seq = " "
         cfg.metadata_global_start_seq = " "
         cfg.treat_local_metadata_as_regular_text = True

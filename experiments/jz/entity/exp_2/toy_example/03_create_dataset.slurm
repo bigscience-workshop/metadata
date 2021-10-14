@@ -47,9 +47,9 @@ REPO_DIR="${DATASETS_CUSTOM}/${myarray[-1]}"
 python bsmetadata/train.py \
   data_config.experiment="with_metadata" \
   data_config.metadata_config.metadata_list=["entity"] \
-  data_config.metadata_config.entity_setting = "beg" \
-  data_config.metadata_config.local_metadata_special_token_start = {"entity": "<ENTITY_CHAIN>"} \
-  data_config.metadata_config.local_metadata_special_token_end = {"entity": " <SUMMARY> "} \
+  data_config.metadata_config.entity_setting "beg" \
+  data_config.metadata_config.local_metadata_special_token_start={"entity": "<ENTITY_CHAIN>"} \
+  data_config.metadata_config.local_metadata_special_token_end={"entity": " <SUMMARY> "} \
   data_config.metadata_config.max_seq_len=1024 \
   data_config.dataset_name="${REPO_DIR}" \
   data_config.train_file="entity_train1.jsonl.gz" \

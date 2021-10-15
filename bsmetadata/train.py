@@ -142,7 +142,6 @@ def save_model_and_tokenizer(accelerator, model, path, tokenizer=None):
     unwrapped_model.save_pretrained(path, save_function=accelerator.save)
     if tokenizer:
         save_pretrained(path, save_function=accelerator.save)
-    
 
 
 @hydra.main(config_path=None, config_name="config")
@@ -195,7 +194,7 @@ def main(args: CFG) -> None:
     if resumed_state:
         optimizer.load_state_dict(resumed_state["optimizer"])
 
-    #Save Model and Tokenizer in beginning
+    # Save Model and Tokenizer in beginning
     if is_local_main_process and args.out_dir:
         save_model_and_tokenizer(accelerator, model, args.out_dir, tokenizer)
 

@@ -48,7 +48,10 @@ class CFG:
         default="output_dir", metadata={"help": "The output directory in which the trained model is saved."}
     )
     resume_from_checkpoint_dir: Optional[str] = field(
-        default=None, metadata={"help": "The directory where schcekpoint to resume from is saved"}
+        default=None, metadata={"help": "The directory where checkpoint to resume from is saved"}
+    )
+    resume_from_checkpoint: Optional[str] = field(
+        default=None, metadata={"help": "The checkpoint to resume from is saved"}
     )
     model_name: str = field(default="gpt2", metadata={"help": "The name of the pretrained model to use."})
     project_name: str = field(default="metadata_lm", metadata={"help": "The project name."})
@@ -152,6 +155,12 @@ def main(args: CFG) -> None:
     # see this for details: https://github.com/huggingface/accelerate/issues/95
     model_name = args.model_name if not args.resume_from_checkpoint_dir else args.resume_from_checkpoint_dir
 
+    #If resume_from_checkpoint is not None, we load the resumed state
+    resumed_state = None
+    if args.resume_from_checkpoint is not None:
+        print("Loading states from checkpoint ...")
+        resumed_state = torch.load(f"{args.resume_from_checkpoint_dir}/{args.resume_from_checkpoint}")
+
     # The dataset library use the hash of the arguments to create the cache
     # name. Without this transformation the hash of args is not deterministic
     args = OmegaConf.to_object(args)
@@ -169,7 +178,10 @@ def main(args: CFG) -> None:
     train_dataloader, eval_dataloaders = get_dataloaders(tokenizer, args.data_config)
 
     # get model
-    model = AutoModelForCausalLM.from_pretrained(model_name)
+    if not resumed_state:
+        model = AutoModelForCausalLM.from_pretrained(model_name)
+    else:
+        model = AutoModelForCausalLM.from_pretrained(resumed_state["state_dict"], from_pt=True)
 
     # Optimizer
     # Split weights in two groups, one with weight decay and the other not.
@@ -185,11 +197,6 @@ def main(args: CFG) -> None:
         },
     ]
     optimizer = AdamW(optimizer_grouped_parameters, lr=args.learning_rate)
-
-    resumed_state = None
-    if args.resume_from_checkpoint_dir is not None:
-        print("Loading states from checkpoint dir ..")
-        resumed_state = torch.load(f"{args.resume_from_checkpoint_dir}.pt")
 
     if resumed_state:
         optimizer.load_state_dict(resumed_state["optimizer"])

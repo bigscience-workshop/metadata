@@ -136,11 +136,13 @@ def loss_fn(batch, outputs, metadata_mask=None):
     return loss
 
 
-def save_model_and_tokenizer(accelerator, model, tokenizer, path):
+def save_model_and_tokenizer(accelerator, model, path, tokenizer=None):
     accelerator.wait_for_everyone()
     unwrapped_model = accelerator.unwrap_model(model)
     unwrapped_model.save_pretrained(path, save_function=accelerator.save)
-    tokenizer.save_pretrained(path, save_function=accelerator.save)
+    if tokenizer:
+        save_pretrained(path, save_function=accelerator.save)
+    
 
 
 @hydra.main(config_path=None, config_name="config")
@@ -192,6 +194,10 @@ def main(args: CFG) -> None:
 
     if resumed_state:
         optimizer.load_state_dict(resumed_state["optimizer"])
+
+    #Save Model and Tokenizer in beginning
+    if is_local_main_process and args.out_dir:
+        save_model_and_tokenizer(model, args.out_dir, tokenizer)
 
     # Prepare everything
     model, optimizer, train_dataloader = accelerator.prepare(model, optimizer, train_dataloader)
@@ -310,9 +316,6 @@ def main(args: CFG) -> None:
             do_save = is_local_main_process and completed_steps > 0 and completed_steps % save_per_n_step == 0
             if do_save:
                 # currently saving all the models. might be useful to save only the best model
-                save_model_and_tokenizer(
-                    accelerator, model, tokenizer, os.path.join(args.out_dir, f"checkpoint-{completed_steps}step")
-                )
 
                 save_path = os.path.join(args.out_dir, f"checkpoint-{completed_steps}step.pt")
                 logger.info(f"Save model at {save_path}")
@@ -332,7 +335,7 @@ def main(args: CFG) -> None:
     logger.info("Training finished")
 
     if is_local_main_process and args.out_dir is not None:
-        save_model_and_tokenizer(accelerator, model, tokenizer, args.out_dir)
+        save_model_and_tokenizer(accelerator, model, args.out_dir)
 
 
 if __name__ == "__main__":

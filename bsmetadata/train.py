@@ -182,7 +182,7 @@ def main(args: CFG) -> None:
         model = AutoModelForCausalLM.from_pretrained(model_name)
     else:
         print("Loading model from checkpoint")
-        model = AutoModelForCausalLM.from_pretrained(resumed_state.index, from_pt=True)
+        model = AutoModelForCausalLM.from_pretrained(resumed_state, from_pt=True)
 
     # Optimizer
     # Split weights in two groups, one with weight decay and the other not.

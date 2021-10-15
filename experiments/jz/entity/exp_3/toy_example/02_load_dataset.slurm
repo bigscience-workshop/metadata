@@ -19,7 +19,7 @@ set -x -e
 # - load several modules (git)
 # Note: We can afford to have only two conda environments: one stable for running experiments and one for development.
 # If there are new dependencies to install, you have to tell me about them and not do it in this script
-source $HOME/start-modelling-metadata-user
+source $HOME/start-user
 
 # For the moment we can't directly use the new dataset feature on JZ which would avoid having to clone the dataset
 # repo from the HUB. So the first thing to do is to clone the repo of the XXX dataset if it does not already exist.

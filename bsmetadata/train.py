@@ -197,7 +197,7 @@ def main(args: CFG) -> None:
 
     #Save Model and Tokenizer in beginning
     if is_local_main_process and args.out_dir:
-        save_model_and_tokenizer(model, args.out_dir, tokenizer)
+        save_model_and_tokenizer(accelerator, model, args.out_dir, tokenizer)
 
     # Prepare everything
     model, optimizer, train_dataloader = accelerator.prepare(model, optimizer, train_dataloader)

@@ -141,7 +141,7 @@ def save_model_and_tokenizer(accelerator, model, path, tokenizer=None):
     unwrapped_model = accelerator.unwrap_model(model)
     unwrapped_model.save_pretrained(path, save_function=accelerator.save)
     if tokenizer:
-        save_pretrained(path, save_function=accelerator.save)
+        tokenizer.save_pretrained(path, save_function=accelerator.save)
 
 
 @hydra.main(config_path=None, config_name="config")

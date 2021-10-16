@@ -15,6 +15,31 @@ This script provides functions for adding different kinds of metadata to a pretr
 """
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional
+from urllib.parse import unquote, urlsplit
+
+from bsmetadata.vendor.dateutil.src.dateutil.parser import ParserError, parse
+
+
+def get_path_from_url(url):
+    """get the `path` part of `url`, with %xx escapes replaced by their single-character equivalent"""
+    parts = urlsplit(url)
+    return unquote(parts.path)
+
+
+def parse_date(path):
+    try:
+        return parse(path, fuzzy=True, date_only=True)
+    except ParserError:
+        return None
+    except OverflowError:
+        # this happens sometimes, I don't know why, just ignore it
+        return None
+
+
+def remove_improbable_date(x):
+    if x is not None and (x.year < 1983 or x.year > 2021):
+        return None
+    return x
 
 
 class MetadataPreprocessor(ABC):
@@ -49,6 +74,9 @@ class TimestampPreprocessor(MetadataPreprocessor):
 
         return examples
 
-    def _extract_timestamp_from_url(self, url: str) -> Optional:
-        # This would have to be implemented.
-        return None
+    def _extract_timestamp_from_url(self, url: str) -> Optional[str]:
+        path = get_path_from_url(url)
+        date = parse_date(path)
+        date = remove_improbable_date(date)
+        date = str(date) if date is not None else None
+        return date

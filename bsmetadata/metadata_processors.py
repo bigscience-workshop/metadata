@@ -25,9 +25,22 @@ class MetadataConfig:
         default_factory=list,
         metadata={"help": "The list of metadata types to use. Metadata is added in order of appearance in this list."},
     )
+    local_metadata_special_tokens: Optional[Dict[str, str]] = field(
+        default=None,
+        metadata={
+            "help": "A dictionary whose keys correspond to a local metadata type and values to the associated  "
+            "generation control token special. This dictionary will be used if "
+            "`add_local_metadata_special_tokens_in_prefix` is `True`. If `add_local_metadata_special_tokens_in_prefix`"
+            " is `True` and this argument is equal to `None` then the name of the local metadata will be used directly"
+            " as special token.."
+        },
+    )
     metadata_sep: str = field(
         default=" | ",
-        metadata={"help": "The character sequence that is used to separate two instances of global metadata."},
+        metadata={
+            "help": "The character sequence that is used to separate two instances of global metadata and/or local "
+            "metadata special tokens (if `add_local_metadata_special_tokens_in_prefix` is `True`)."
+        },
     )
     metadata_key_value_sep: str = field(
         default=": ",
@@ -36,9 +49,24 @@ class MetadataConfig:
     metadata_probability: float = field(
         default=1, metadata={"help": "The probability of adding metadata to an input example."}
     )
-    global_metadata_sep: str = field(
+    add_local_metadata_special_tokens_in_prefix: bool = field(
+        default=False,
+        metadata={
+            "help": "If True, local metadata special tokens are added at the begining of the sample to indicate the "
+            "type of metadata added in the sample. The special tokens used are equal to the string used in "
+            "`metadata_list`"
+        },
+    )
+    metadata_prefix_sep: str = field(
         default=" |||",
-        metadata={"help": "The character sequence that is used to separate all global metadata from the actual text."},
+        metadata={
+            "help": "The character sequence that is used to separate all global metadata and/or local metadata "
+            "special tokens (if `add_local_metadata_special_tokens_in_prefix` is `True`) from the actual text."
+        },
+    )
+    metadata_prefix_start_seq: str = field(
+        default="",
+        metadata={"help": "The character sequence to be concatenated at the beginning of the metadata prefix."},
     )
     max_seq_len: int = field(
         default=512, metadata={"help": "The maximum number of tokens to use for each training chunk."}
@@ -117,7 +145,13 @@ class HtmlProcessor(MetadataProcessor):
     def process_local(self, metadata_attrs: Dict[str, Any]) -> Optional[Tuple[str, str]]:
         # We represent a html tag `T` by enclosing the corresponding text span with "<T>" and "</T>".
         # Example: An <b>apple</b> is an edible fruit.
-        return f"<{metadata_attrs['value']}>", f"</{metadata_attrs['value']}>"
+        attributes = " ".join(
+            f"{attr}:{value}"
+            for attr, value in zip(metadata_attrs["html_attrs"]["attrs"], metadata_attrs["html_attrs"]["values"])
+        )
+        if attributes:
+            attributes = " " + attributes
+        return f"<{metadata_attrs['value']}{attributes}>", f"</{metadata_attrs['value']}>"
 
 
 class UrlProcessor(MetadataProcessor):
@@ -137,10 +171,17 @@ class WebsiteDescriptionProcessor(MetadataProcessor):
         return "".join(["Website Description", self.cfg.metadata_key_value_sep, metadata_attrs["value"]])
 
 
+class BasicStartLocalProcessor(MetadataProcessor):
+    def process_local(self, metadata_attrs: Dict[str, Any]) -> Optional[Tuple[str, str]]:
+        # This is a basic processor that just creates a local start tag from the value stored in the metadata
+        return metadata_attrs["value"], ""
+
+
 PROCESSORS = {
     "timestamp": TimestampProcessor,
     "entity": EntityProcessor,
     "html": HtmlProcessor,
     "url": UrlProcessor,
     "website_description": WebsiteDescriptionProcessor,
+    "basic_start_local": BasicStartLocalProcessor,
 }

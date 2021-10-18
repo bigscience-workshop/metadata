@@ -69,47 +69,23 @@ def add_metadata_and_chunk_examples(
 
         if add_metadata:
             # Get the global metadata prefix that is prepended to each training example.
-            global_metadata_prefix, global_metadata_special_tokens_prefix = create_global_metadata_prefix(example, cfg)
+            metadata_prefix = create_metadata_prefix(example, cfg)
             metadata_prefix_encoded = (
-                tokenizer.encode_plus(cfg.metadata_global_start_seq + global_metadata_prefix).input_ids
-                if global_metadata_prefix
+                tokenizer.encode_plus(cfg.metadata_prefix_start_seq + metadata_prefix).input_ids
+                if metadata_prefix
                 else []
             )
         else:
             metadata_prefix_encoded = []
-            global_metadata_special_tokens_prefix = ""
 
         if add_metadata:
             # Get the actual text with local metadata inserted.
-            (
-                text_with_local_metadata,
-                char_level_metadata_mask,
-                local_metadata_special_tokens_prefix,
-            ) = add_local_metadata_to_text(example, cfg)
+            text_with_local_metadata, char_level_metadata_mask = add_local_metadata_to_text(example, cfg)
         else:
             text_with_local_metadata = example["text"]
             char_level_metadata_mask = [False] * len(text_with_local_metadata)
-            local_metadata_special_tokens_prefix = ""
 
-        if global_metadata_special_tokens_prefix and local_metadata_special_tokens_prefix:
-            prefix_special_tokens_encoded = tokenizer.encode(
-                cfg.metadata_special_token_for_generation_start_seq
-                + cfg.special_tokens_metadata_sep.join(
-                    [global_metadata_special_tokens_prefix, local_metadata_special_tokens_prefix]
-                )
-            )
-        elif global_metadata_special_tokens_prefix:
-            prefix_special_tokens_encoded = tokenizer.encode(
-                cfg.metadata_special_token_for_generation_start_seq + global_metadata_special_tokens_prefix
-            )
-        elif local_metadata_special_tokens_prefix:
-            prefix_special_tokens_encoded = tokenizer.encode(
-                cfg.metadata_special_token_for_generation_start_seq + local_metadata_special_tokens_prefix
-            )
-        else:
-            prefix_special_tokens_encoded = []
-
-        if metadata_prefix_encoded or prefix_special_tokens_encoded:
+        if metadata_prefix_encoded:
             text_with_local_metadata = " " + text_with_local_metadata
             char_level_metadata_mask = [False] + char_level_metadata_mask
 
@@ -128,18 +104,7 @@ def add_metadata_and_chunk_examples(
             ]
 
         # Create chunks of `max_seq_len` tokens.
-        prefix_special_tokens_encoded = (
-            prefix_special_tokens_encoded + tokenizer.encode(cfg.metadata_special_token_for_generation_sep)
-            if prefix_special_tokens_encoded and cfg.add_local_metadata_special_tokens_in_prefix
-            else []
-        )
-        prefix_encoded = (
-            prefix_special_tokens_encoded + metadata_prefix_encoded + tokenizer.encode(cfg.metadata_prefix_sep)
-            if metadata_prefix_encoded
-            else prefix_special_tokens_encoded
-        )
-
-        prefix_len = len(prefix_encoded)
+        prefix_len = len(metadata_prefix_encoded)
         max_text_len = cfg.max_seq_len - prefix_len
 
         for text_chunk_encoded, chunk_metadata_mask in chunks(
@@ -148,7 +113,7 @@ def add_metadata_and_chunk_examples(
             total_len = prefix_len + len(text_chunk_encoded)
             padding_len = max_text_len - len(text_chunk_encoded)
 
-            input_ids = prefix_encoded + text_chunk_encoded + [tokenizer.eos_token_id] * padding_len
+            input_ids = metadata_prefix_encoded + text_chunk_encoded + [tokenizer.eos_token_id] * padding_len
             attention_mask = [1] * total_len + [0] * padding_len
             metadata_mask = [1] * prefix_len + [int(x) for x in chunk_metadata_mask] + [0] * padding_len
 
@@ -159,32 +124,34 @@ def add_metadata_and_chunk_examples(
     return linearized_examples
 
 
-def create_global_metadata_prefix(example: Dict[str, Any], cfg: MetadataConfig) -> str:
-    """Creates a prefix containing all global metadata information (including URLs, timestamps, etc).
+def create_metadata_prefix(example: Dict[str, Any], cfg: MetadataConfig) -> str:
+    """Creates a prefix containing all global metadata information (including URLs, timestamps, etc)
+    and/or local metadata special tokens
 
     Args:
-        example: The example to create a global metadata prefix for.
+        example: The example to create a metadata prefix for.
         cfg: The data config to use.
 
     Returns:
-        A tuple of two elements, where:
-            - the first element a string containing the global metadata prefix;
-            - the second element is a string contening the name of the metadata types added.
+        A string containing the metadata prefix.
     """
     processed_metadata = {}
     for metadata in example["metadata"]:
         key, type_ = metadata["key"], metadata["type"]
-        if type_ != "global" or key not in cfg.metadata_list:
+        if key not in cfg.metadata_list:
             continue
 
-        processor = PROCESSORS.get(key, MetadataProcessor)(cfg)
-        processed_metadata[key] = processor.process_global(metadata)
+        if type_ == "global":
+            processor = PROCESSORS.get(key, MetadataProcessor)(cfg)
+            processed_metadata[key] = processor.process_global(metadata)
+        elif cfg.add_local_metadata_special_tokens_in_prefix and cfg.local_metadata_special_tokens:
+            processed_metadata[key] = cfg.local_metadata_special_tokens[key]
+        elif cfg.add_local_metadata_special_tokens_in_prefix:
+            processed_metadata[key] = key
 
-    sorted_metadata = [(md, processed_metadata.get(md, None)) for md in cfg.metadata_list]
-    sorted_metadata = [(md_key, md) for (md_key, md) in sorted_metadata if md is not None]
-    return cfg.metadata_sep.join([md for (_, md) in sorted_metadata]), cfg.special_tokens_metadata_sep.join(
-        [md_key for (md_key, _) in sorted_metadata]
-    )
+    sorted_metadata = [processed_metadata.get(md, None) for md in cfg.metadata_list]
+    sorted_metadata = [md for md in sorted_metadata if md is not None]
+    return cfg.metadata_sep.join(sorted_metadata) + cfg.metadata_prefix_sep if sorted_metadata else ""
 
 
 def _collate_metadata(metadata_list: List[dict], cfg: MetadataConfig):
@@ -254,16 +221,13 @@ def _collate_metadata(metadata_list: List[dict], cfg: MetadataConfig):
 
 def add_local_metadata_to_text(example: Dict[str, Any], cfg: MetadataConfig) -> Tuple[str, List[bool]]:
     """Adds local metadata (such as HTML tags and entity names) to the given input text.
-
     Args:
         example: The example for which local metadata should be added.
         cfg: The data config to use.
-
     Returns:
-        A tuple of three elements, where:
+        A tuple of two elements, where:
             - the first element is the text with metadata;
-            - the second element is a boolean mask where `mask[i]` is set iff `text[i]` is some kind of metadata;
-            - the third element is a string listing the types of metadata added
+            - the second element is a boolean mask where `mask[i]` is set iff `text[i]` is some kind of metadata.
     """
     metadata_idx_storage = MetadataIdxStorage()
 
@@ -273,8 +237,6 @@ def add_local_metadata_to_text(example: Dict[str, Any], cfg: MetadataConfig) -> 
     for md in example["metadata"]:
         if md["type"] == "local" and md["key"] in cfg.metadata_list:
             filtered_metadata[md["key"]].append(md)
-
-    local_metadata_special_tokens = [md for md in cfg.metadata_list if md in filtered_metadata]
 
     for metadata_type, metadata_list in filtered_metadata.items():
         if metadata_list and metadata_list[0].get("relative_start_pos") is not None:
@@ -364,11 +326,7 @@ def add_local_metadata_to_text(example: Dict[str, Any], cfg: MetadataConfig) -> 
         metadata_text_list = metadata_idx_storage.start_idx_tag_with_content[idx]
         _add_metadata_to_text(metadata_text_list, text_with_local_metadata, metadata_mask)
 
-    return (
-        "".join(text_with_local_metadata),
-        metadata_mask,
-        cfg.special_tokens_metadata_sep.join(local_metadata_special_tokens),
-    )
+    return "".join(text_with_local_metadata), metadata_mask
 
 
 def chunks(n: int, *lists):

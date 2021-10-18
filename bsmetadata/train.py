@@ -157,7 +157,7 @@ def main(args: CFG) -> None:
 
     # If resume_from_checkpoint is not None, we load the resumed state
     resumed_state = None
-    if args.resume_from_checkpoint is not None:
+    if args.resume_from_checkpoint:
         print("Loading states from checkpoint ...")
         resumed_state = torch.load(f"{args.resume_from_checkpoint_dir}/{args.resume_from_checkpoint}")
 

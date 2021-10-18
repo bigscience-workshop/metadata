@@ -155,7 +155,7 @@ def main(args: CFG) -> None:
     # see this for details: https://github.com/huggingface/accelerate/issues/95
     model_name = args.model_name if not args.resume_from_checkpoint_dir else args.resume_from_checkpoint_dir
 
-    #If resume_from_checkpoint is not None, we load the resumed state
+    # If resume_from_checkpoint is not None, we load the resumed state
     resumed_state = None
     if args.resume_from_checkpoint is not None:
         print("Loading states from checkpoint ...")
@@ -178,11 +178,7 @@ def main(args: CFG) -> None:
     train_dataloader, eval_dataloaders = get_dataloaders(tokenizer, args.data_config)
 
     # get model
-    if not resumed_state:
-        model = AutoModelForCausalLM.from_pretrained(model_name)
-    else:
-        print("Loading model from checkpoint")
-        model = AutoModelForCausalLM.from_pretrained(pretrained_model_name_or_path = model_name, state_dict = resumed_state["state_dict"])
+    model = AutoModelForCausalLM.from_pretrained(model_name)
 
     # Optimizer
     # Split weights in two groups, one with weight decay and the other not.
@@ -200,6 +196,7 @@ def main(args: CFG) -> None:
     optimizer = AdamW(optimizer_grouped_parameters, lr=args.learning_rate)
 
     if resumed_state:
+        model.load_state_dict(resumed_state["state_dict"])
         optimizer.load_state_dict(resumed_state["optimizer"])
 
     # Save Model and Tokenizer in beginning

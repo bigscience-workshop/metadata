@@ -19,7 +19,7 @@ from typing import Dict, List, Optional
 
 from src.rel.REL.entity_disambiguation import EntityDisambiguation
 from src.rel.REL.mention_detection import MentionDetection
-from src.rel.REL.ner import Cmns, load_flair_ner
+from src.rel.REL.ner import load_flair_ner
 from src.rel.REL.utils import process_results
 
 

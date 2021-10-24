@@ -84,13 +84,13 @@ Below is a table showing ``relative_start_pos`` (`start`) and ``relative_end_pos
 
 ## Pre-processing steps:
 
-### Pre-processing Entity Tags.
+### Entity Tags.
 
-**Pre-requisite steps before executing the bsmetadata/preprocessing_utils.py file.**
+**Pre-requisite steps before executing the `bsmetadata/preprocessing_utils.py` file.**
 
-* Make sure that after you have executed the metadata/requirements.txt file, the src/rel folder is created.
-* Traverse inside the src/rel folder and execute the requirements.txt file
-* Execute the preprocessing_scripts/download_entity_processing_files.sh
+* Make sure that after you have executed the `metadata/requirements.txt` file, the `src/rel` folder is created.
+* Traverse inside the `src/rel` folder and execute the `requirements.txt` file
+* Execute the `preprocessing_scripts/download_entity_processing_files.sh`
 
 ## Contribute 🧠
 

@@ -82,6 +82,16 @@ Below is a table showing ``relative_start_pos`` (`start`) and ``relative_end_pos
 | ``<i> ... </i><b></b>`` | 0 | 0 | 1 | 2 |
 | ``<i> ... <b></b></i>`` | 0 | 2 | 0 | 1 |
 
+## Pre-processing steps:
+
+### Pre-processing Entity Tags.
+
+**Pre-requisite steps before executing the bsmetadata/preprocessing_utils.py file.**
+
+* Make sure that after you have executed the metadata/requirements.txt file, the src/rel folder is created.
+* Traverse inside the src/rel folder and execute the requirements.txt file
+* Execute the preprocessing_scripts/download_entity_processing_files.sh
+
 ## Contribute 🧠
 
 After installing the development dependencies, first you need to install the package in editable mode. You can do it by running in a bash at the root of the repository

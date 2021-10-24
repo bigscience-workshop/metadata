@@ -13,8 +13,14 @@
 """
 This script provides functions for adding different kinds of metadata to a pretraining corpus.
 """
+import uuid
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional
+
+from src.rel.REL.entity_disambiguation import EntityDisambiguation
+from src.rel.REL.mention_detection import MentionDetection
+from src.rel.REL.ner import Cmns, load_flair_ner
+from src.rel.REL.utils import process_results
 
 
 class MetadataPreprocessor(ABC):
@@ -52,3 +58,70 @@ class TimestampPreprocessor(MetadataPreprocessor):
     def _extract_timestamp_from_url(self, url: str) -> Optional:
         # This would have to be implemented.
         return None
+
+
+class EntityPreprocessor(MetadataPreprocessor):
+    """An exemplary metadata preprocessor for adding entity information."""
+
+    base_url = ".\preprocessing_scripts\entity_linking_files"
+    wiki_version = "wiki_2019"
+
+    def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
+
+        for example in examples:
+
+            text = example["text"]
+            res = self._extract_entity_from_text(text)
+            result = self.postprocess_entity(res)
+
+            if not result:
+                continue
+
+            if "metadata" in example:
+                example["metadata"].append(result)
+            else:
+                example["metadata"] = result
+
+        return examples
+
+    def _extract_entity_from_text(self, text: str) -> Optional:
+        input_text = self.preprocess_example(text)
+        res = self.fetch_mention_predictions(self.base_url, self.wiki_version, input_text)
+        res_list = []
+        for key, value in res.items():
+            res_list = [list(elem) for elem in value]
+        return res_list
+
+    def postprocess_entity(self, r_list):
+        entities = []
+        for ent in range(len(r_list)):
+            entity = r_list[ent][3] if (r_list[ent][5] > r_list[ent][4]) else r_list[ent][2]
+            en = {
+                "key": "entity",
+                "type": "local",
+                "char_start_idx": r_list[ent][0],
+                "char_end_idx": (r_list[ent][0] + r_list[ent][1]),
+                "value": entity,
+            }
+            entities.append(en)
+        return entities
+
+    def preprocess_example(self, text: str) -> Optional:
+        id_ = uuid.uuid4().hex.upper()[0:6]
+        text_ = text
+        value = [text_, []]
+        processed = {id_: value}
+        return processed
+
+    def fetch_mention_predictions(self, base_url: str, wiki_version: str, input_text: str) -> Optional:
+        mention_detection = MentionDetection(base_url, wiki_version)
+        tagger_ner = load_flair_ner("ner-fast")
+        mentions_dataset, n_mentions = mention_detection.find_mentions(input_text, tagger_ner)
+        config = {
+            "mode": "eval",
+            "model_path": "ed-wiki-2019",
+        }
+        model = EntityDisambiguation(base_url, wiki_version, config)
+        predictions, timing = model.predict(mentions_dataset)
+        result = process_results(mentions_dataset, predictions, input_text)
+        return result

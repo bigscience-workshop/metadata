@@ -12,7 +12,7 @@
 
 
 ### This script downloads all the files required for the entity linking process in metadata preprocessing.
-
+### The Entity Linker used here is REL: Radboud Entity Linker [(Github URL:https://github.com/informagi/REL), (arxiv URL: https://arxiv.org/abs/2006.01969)]
 
 mkdir entity_linking_files
 cd entity_linking_files

@@ -17,6 +17,8 @@ import uuid
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional
 
+from datasets import Dataset
+
 from src.rel.REL.entity_disambiguation import EntityDisambiguation
 from src.rel.REL.mention_detection import MentionDetection
 from src.rel.REL.ner import load_flair_ner
@@ -61,46 +63,57 @@ class TimestampPreprocessor(MetadataPreprocessor):
 
 
 class EntityPreprocessor(MetadataPreprocessor):
-    """An exemplary metadata preprocessor for adding entity information."""
+    """Metadata preprocessor for adding entity information."""
 
     base_url = ".\preprocessing_scripts\entity_linking_files"
     wiki_version = "wiki_2019"
 
+    def __init__(self):
+        self.mention_detection = MentionDetection(self.base_url, self.wiki_version)
+        self.tagger_ner = load_flair_ner("ner-fast")
+        self.config = {
+            "mode": "eval",
+            "model_path": "ed-wiki-2019",
+        }
+        self.model = EntityDisambiguation(self.base_url, self.wiki_version, self.config)
+
     def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
 
-        for example in examples:
+        example_text_list = examples["text"]
+        example_metadata_list = examples["metadata"]
 
-            text = example["text"]
-            res = self._extract_entity_from_text(text)
+        for i in range(len(example_text_list)):
+            res = self._extract_entity_from_text(example_text_list[i])
             result = self.postprocess_entity(res)
 
             if not result:
                 continue
 
-            if "metadata" in example:
-                example["metadata"].append(result)
-            else:
-                example["metadata"] = result
+            example_metadata_list[i].append(result)
 
         return examples
 
     def _extract_entity_from_text(self, text: str) -> Optional:
         input_text = self.preprocess_example(text)
-        res = self.fetch_mention_predictions(self.base_url, self.wiki_version, input_text)
+        res = self.fetch_mention_predictions(input_text)
         res_list = []
         for key, value in res.items():
             res_list = [list(elem) for elem in value]
         return res_list
 
-    def postprocess_entity(self, r_list):
+    def postprocess_entity(self, resu_list):
         entities = []
-        for ent in range(len(r_list)):
-            entity = r_list[ent][3] if (r_list[ent][5] > r_list[ent][4]) else r_list[ent][2]
+        for ent in range(len(resu_list)):
+            entity = resu_list[ent][3]  # element at index = 3 in the result list corresponds to the predicted entity
             en = {
                 "key": "entity",
                 "type": "local",
-                "char_start_idx": r_list[ent][0],
-                "char_end_idx": (r_list[ent][0] + r_list[ent][1]),
+                "char_start_idx": resu_list[ent][
+                    0
+                ],  # element at index = 0 in the result list corresponds to the char start index
+                "char_end_idx": (
+                    resu_list[ent][0] + resu_list[ent][1]
+                ),  # element at index = 1 in the result list corresponds to length of the entity
                 "value": entity,
             }
             entities.append(en)
@@ -113,15 +126,8 @@ class EntityPreprocessor(MetadataPreprocessor):
         processed = {id_: value}
         return processed
 
-    def fetch_mention_predictions(self, base_url: str, wiki_version: str, input_text: str) -> Optional:
-        mention_detection = MentionDetection(base_url, wiki_version)
-        tagger_ner = load_flair_ner("ner-fast")
-        mentions_dataset, n_mentions = mention_detection.find_mentions(input_text, tagger_ner)
-        config = {
-            "mode": "eval",
-            "model_path": "ed-wiki-2019",
-        }
-        model = EntityDisambiguation(base_url, wiki_version, config)
-        predictions, timing = model.predict(mentions_dataset)
+    def fetch_mention_predictions(self, input_text: str) -> Optional:
+        mentions_dataset, n_mentions = self.mention_detection.find_mentions(input_text, self.tagger_ner)
+        predictions, timing = self.model.predict(mentions_dataset)
         result = process_results(mentions_dataset, predictions, input_text)
         return result

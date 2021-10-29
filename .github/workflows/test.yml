@@ -23,9 +23,11 @@ jobs:
             - name: Install dependencies
               run: |
                   python -m pip install --upgrade pip
-                  python -m pip install .
+                  python -m pip install .[html_parser]
                   python -m pip install -r requirements-dev.txt
             - name: Test
               run: |
                   python -m pytest tests/test_get_dataloaders.py
                   python -m pytest tests/test_metadata_utils.py
+                  python -m pytest tests/test_preprocessing_utils.py
+                  python -m pytest tests/preprocessing_tools

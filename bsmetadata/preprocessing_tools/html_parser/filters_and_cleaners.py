@@ -297,7 +297,6 @@ class TextAndMetadataCleaner:
     def apply(self):
         html_str = self.html_str
         # Traitement n°1: start the parsing at a special tags (mostly tested with <body>)
-        print("html str: ", repr(html_str))
         if self.start_parsing_at_tag is not None:
             root = fromstring(html_str)
             find = etree.XPath(f"//{self.start_parsing_at_tag}")

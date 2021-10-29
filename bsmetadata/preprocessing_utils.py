@@ -59,6 +59,10 @@ class TimestampPreprocessor(MetadataPreprocessor):
 class HtmlPreprocessor(MetadataPreprocessor):
     """todo"""
 
+    def __init__(self, name_html_column: str = "doc_html") -> None:
+        self.name_html_column = name_html_column
+        super().__init__()
+
     def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
         tags_to_remove_with_content = [
             html_parser.objects.TagToRemoveWithContent(tag="script"),
@@ -69,8 +73,10 @@ class HtmlPreprocessor(MetadataPreprocessor):
             html_parser.objects.TagToRemoveWithContent(tag="form"),
         ]
 
-        examples["texts"] = []  # check key value
-        for example_doc_html, example_metadata in zip(examples["doc_html"], examples["metadata"]):  # check key value
+        new_texts = []  # check key value
+        for example_doc_html, example_metadata in zip(
+            examples[self.name_html_column], examples["metadata"]
+        ):  # check key value
 
             plain_text, metadata = html_parser.get_clean_text_and_metadata(
                 example_doc_html,
@@ -78,9 +84,10 @@ class HtmlPreprocessor(MetadataPreprocessor):
                 consecutive_tags_to_fold=["div"],
                 convert_br_tag_to_breaking_line=True,
             )
-            examples["texts"].append(plain_text)
+            new_texts.append(plain_text)
             example_metadata.extend(
                 [html_parser.objects.convert_html_metadata_dataclass_to_dict(node) for node in metadata]
             )
 
+        examples["texts"] = new_texts
         return examples

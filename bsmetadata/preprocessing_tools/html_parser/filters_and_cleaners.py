@@ -27,7 +27,7 @@ class AttributeCleaner:
     def __call__(self, attrs: List[Tuple[str]]):
         if isinstance(attrs, list):
             attrbs = [attr for attr, _ in attrs if self._test(attr)]
-            values = [value for _, value in attrs if self._test(attr)]
+            values = [value for attr, value in attrs if self._test(attr)]
             return {
                 "attrs": attrbs,
                 "values": values,

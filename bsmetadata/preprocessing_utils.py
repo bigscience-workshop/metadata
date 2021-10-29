@@ -73,10 +73,10 @@ class HtmlPreprocessor(MetadataPreprocessor):
             html_parser.objects.TagToRemoveWithContent(tag="form"),
         ]
 
-        new_texts = []  # check key value
+        new_texts = []
         for example_doc_html, example_metadata in zip(
             examples[self.name_html_column], examples["metadata"]
-        ):  # check key value
+        ):  # if metadata already exists
 
             plain_text, metadata = html_parser.get_clean_text_and_metadata(
                 example_doc_html,

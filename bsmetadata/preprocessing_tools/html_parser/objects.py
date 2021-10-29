@@ -1,6 +1,6 @@
 from dataclasses import dataclass
-from typing import Optional
-from typing import OrderedDict
+from typing import Optional, OrderedDict
+
 
 @dataclass
 class TagToRemove:
@@ -32,6 +32,7 @@ class Metadata:
     relative_end_pos: Optional[int] = None
     key: str = "html"
     type: str = "local"
+
 
 def convert_html_metadata_dataclass_to_dict(metadata: Metadata):
     html_metadata_dict = OrderedDict(

@@ -6,14 +6,10 @@ from bsmetadata.preprocessing_tools.html_parser import get_clean_text_and_metada
 from bsmetadata.preprocessing_tools.html_parser.objects import TagToRemove, TagToRemoveWithContent
 
 
-def check_content_parsing(
-    target_content_plain_text: str, target_metadata_tags, metadata, plain_text
-):
+def check_content_parsing(target_content_plain_text: str, target_metadata_tags, metadata, plain_text):
     target_list_tags = []
     for target_tag in target_content_plain_text.keys():
-        target_list_tags.extend(
-            [target_tag] * len(target_content_plain_text[target_tag])
-        )
+        target_list_tags.extend([target_tag] * len(target_content_plain_text[target_tag]))
 
     for target_tag in target_list_tags:
         assert target_tag in target_metadata_tags
@@ -22,16 +18,12 @@ def check_content_parsing(
         for metadata_node in metadata:
             if (
                 metadata_node.value.tag == target_tag
-                and plain_text[
-                    metadata_node.char_start_idx : metadata_node.char_end_idx
-                ]
+                and plain_text[metadata_node.char_start_idx : metadata_node.char_end_idx]
                 in target_content_plain_text[target_tag]
             ):
                 find = True
                 target_content_plain_text[target_tag].remove(
-                    plain_text[
-                        metadata_node.char_start_idx : metadata_node.char_end_idx
-                    ]
+                    plain_text[metadata_node.char_start_idx : metadata_node.char_end_idx]
                 )
                 if not target_content_plain_text[target_tag]:
                     target_content_plain_text.pop(target_tag)
@@ -52,14 +44,10 @@ def check_content_parsing(
     assert not target_metadata_tags
 
 
-def check_content_parsing_and_metadata(
-    target_content_plain_text: str, target_metadata_tags, metadata, plain_text
-):
+def check_content_parsing_and_metadata(target_content_plain_text: str, target_metadata_tags, metadata, plain_text):
     target_list_tags = []
     for target_tag in target_content_plain_text.keys():
-        target_list_tags.extend(
-            [target_tag] * len(target_content_plain_text[target_tag])
-        )
+        target_list_tags.extend([target_tag] * len(target_content_plain_text[target_tag]))
     for target_tag in target_list_tags:
         assert target_tag in target_metadata_tags
         target_metadata_tags.remove(target_tag)
@@ -67,19 +55,14 @@ def check_content_parsing_and_metadata(
         for metadata_node in metadata:
             if (
                 metadata_node.value.tag == target_tag
-                and metadata_node.value.attrs
-                in [item[1] for item in target_content_plain_text[target_tag]]
-                and plain_text[
-                    metadata_node.char_start_idx : metadata_node.char_end_idx
-                ]
+                and metadata_node.value.attrs in [item[1] for item in target_content_plain_text[target_tag]]
+                and plain_text[metadata_node.char_start_idx : metadata_node.char_end_idx]
                 in [item[0] for item in target_content_plain_text[target_tag]]
             ):
                 find = True
                 target_content_plain_text[target_tag].remove(
                     (
-                        plain_text[
-                            metadata_node.char_start_idx : metadata_node.char_end_idx
-                        ],
+                        plain_text[metadata_node.char_start_idx : metadata_node.char_end_idx],
                         metadata_node.value.attrs,
                     )
                 )
@@ -126,10 +109,7 @@ def test_parse_simple_html():
         if metadata_node.value.tag == "h1":
             metadata_h1 = metadata_node
             break
-    assert (
-        plain_text[metadata_h1.char_start_idx : metadata_h1.char_end_idx]
-        == "This is a title"
-    )
+    assert plain_text[metadata_h1.char_start_idx : metadata_h1.char_end_idx] == "This is a title"
     return (plain_text, metadata)
 
 
@@ -144,9 +124,7 @@ def test_parse_html_remove_tag_alone():
     </html>
 """
     tags_to_remove_alone = [TagToRemove("body")]
-    plain_text, metadata = get_clean_text_and_metadata(
-        html, tags_to_remove_alone=tags_to_remove_alone
-    )
+    plain_text, metadata = get_clean_text_and_metadata(html, tags_to_remove_alone=tags_to_remove_alone)
     assert plain_text == "This is a title\n"
 
     metadata_tags = [metadata_node.value.tag for metadata_node in metadata]
@@ -160,10 +138,7 @@ def test_parse_html_remove_tag_alone():
         if metadata_node.value.tag == "h1":
             metadata_h1 = metadata_node
             break
-    assert (
-        plain_text[metadata_h1.char_start_idx : metadata_h1.char_end_idx]
-        == "This is a title"
-    )
+    assert plain_text[metadata_h1.char_start_idx : metadata_h1.char_end_idx] == "This is a title"
     return (plain_text, metadata)
 
 
@@ -183,9 +158,7 @@ def test_parse_html_remove_tag_and_content():
     </html>
 """
     tags_to_remove_with_content = [TagToRemoveWithContent(tag="div")]
-    plain_text, metadata = get_clean_text_and_metadata(
-        html, tags_to_remove_with_content=tags_to_remove_with_content
-    )
+    plain_text, metadata = get_clean_text_and_metadata(html, tags_to_remove_with_content=tags_to_remove_with_content)
     assert plain_text == (
         """This is a title
 This is a paragraph not in div
@@ -205,19 +178,13 @@ This is a paragraph not in div
         if metadata_node.value.tag == "h1":
             metadata_h1 = metadata_node
             break
-    assert (
-        plain_text[metadata_h1.char_start_idx : metadata_h1.char_end_idx]
-        == "This is a title"
-    )
+    assert plain_text[metadata_h1.char_start_idx : metadata_h1.char_end_idx] == "This is a title"
 
     for metadata_node in metadata:
         if metadata_node.value.tag == "p":
             metadata_p = metadata_node
             break
-    assert (
-        plain_text[metadata_p.char_start_idx : metadata_p.char_end_idx]
-        == "This is a paragraph not in div"
-    )
+    assert plain_text[metadata_p.char_start_idx : metadata_p.char_end_idx] == "This is a paragraph not in div"
     return (plain_text, metadata)
 
 
@@ -353,12 +320,8 @@ def test_parse_html_nested_example_max_length():
     </body>
     </html>
 """
-    tags_to_remove_with_content = [
-        TagToRemoveWithContent(tag="div", content_max_char_length=6)
-    ]
-    plain_text, metadata = get_clean_text_and_metadata(
-        html, tags_to_remove_with_content=tags_to_remove_with_content
-    )
+    tags_to_remove_with_content = [TagToRemoveWithContent(tag="div", content_max_char_length=6)]
+    plain_text, metadata = get_clean_text_and_metadata(html, tags_to_remove_with_content=tags_to_remove_with_content)
     assert plain_text == (
         "This is a title\n"
         "This is a sub-div in div\n"
@@ -412,15 +375,9 @@ def test_parse_html_nested_example_min_length():
     </body>
     </html>
 """
-    tags_to_remove_with_content = [
-        TagToRemoveWithContent(tag="div", content_min_char_length=7, method="top-down")
-    ]
-    plain_text, metadata = get_clean_text_and_metadata(
-        html, tags_to_remove_with_content=tags_to_remove_with_content
-    )
-    assert plain_text == (
-        "This is a title\n" "small\n" "This is a paragraph not in div\n"
-    )
+    tags_to_remove_with_content = [TagToRemoveWithContent(tag="div", content_min_char_length=7, method="top-down")]
+    plain_text, metadata = get_clean_text_and_metadata(html, tags_to_remove_with_content=tags_to_remove_with_content)
+    assert plain_text == ("This is a title\n" "small\n" "This is a paragraph not in div\n")
 
     metadata_tags = [metadata_node.value.tag for metadata_node in metadata]
 
@@ -673,9 +630,7 @@ def test_remove_consecutive_tag():
         "</body></html>"
     )
     consecutive_tags_to_fold = ["div"]
-    plain_text, metadata = get_clean_text_and_metadata(
-        html, consecutive_tags_to_fold=consecutive_tags_to_fold
-    )
+    plain_text, metadata = get_clean_text_and_metadata(html, consecutive_tags_to_fold=consecutive_tags_to_fold)
     assert plain_text == ("this is a title that we keep\n" "blablabla\n" "tidi tidi\n")
 
     metadata_tags = [metadata_node.value.tag for metadata_node in metadata]
@@ -736,9 +691,7 @@ def test_remove_consecutive_tag_with_tag_to_remove():
                 {"attrs": [], "values": []},
             )
         ],
-        "h1": [
-            ("this is a title that we keep", {"attrs": ["id"], "values": ["title"]})
-        ],
+        "h1": [("this is a title that we keep", {"attrs": ["id"], "values": ["title"]})],
         "div": [
             (
                 "blablabla\ntidi tidi\n",
@@ -772,9 +725,7 @@ def test_remove_consecutive_tag_very_nested():
         consecutive_tags_to_fold=consecutive_tags_to_fold,
         tags_to_remove_alone=tags_to_remove_alone,
     )
-    assert plain_text == (
-        "this is a title that we keep\n" "blablabla\n" "tidi\ntidi2\n"
-    )
+    assert plain_text == ("this is a title that we keep\n" "blablabla\n" "tidi\ntidi2\n")
 
     metadata_tags = [metadata_node.value.tag for metadata_node in metadata]
 
@@ -787,9 +738,7 @@ def test_remove_consecutive_tag_very_nested():
                 {"attrs": [], "values": []},
             )
         ],
-        "h1": [
-            ("this is a title that we keep", {"attrs": ["id"], "values": ["title"]})
-        ],
+        "h1": [("this is a title that we keep", {"attrs": ["id"], "values": ["title"]})],
         "div": [
             (
                 "blablabla\ntidi\ntidi2\n",
@@ -823,11 +772,7 @@ def test_min_len_to_include_tag():
         consecutive_tags_to_fold=consecutive_tags_to_fold,
         tags_to_remove_alone=tags_to_remove_alone,
     )
-    assert plain_text == (
-        "this is a title that we keep\n"
-        "blablabla\n"
-        "tidi tidi2 this one keep his tag\n"
-    )
+    assert plain_text == ("this is a title that we keep\n" "blablabla\n" "tidi tidi2 this one keep his tag\n")
 
     metadata_tags = [metadata_node.value.tag for metadata_node in metadata]
 
@@ -836,15 +781,11 @@ def test_min_len_to_include_tag():
     target_content_plain_text = {
         "body": [
             (
-                "this is a title that we keep\n"
-                "blablabla\n"
-                "tidi tidi2 this one keep his tag\n",
+                "this is a title that we keep\n" "blablabla\n" "tidi tidi2 this one keep his tag\n",
                 {"attrs": [], "values": []},
             )
         ],
-        "h1": [
-            ("this is a title that we keep", {"attrs": ["id"], "values": ["title"]})
-        ],
+        "h1": [("this is a title that we keep", {"attrs": ["id"], "values": ["title"]})],
         "div": [
             (
                 "blablabla\ntidi tidi2 this one keep his tag\n",
@@ -881,9 +822,7 @@ def test_idx_order():
     target_content_plain_text = {
         "body": [
             (
-                "this is a title that we keep\n"
-                "blablabla tidi tidi2\n"
-                "this one keep his tag\n",
+                "this is a title that we keep\n" "blablabla tidi tidi2\n" "this one keep his tag\n",
                 {"attrs": [], "values": []},
             )
         ],
@@ -921,12 +860,8 @@ def test_idx_order():
     metadata_dict_start_idx = DefaultDict(dict)
     metadata_dict_end_idx = DefaultDict(dict)
     for metadata_node in metadata:
-        metadata_dict_start_idx[metadata_node.char_start_idx][
-            metadata_node.relative_start_pos
-        ] = metadata_node
-        metadata_dict_end_idx[metadata_node.char_end_idx][
-            metadata_node.relative_end_pos
-        ] = metadata_node
+        metadata_dict_start_idx[metadata_node.char_start_idx][metadata_node.relative_start_pos] = metadata_node
+        metadata_dict_end_idx[metadata_node.char_end_idx][metadata_node.relative_end_pos] = metadata_node
 
     for key, value in metadata_dict_start_idx.items():
         pos_sorted = sorted(list(value.keys()))
@@ -940,14 +875,12 @@ def test_idx_order():
     metadata_sorted_by_end_idx_simplify = dict()
     for key, value in metadata_sorted_by_start_idx.items():
         metadata_sorted_by_start_idx_simplify[key] = [
-            (metadata_node.value.tag, metadata_node.value.attrs)
-            for metadata_node in value
+            (metadata_node.value.tag, metadata_node.value.attrs) for metadata_node in value
         ]
 
     for key, value in metadata_sorted_by_end_idx.items():
         metadata_sorted_by_end_idx_simplify[key] = [
-            (metadata_node.value.tag, metadata_node.value.attrs)
-            for metadata_node in value
+            (metadata_node.value.tag, metadata_node.value.attrs) for metadata_node in value
         ]
 
     metadata_sorted_by_start_idx_simplify_true = {
@@ -980,13 +913,8 @@ def test_idx_order():
         ],
     }
 
-    assert (
-        metadata_sorted_by_start_idx_simplify_true
-        == metadata_sorted_by_start_idx_simplify
-    )
-    assert (
-        metadata_sorted_by_end_idx_simplify_true == metadata_sorted_by_end_idx_simplify
-    )
+    assert metadata_sorted_by_start_idx_simplify_true == metadata_sorted_by_start_idx_simplify
+    assert metadata_sorted_by_end_idx_simplify_true == metadata_sorted_by_end_idx_simplify
 
     check_content_parsing_and_metadata(
         target_content_plain_text=target_content_plain_text,
@@ -1012,9 +940,7 @@ def test_idx_order():
     target_content_plain_text = {
         "body": [
             (
-                "this is a title that we keep\n"
-                "blablabla tidi tidi2\n"
-                "this one keep his tag\n",
+                "this is a title that we keep\n" "blablabla tidi tidi2\n" "this one keep his tag\n",
                 {"attrs": [], "values": []},
             )
         ],
@@ -1060,15 +986,11 @@ def test_idx_order():
     metadata_dict_start_idx = DefaultDict(dict)
     metadata_dict_end_idx = DefaultDict(dict)
     for metadata_node in metadata:
-        metadata_dict_start_idx[metadata_node.char_start_idx][
-            metadata_node.relative_start_pos
-        ] = (
+        metadata_dict_start_idx[metadata_node.char_start_idx][metadata_node.relative_start_pos] = (
             metadata_node.value.tag,
             metadata_node.value.attrs,
         )
-        metadata_dict_end_idx[metadata_node.char_end_idx][
-            metadata_node.relative_end_pos
-        ] = (
+        metadata_dict_end_idx[metadata_node.char_end_idx][metadata_node.relative_end_pos] = (
             metadata_node.value.tag,
             metadata_node.value.attrs,
         )
@@ -1122,16 +1044,12 @@ def test_idx_order():
 
 def test_convert_br_tag():
     html = "<html><body>" "first line<br>" "second line" "</body></html>"
-    plain_text, metadata = get_clean_text_and_metadata(
-        html, convert_br_tag_to_breaking_line=True
-    )
+    plain_text, metadata = get_clean_text_and_metadata(html, convert_br_tag_to_breaking_line=True)
     assert plain_text == "first line\nsecond line\n"
     assert "br" not in [html_tag.value.tag for html_tag in metadata]
 
     html = "<html><body>" "first line<br><br><br>" "second line" "</body></html>"
-    plain_text, metadata = get_clean_text_and_metadata(
-        html, convert_br_tag_to_breaking_line=True
-    )
+    plain_text, metadata = get_clean_text_and_metadata(html, convert_br_tag_to_breaking_line=True)
     assert plain_text == "first line\n\n\nsecond line\n"
     assert "br" not in [html_tag.value.tag for html_tag in metadata]
 
@@ -1143,8 +1061,6 @@ def test_convert_br_tag():
     assert "br" in [html_tag.value.tag for html_tag in metadata]
 
     html = "<html><body>" "first line<br />" "second line" "</body></html>"
-    plain_text, metadata = get_clean_text_and_metadata(
-        html, convert_br_tag_to_breaking_line=True
-    )
+    plain_text, metadata = get_clean_text_and_metadata(html, convert_br_tag_to_breaking_line=True)
     assert plain_text == "first line\nsecond line\n"
     assert "br" not in [html_tag.value.tag for html_tag in metadata]

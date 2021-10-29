@@ -922,7 +922,7 @@ def test_idx_order():
     )
 
 
-def test_idx_order():
+def test_idx_order_with_br():
     html = (
         "<html><body>"
         "<h1 id=title>this is a title that we keep</h1>"

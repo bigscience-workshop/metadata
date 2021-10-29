@@ -1,7 +1,5 @@
 from typing import DefaultDict
 
-import pytest
-
 from bsmetadata.preprocessing_tools.html_parser import get_clean_text_and_metadata
 from bsmetadata.preprocessing_tools.html_parser.objects import TagToRemove, TagToRemoveWithContent
 

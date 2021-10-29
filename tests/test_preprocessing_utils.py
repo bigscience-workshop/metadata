@@ -29,112 +29,110 @@ class HtmlPreprocessorTester(unittest.TestCase):
             "blablabla\ntidi tidi\n",
         ]
 
-        target_metadata = (
+        target_metadata = [
             [
-                [
-                    {
-                        "char_end_idx": 15,
-                        "char_start_idx": 0,
-                        "html_attrs": {"attrs": [], "values": []},
-                        "key": "html",
-                        "relative_end_pos": 0,
-                        "relative_start_pos": 1,
-                        "type": "local",
-                        "value": "h1",
-                    },
-                    {
-                        "char_end_idx": 16,
-                        "char_start_idx": 0,
-                        "html_attrs": {"attrs": [], "values": []},
-                        "key": "html",
-                        "relative_end_pos": 0,
-                        "relative_start_pos": 0,
-                        "type": "local",
-                        "value": "body",
-                    },
-                ],
-                [
-                    {
-                        "char_end_idx": 26,
-                        "char_start_idx": 0,
-                        "html_attrs": {"attrs": [], "values": []},
-                        "key": "html",
-                        "relative_end_pos": 0,
-                        "relative_start_pos": 1,
-                        "type": "local",
-                        "value": "p",
-                    },
-                    {
-                        "char_end_idx": 27,
-                        "char_start_idx": 0,
-                        "html_attrs": {"attrs": [], "values": []},
-                        "key": "html",
-                        "relative_end_pos": 0,
-                        "relative_start_pos": 0,
-                        "type": "local",
-                        "value": "body",
-                    },
-                ],
-                [
-                    {
-                        "char_end_idx": 11,
-                        "char_start_idx": 0,
-                        "html_attrs": {"attrs": ["id"], "values": ["1"]},
-                        "key": "html",
-                        "relative_end_pos": 0,
-                        "relative_start_pos": 1,
-                        "type": "local",
-                        "value": "p",
-                    },
-                    {
-                        "char_end_idx": 23,
-                        "char_start_idx": 12,
-                        "html_attrs": {"attrs": ["id"], "values": ["2"]},
-                        "key": "html",
-                        "relative_end_pos": 0,
-                        "relative_start_pos": 0,
-                        "type": "local",
-                        "value": "p",
-                    },
-                    {
-                        "char_end_idx": 24,
-                        "char_start_idx": 0,
-                        "html_attrs": {"attrs": [], "values": []},
-                        "key": "html",
-                        "relative_end_pos": 0,
-                        "relative_start_pos": 0,
-                        "type": "local",
-                        "value": "body",
-                    },
-                ],
-                [
-                    {
-                        "char_end_idx": 20,
-                        "char_start_idx": 0,
-                        "html_attrs": {"attrs": ["class"], "values": ["div-level-1 div-level-2"]},
-                        "key": "html",
-                        "relative_end_pos": 0,
-                        "relative_start_pos": 1,
-                        "type": "local",
-                        "value": "div",
-                    },
-                    {
-                        "char_end_idx": 20,
-                        "char_start_idx": 0,
-                        "html_attrs": {"attrs": [], "values": []},
-                        "key": "html",
-                        "relative_end_pos": 1,
-                        "relative_start_pos": 0,
-                        "type": "local",
-                        "value": "body",
-                    },
-                ],
+                {
+                    "char_end_idx": 15,
+                    "char_start_idx": 0,
+                    "html_attrs": {"attrs": [], "values": []},
+                    "key": "html",
+                    "relative_end_pos": 0,
+                    "relative_start_pos": 1,
+                    "type": "local",
+                    "value": "h1",
+                },
+                {
+                    "char_end_idx": 16,
+                    "char_start_idx": 0,
+                    "html_attrs": {"attrs": [], "values": []},
+                    "key": "html",
+                    "relative_end_pos": 0,
+                    "relative_start_pos": 0,
+                    "type": "local",
+                    "value": "body",
+                },
             ],
-        )
+            [
+                {
+                    "char_end_idx": 26,
+                    "char_start_idx": 0,
+                    "html_attrs": {"attrs": [], "values": []},
+                    "key": "html",
+                    "relative_end_pos": 0,
+                    "relative_start_pos": 1,
+                    "type": "local",
+                    "value": "p",
+                },
+                {
+                    "char_end_idx": 27,
+                    "char_start_idx": 0,
+                    "html_attrs": {"attrs": [], "values": []},
+                    "key": "html",
+                    "relative_end_pos": 0,
+                    "relative_start_pos": 0,
+                    "type": "local",
+                    "value": "body",
+                },
+            ],
+            [
+                {
+                    "char_end_idx": 11,
+                    "char_start_idx": 0,
+                    "html_attrs": {"attrs": ["id"], "values": ["1"]},
+                    "key": "html",
+                    "relative_end_pos": 0,
+                    "relative_start_pos": 1,
+                    "type": "local",
+                    "value": "p",
+                },
+                {
+                    "char_end_idx": 23,
+                    "char_start_idx": 12,
+                    "html_attrs": {"attrs": ["id"], "values": ["2"]},
+                    "key": "html",
+                    "relative_end_pos": 0,
+                    "relative_start_pos": 0,
+                    "type": "local",
+                    "value": "p",
+                },
+                {
+                    "char_end_idx": 24,
+                    "char_start_idx": 0,
+                    "html_attrs": {"attrs": [], "values": []},
+                    "key": "html",
+                    "relative_end_pos": 0,
+                    "relative_start_pos": 0,
+                    "type": "local",
+                    "value": "body",
+                },
+            ],
+            [
+                {
+                    "char_end_idx": 20,
+                    "char_start_idx": 0,
+                    "html_attrs": {"attrs": ["class"], "values": ["div-level-1 div-level-2"]},
+                    "key": "html",
+                    "relative_end_pos": 0,
+                    "relative_start_pos": 1,
+                    "type": "local",
+                    "value": "div",
+                },
+                {
+                    "char_end_idx": 20,
+                    "char_start_idx": 0,
+                    "html_attrs": {"attrs": [], "values": []},
+                    "key": "html",
+                    "relative_end_pos": 1,
+                    "relative_start_pos": 0,
+                    "type": "local",
+                    "value": "body",
+                },
+            ],
+        ]
 
         # Apply function
         ds = Dataset.from_dict(my_dict)
         ds = ds.map(lambda ex: self.html_processor.preprocess(ex), batched=True, batch_size=3)
 
-        self.assertEqual(ds[:]["texts"] , target_texts)
-        self.assertEqual(ds[:]["metadata"] , target_metadata)
+        self.assertEqual(ds[:]["texts"], target_texts)
+        self.assertEqual(ds[:]["metadata"], target_metadata)

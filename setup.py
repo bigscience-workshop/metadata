@@ -19,4 +19,7 @@ setup(
     description="Codebase for including metadata (e.g., URLs, timestamps, HTML tags) during language model pretraining.",
     packages=find_packages(),
     install_requires=install_requires,
+    extras_require={
+        "html_parser": ["lxml==4.6.3", "htmlmin==0.1.12"],
+    },
 )

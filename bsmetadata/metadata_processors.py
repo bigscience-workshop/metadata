@@ -49,6 +49,13 @@ class MetadataConfig:
     metadata_probability: float = field(
         default=1, metadata={"help": "The probability of adding metadata to an input example."}
     )
+    treat_local_metadata_as_regular_text: bool = field(
+        default=False,
+        metadata={
+            "help": "If True, local metadata token will be associated to a `0` int the metadata_mask list. If False, "
+            "local metadata token will be associated to a `1` int the metadata_mask list"
+        },
+    )
     add_local_metadata_special_tokens_in_prefix: bool = field(
         default=False,
         metadata={

@@ -14,10 +14,10 @@
 This script provides functions for adding different kinds of metadata to a pretraining corpus.
 """
 from abc import ABC, abstractmethod
-from collections import defaultdict
 from typing import Dict, List, Optional
 from urllib.parse import unquote, urlsplit
 
+from bsmetadata.preprocessing_tools.website_desc_utils import WebsiteDescUtils
 from bsmetadata.vendor.dateutil.src.dateutil.parser import ParserError, parse
 
 
@@ -37,12 +37,15 @@ def parse_date(path):
         return None
 
 
+def fetch_keyword_from_url(url: str) -> str:  # e.g http://www.californialandcan.org/Plumas -> californialandcan.org
+    domain = urlsplit(url).netloc
+    return domain.replace("www.", "")
+
+
 def remove_improbable_date(x):
     if x is not None and (x.year < 1983 or x.year > 2021):
         return None
     return x
-
-import requests
 
 
 class MetadataPreprocessor(ABC):
@@ -85,12 +88,12 @@ class TimestampPreprocessor(MetadataPreprocessor):
         return date
 
 
-
 class WebsiteDescPreprocessor(MetadataPreprocessor):
     """Metadata preprocessor for adding website description based on URLs."""
 
-    website_description_cache = {}
-    org_list = ["com", "co", "org", "go", "in"]
+    def __init__(self, path_wiki_db: str) -> None:
+        self.website_utils = WebsiteDescUtils(path_wiki_db)
+        super().__init__()
 
     def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
 
@@ -108,39 +111,11 @@ class WebsiteDescPreprocessor(MetadataPreprocessor):
             website_description = self._extract_website_desc_from_url(urls[0])
 
             if website_description:
-                metadata.append({"key": "timestamp", "type": "global", "value": website_description})
-
+                metadata.append({"key": "website_description", "type": "global", "value": website_description})
         return examples
 
     def _extract_website_desc_from_url(self, url: str) -> Optional:
 
-        domain = url.str.split("/")[2]  # e.g http://www.californialandcan.org/Plumas -> www.californialandcan.org
-        keywords = domain.str.split(".")
+        keyword = fetch_keyword_from_url(url)
+        return self.website_utils.fetch_website_description_from_keyword(keyword)
 
-        keyword = (
-            keywords[-2]
-            if len(keywords[-2]) > 3
-            else keywords[1]
-            if (keywords[1] not in self.org_list)
-            else keywords[0]
-        )  # extracting the keyword from domain e.g.  www.californialandcan.org -> californialandcan
-
-        if keyword not in self.website_description_cache:
-            self.website_description_cache[keyword] = self.extract_wiki_desc(keyword)
-
-        return self.website_description_cache[keyword]
-
-    def extract_wiki_desc(self, keyword: str) -> Optional:
-
-        keyword = keyword.replace(" ", "_")
-        r = requests.get(
-            "https://en.wikipedia.org/w/api.php?action=query&prop=extracts&titles="
-            + keyword
-            + "&exintro=&exsentences=2&explaintext=&redirects=&formatversion=2&format=json"
-        )
-        page = r.json()
-
-        try:
-            return page["query"]["pages"][0]["extract"]
-        except:
-            return None

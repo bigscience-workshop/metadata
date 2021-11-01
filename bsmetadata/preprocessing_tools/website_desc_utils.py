@@ -1,6 +1,5 @@
 from collections import defaultdict
 from typing import Optional
-from urllib.parse import urlsplit
 
 from wikipedia2vec.dump_db import DumpDB
 

@@ -18,7 +18,7 @@ from typing import Dict, List, Optional
 from urllib.parse import unquote, urlsplit
 
 from bsmetadata.preprocessing_tools.website_desc_utils import WebsiteDescUtils
-from bsmetadata.vendor.dateutil.src.dateutil.parser import ParserError, parse
+# from bsmetadata.vendor.dateutil.src.dateutil.parser import ParserError, parse
 
 
 def get_path_from_url(url):
@@ -27,25 +27,25 @@ def get_path_from_url(url):
     return unquote(parts.path)
 
 
-def parse_date(path):
-    try:
-        return parse(path, fuzzy=True, date_only=True)
-    except ParserError:
-        return None
-    except OverflowError:
-        # this happens sometimes, I don't know why, just ignore it
-        return None
+# def parse_date(path):
+#     try:
+#         return parse(path, fuzzy=True, date_only=True)
+#     except ParserError:
+#         return None
+#     except OverflowError:
+#         # this happens sometimes, I don't know why, just ignore it
+#         return None
 
 
-def fetch_keyword_from_url(url: str) -> str:  # e.g http://www.californialandcan.org/Plumas -> californialandcan.org
-    domain = urlsplit(url).netloc
-    return domain.replace("www.", "")
+# def fetch_keyword_from_url(url: str) -> str:  # e.g http://www.californialandcan.org/Plumas -> californialandcan.org
+#     domain = urlsplit(url).netloc
+#     return domain.replace("www.", "")
 
 
-def remove_improbable_date(x):
-    if x is not None and (x.year < 1983 or x.year > 2021):
-        return None
-    return x
+# def remove_improbable_date(x):
+#     if x is not None and (x.year < 1983 or x.year > 2021):
+#         return None
+#     return x
 
 
 class MetadataPreprocessor(ABC):
@@ -81,11 +81,7 @@ class TimestampPreprocessor(MetadataPreprocessor):
         return examples
 
     def _extract_timestamp_from_url(self, url: str) -> Optional[str]:
-        path = get_path_from_url(url)
-        date = parse_date(path)
-        date = remove_improbable_date(date)
-        date = str(date) if date is not None else None
-        return date
+        return None
 
 
 class WebsiteDescPreprocessor(MetadataPreprocessor):

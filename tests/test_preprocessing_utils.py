@@ -8,7 +8,7 @@ from bsmetadata.preprocessing_utils import WebsiteDescPreprocessor
 
 class WebsiteDescPreprocessorTester(unittest.TestCase):
     def setUp(self) -> None:
-        self.html_processor = WebsiteDescPreprocessor()
+        self.website_processor = WebsiteDescPreprocessor("some/path")
 
     @mock.patch("bsmetadata.preprocessing_utils.DumpDB")
     def test_website_preprocessing(self, mock_db):

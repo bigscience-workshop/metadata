@@ -12,7 +12,7 @@ def mock_sent_tokenize(text):
 
 
 class WebsiteDescPreprocessorTester(unittest.TestCase):
-    @mock.patch("bsmetadata.website_desc_utils.DumpDB")
+    @mock.patch("bsmetadata.preprocessing_tools.website_desc_utils.DumpDB")
     def setUp(self, mock_db) -> None:
         mock_db.return_value = MockDumpDB("some/path")
         self.website_processor = WebsiteDescPreprocessor("some/path")

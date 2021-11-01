@@ -18,8 +18,6 @@ from typing import Dict, List, Optional
 from urllib.parse import unquote, urlsplit
 
 from bsmetadata.preprocessing_tools.website_desc_utils import WebsiteDescUtils
-
-
 from bsmetadata.vendor.dateutil.src.dateutil.parser import ParserError, parse
 
 

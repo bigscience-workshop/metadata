@@ -51,6 +51,5 @@ class WebsiteDescPreprocessorTester(unittest.TestCase):
         self.assertEqual(ds[:]["metadata"], target_metadata)
 
 
-
 if __name__ == "__main__":
     unittest.main()

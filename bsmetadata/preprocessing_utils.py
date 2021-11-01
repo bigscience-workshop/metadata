@@ -118,4 +118,3 @@ class WebsiteDescPreprocessor(MetadataPreprocessor):
 
         keyword = fetch_keyword_from_url(url)
         return self.website_utils.fetch_website_description_from_keyword(keyword)
-

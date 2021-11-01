@@ -1,15 +1,18 @@
 from collections import defaultdict
 from typing import Optional
+from urllib.parse import urlsplit
 
 from wikipedia2vec.dump_db import DumpDB
-from urllib.parse import urlsplit
 
 
 class WebsiteDescUtils:
     def __init__(self, path_wiki_db) -> None:
         self.cache = defaultdict(str)
         self.wiki_dump_db = DumpDB(path_wiki_db)
-        self.redirects_map = {key.lower(): value for key, value in self.wiki_dump_db.redirects()} #loading all redirect information: takes ~10s
+        self.redirects_map = {
+            key.lower(): value for key, value in self.wiki_dump_db.redirects()
+        }  # loading all redirect information: takes ~10s
+
     def fetch_wikipedia_title_from_keyword(self, keyword: str) -> str:
         title = self.redirects_map.get(
             keyword, keyword.split(".")[0].capitalize()
@@ -18,10 +21,12 @@ class WebsiteDescUtils:
 
     def fetch_wikipedia_description_for_title(self, title: str) -> Optional:
         try:
-            text = self.wiki_dump_db.get_paragraphs(title)[0].text 
-            text = '. '.join(text.split('. ')[:2]) # Picking the first two sentences from the text (Splitting on '. ' might not give the desired sentence for some corner cases but mostly works)
-            if not text.endswith('.'):
-                text+='.'
+            text = self.wiki_dump_db.get_paragraphs(title)[0].text
+            text = ". ".join(
+                text.split(". ")[:2]
+            )  # Picking the first two sentences from the text (Splitting on '. ' might not give the desired sentence for some corner cases but mostly works)
+            if not text.endswith("."):
+                text += "."
         except Exception:
             return None
         return text

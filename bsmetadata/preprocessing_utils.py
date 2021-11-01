@@ -87,7 +87,7 @@ class TimestampPreprocessor(MetadataPreprocessor):
 class WebsiteDescPreprocessor(MetadataPreprocessor):
     """Metadata preprocessor for adding website description based on URLs."""
 
-    def __init__(self, path_wiki_db: str) -> None:
+    def __init__(self, path_wiki_db: str = "../preprocessing_data/wiki_dump/wiki_en_dump_db") -> None:
         self.website_utils = WebsiteDescUtils(path_wiki_db)
         super().__init__()
 

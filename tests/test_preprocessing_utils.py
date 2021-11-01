@@ -20,8 +20,10 @@ class WebsiteDescPreprocessorTester(unittest.TestCase):
         self.example_text = ["test text 1", "test text 2", "test text 3"]
         self.example_metadata = [
             [{"key": "url", "type": "global", "value": "https://www.xyz.com"}],
-            [{"key": "url", "type": "global", "value": "http://sometitle.com"}],
-            [{"key": "url", "type": "global", "value": "http://www.sometitle.com"}],
+            [
+                {"key": "url", "type": "global", "value": "http://sometitle.com"},
+                {"key": "url", "type": "global", "value": "http://notfound.com"},
+            ],
             [{"key": "url", "type": "global", "value": "https://www.test.com"}],
         ]
 
@@ -31,9 +33,25 @@ class WebsiteDescPreprocessorTester(unittest.TestCase):
     def test_website_metadata_processor(self):
         ds = Dataset.from_dict(self.example_dict)
         ds = ds.map(lambda ex: self.website_processor.preprocess(ex), batched=True)
-
-        target_metadata = ["XYZ is a U.S. based company. Another test line."]
+        target_metadata = [
+            [
+                {"key": "url", "type": "global", "value": "https://www.xyz.com"},
+                {"key": "website_description", "type": "global", "value": "XYZ is a U.S. based company."},
+            ],
+            [
+                {"key": "url", "type": "global", "value": "http://sometitle.com"},
+                {"key": "url", "type": "global", "value": "http://notfound.com"},
+                {"key": "website_description", "type": "global", "value": "SomeTitle is a U.S. based company."},
+            ],
+            [
+                {"key": "url", "type": "global", "value": "https://www.test.com"},
+                {"key": "website_description", "type": "global", "value": "Test is a U.S. based company."},
+            ],
+        ]
         self.assertEqual(ds[:]["metadata"], target_metadata)
+
+        # target_metadata = ["XYZ is a U.S. based company. Another test line."]
+        # self.assertEqual(ds[:]["metadata"], target_metadata)
 
 
 if __name__ == "__main__":

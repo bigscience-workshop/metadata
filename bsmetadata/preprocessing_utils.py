@@ -18,6 +18,8 @@ from typing import Dict, List, Optional
 from urllib.parse import unquote, urlsplit
 
 from bsmetadata.preprocessing_tools.website_desc_utils import WebsiteDescUtils
+
+
 # from bsmetadata.vendor.dateutil.src.dateutil.parser import ParserError, parse
 
 
@@ -37,9 +39,9 @@ def get_path_from_url(url):
 #         return None
 
 
-# def fetch_keyword_from_url(url: str) -> str:  # e.g http://www.californialandcan.org/Plumas -> californialandcan.org
-#     domain = urlsplit(url).netloc
-#     return domain.replace("www.", "")
+def fetch_keyword_from_url(url: str) -> str:  # e.g http://www.californialandcan.org/Plumas -> californialandcan.org
+    domain = urlsplit(url).netloc
+    return domain.replace("www.", "")
 
 
 # def remove_improbable_date(x):

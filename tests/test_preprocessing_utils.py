@@ -50,8 +50,6 @@ class WebsiteDescPreprocessorTester(unittest.TestCase):
         ]
         self.assertEqual(ds[:]["metadata"], target_metadata)
 
-        # target_metadata = ["XYZ is a U.S. based company. Another test line."]
-        # self.assertEqual(ds[:]["metadata"], target_metadata)
 
 
 if __name__ == "__main__":

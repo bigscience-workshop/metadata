@@ -9,12 +9,8 @@ class MockParagraph:
 class MockDumpDB:
     def __init__(self, db_file) -> None:
         self.db_file = db_file
-
-    def redirects(self) -> List[tuple]:
-        return [("xyz.com", "XYZ"), ("test.com", "Test"), ("test_key", "Test Key")]
-
-    def get_paragraphs(self, title: str):
-        paragraphs_map = {
+        self.redirect_info = [("xyz.com", "XYZ"), ("test.com", "Test"), ("test_key", "Test Key")]
+        self.paragraphs_map = {
             "XYZ": [
                 MockParagraph("XYZ is a U.S. based company."),
                 MockParagraph("Test paragraph for the key XYZ."),
@@ -28,4 +24,9 @@ class MockDumpDB:
                 MockParagraph("Test paragraph for the key SomeTitle."),
             ],
         }
-        return paragraphs_map[title]
+
+    def redirects(self) -> List[tuple]:
+        return self.redirect_info
+
+    def get_paragraphs(self, title: str):
+        return self.paragraphs_map[title]

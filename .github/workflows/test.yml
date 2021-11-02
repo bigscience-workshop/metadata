@@ -29,4 +29,3 @@ jobs:
               run: |
                   python -m pytest tests/test_get_dataloaders.py
                   python -m pytest tests/test_metadata_utils.py
-                  python -m pytest tests/test_preprocessing_utils.py

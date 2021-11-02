@@ -15,7 +15,7 @@ class WebsiteDescPreprocessorTester(unittest.TestCase):
     @mock.patch("bsmetadata.preprocessing_tools.website_desc_utils.DumpDB")
     def setUp(self, mock_db) -> None:
         mock_db.return_value = MockDumpDB("some/path")
-        self.website_processor = WebsiteDescPreprocessor("some/path")
+        self.website_processor = WebsiteDescPreprocessor()
         self.example_ids = [0, 1, 2]
         self.example_text = ["test text 1", "test text 2", "test text 3"]
         self.example_metadata = [

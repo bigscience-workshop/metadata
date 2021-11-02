@@ -1,3 +1,6 @@
 [submodule "bsmetadata/vendor/dateutil"]
 	path = bsmetadata/vendor/dateutil
 	url = https://github.com/cccntu/dateutil
+[submodule "bsmetadata/vendor/REL"]
+	path = bsmetadata/vendor/REL
+	url = https://github.com/manandey/REL

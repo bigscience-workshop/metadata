@@ -18,8 +18,6 @@ from abc import ABC, abstractmethod
 from typing import Dict, List, Optional
 from urllib.parse import unquote, urlsplit
 
-from datasets import Dataset
-
 from bsmetadata.vendor.dateutil.src.dateutil.parser import ParserError, parse
 from bsmetadata.vendor.REL.REL.entity_disambiguation import EntityDisambiguation
 from bsmetadata.vendor.REL.REL.mention_detection import MentionDetection

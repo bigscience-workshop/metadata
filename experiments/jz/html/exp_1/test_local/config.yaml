@@ -1,0 +1,62 @@
+data_config:
+  metadata_config:
+    metadata_list:
+    - html
+    local_metadata_special_tokens:
+      html: htmlOn
+    metadata_sep: ' | '
+    metadata_key_value_sep: ': '
+    metadata_probability: 1.0
+    treat_local_metadata_as_regular_text: true
+    add_local_metadata_special_tokens_in_prefix: true
+    metadata_prefix_sep: ' |||'
+    metadata_prefix_start_seq: ''
+    max_seq_len: 1024
+    html_parser_config:
+      all_tags_rules:
+        attributes_to_keep:
+        - class
+        - id
+        txt_max_chr_len: 0
+        txt_min_chr_len: 0
+      tags_to_remove_alone_tag_name:
+      - body
+      tags_to_remove_alone_txt_max_chr_len:
+      - .inf
+      tags_to_remove_alone_txt_min_chr_len:
+      - 0.0
+  experiment: with_metadata
+  per_device_eval_batch_size: 2
+  per_device_train_batch_size: 2
+  dataset_name: null
+  dataset_config_name: null
+  train_file: /mnt/storage/Documents/hugging_face/bigscience/jz/jz-code/sync/metadata/experiments/jz/html/exp_1/test_local/inputs/sample.json
+  validation_file: null
+  overwrite_cache: true
+  cache_dir: null
+  extension: null
+  preprocessing_num_workers: 8
+  validation_split_percentage: 5
+  block_size: null
+  map_batch_size: 1
+weight_decay: 0.0
+learning_rate: 5.0e-05
+gradient_accumulation_steps: 1
+num_train_epochs: 1
+max_train_steps: null
+lr_scheduler_type: linear
+num_warmup_steps: 1000
+seed: 42
+out_dir: /mnt/storage/Documents/hugging_face/bigscience/jz/jz-code/sync/metadata/experiments/jz/html/exp_1/test_local/outputs
+model_name: gpt2
+project_name: metadata_lm
+jobid: null
+start_with_eval: false
+evaluation_strategy: STEPS
+eval_num_per_epoch: 3
+eval_steps: 100
+save_strategy: STEPS
+save_num_per_epoch: 3
+save_steps: 500
+do_train: false
+do_eval: false

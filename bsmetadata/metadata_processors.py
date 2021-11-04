@@ -177,6 +177,7 @@ class WebsiteDescriptionProcessor(MetadataProcessor):
         # Example: "website_description: BBC is a news organization".
         return "".join(["Website Description", self.cfg.metadata_key_value_sep, metadata_attrs["value"]])
 
+
 class DatasourceProcessor(MetadataProcessor):
     """An example metadata processor for datasource types."""
 
@@ -185,6 +186,16 @@ class DatasourceProcessor(MetadataProcessor):
         # URL: http://www.example.de/2015/forum/article/21-new-project
         # Example: example.de forum article new project
         return "".join(["Datasource", self.cfg.metadata_key_value_sep, metadata_attrs["value"]])
+
+
+class GenerationLengthProcessor(MetadataProcessor):
+    """An example metadata processor for the text length."""
+
+    def process_global(self, metadata_attrs: Dict[str, Any]) -> Optional[str]:
+        # We represent the length of a text by the number of characters.
+        # Example: Length: 123
+
+        return "".join(["Text Length", self.cfg.metadata_key_value_sep, metadata_attrs["value"]])
 
 
 class BasicStartLocalProcessor(MetadataProcessor):

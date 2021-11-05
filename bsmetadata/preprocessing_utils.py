@@ -109,7 +109,6 @@ class DatasourcePreprocessor(MetadataPreprocessor):
     """An exemplary metadata preprocessor for adding datasource information based on URLs."""
 
     def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
-
         example_metadata_list = examples["metadata"]
 
         # Iterate through the metadata associated with all examples in this batch.
@@ -137,8 +136,9 @@ class DatasourcePreprocessor(MetadataPreprocessor):
         directories_parts = _clean_url_parts(directories_parts)
         
         return parts.netloc + ' > ' + ' > '.join(directories_parts)
-        
-      def _clean_url_parts(self, url_parts):
+    
+    def _clean_url_parts(self, url_parts):
+        """Clean up a URL to identify the inherent and meaningful data source information."""
         datasource_list = []
         # Split sub phrases by a defined set of separators
         url_parts = [_parse_words(i) for i in url_parts]
@@ -163,7 +163,7 @@ class DatasourcePreprocessor(MetadataPreprocessor):
       
       def _check_numbers(self, sub_part):
         """Check for insignificant numbers (i.e. we delete all numbers at the end or beginning of a given URL part (w/o domain))"""
-        
+
         # We delete all numbers at the beginning of a given URL sub-phrase
         if sub_part[0].isdigit():
           sub_part = sub_part[:1]

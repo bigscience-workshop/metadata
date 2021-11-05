@@ -1,3 +1,11 @@
+
+BASEDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+echo "$BASEDIR"
+
 # change proba
 python experiments/jz/html/exp_1/start_training.py \
-    --config-dir="/mnt/storage/Documents/hugging_face/bigscience/jz/jz-code/sync/metadata/experiments/jz/html/exp_1/test_local/"
+    --config-dir=$BASEDIR \
+    data_config.train_file="/mnt/storage/Documents/hugging_face/bigscience/jz/jz-code/sync/metadata/experiments/jz/html/exp_1/test_local/inputs/sample.json" \
+    out_dir="/mnt/storage/Documents/hugging_face/bigscience/jz/jz-code/sync/metadata/experiments/jz/html/exp_1/test_local/outputs" \
+    do_train=false \
+    do_eval=false 

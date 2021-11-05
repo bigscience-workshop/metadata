@@ -100,7 +100,7 @@ class GenerationLengthPreprocessor(MetadataPreprocessor):
             if example_timestamp:
                 example_metadata.append({"key": "length", "type": "global", "value": example_length})
                 
-        return example_metadata # check if this is right
+        return example_metadata
     
     def _extract_length_from_text(self, text: str) -> Optional[str]:
         return len(text) # global

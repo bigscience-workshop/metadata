@@ -80,3 +80,27 @@ class TimestampPreprocessor(MetadataPreprocessor):
         date = remove_improbable_date(date)
         date = str(date) if date is not None else None
         return date
+
+class GenerationLengthPreprocessor(MetadataPreprocessor):
+    """An exemplary metadata preprocessor for adding generation length information based on text."""
+    
+    def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
+        example_metadata_list = examples["metadata"]
+        
+        # Iterate through the metadata associated with all examples in this batch.
+        for example_metadata in example_metadata_list:
+            example_texts = [md["value"] for md in example_metadata if md["key"] == "text"] # check if text is right
+            
+            if not example_urls:
+                continue
+                
+            # Try to extract a timestamp from the given URL and add it to the metadata.
+            example_length = self._extract_length_from_text(example_texts[0])
+            
+            if example_timestamp:
+                example_metadata.append({"key": "length", "type": "global", "value": example_length})
+                
+        return example_metadata # check if this is right
+    
+    def _extract_length_from_text(self, text: str) -> Optional[str]:
+        return len(text) # global

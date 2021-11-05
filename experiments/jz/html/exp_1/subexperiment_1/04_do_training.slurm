@@ -30,7 +30,7 @@ export WANDB_DIR=$SCRATCH
 # Folder for the clone of github.com/bigscience-workshop/metadata/
 cd $WORK/repos/metadata/
 
-HUB_REPO_NAME='SaulLu/Natural_Questions_HTML_Toy_v2' # (change me! e.g. SaulLu/Natural_Questions_HTML_Toy_v2)
+HUB_REPO_NAME='SaulLu/Natural_Questions_HTML_reduced_all' # (change me! e.g. SaulLu/Natural_Questions_HTML_Toy_v2)
 
 # We define the name of the folder in which the clone will be made
 #Define multi-character delimiter

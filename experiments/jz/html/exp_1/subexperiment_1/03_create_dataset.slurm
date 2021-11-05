@@ -17,14 +17,14 @@ set -x -e
 # - load several modules (git)
 # Note: We can afford to have two conda environments: one stable for running experiments and one for development.
 # If there are new dependencies to install, you have to tell me about them and not do it in this script
-source $HOME/start-modelling-metadata-user
+source $HOME/start-user
 
 # We are on an offline partition
 export HF_DATASETS_OFFLINE=1
 export TRANSFORMERS_OFFLINE=1
 
 # Folder for the clone of github.com/bigscience-workshop/metadata/
-cd $WORK/repos/metadata/
+cd $WORK/repos/sync/metadata/
 
 HUB_REPO_NAME='SaulLu/Natural_Questions_HTML_reduced_all' # (change me! e.g. SaulLu/Natural_Questions_HTML_Toy_v2)
 

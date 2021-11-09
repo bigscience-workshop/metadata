@@ -49,9 +49,7 @@ class MetadataConfigWithHTML(MetadataConfig):
 
 @dataclass
 class CFGAugmented(CFG):
-    data_config: DataConfig = DataConfig(
-        metadata_config = MetadataConfigWithHTML()
-        )
+    data_config: DataConfig = DataConfig(metadata_config=MetadataConfigWithHTML())
 
 
 cs = ConfigStore.instance()

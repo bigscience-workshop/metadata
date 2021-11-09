@@ -4,9 +4,8 @@ from html_processor import AllTagsRules, HTMLParserConfig, HtmlProcessor, TagToR
 from start_training import MetadataConfigWithHTML
 from transformers import GPT2TokenizerFast
 
-from bsmetadata.metadata_processors import PROCESSORS
+from bsmetadata.metadata_processors import PROCESSORS, MetadataConfig
 from bsmetadata.metadata_utils import add_local_metadata_to_text, add_metadata_and_chunk_examples
-from bsmetadata.metadata_processors import MetadataConfig
 
 
 class MetadataUtilsTester(unittest.TestCase):
@@ -213,9 +212,11 @@ class MetadataUtilsTester(unittest.TestCase):
 
         print(text1)
 
-        output = add_metadata_and_chunk_examples({key:[value] for key, value in data.items()}, tokenizer=self.tokenizer, cfg=cfg)
+        output = add_metadata_and_chunk_examples(
+            {key: [value] for key, value in data.items()}, tokenizer=self.tokenizer, cfg=cfg
+        )
         with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "ext_with_local_output.json"), "w") as f:
-            output["tokens"] = [ self.tokenizer.convert_ids_to_tokens(input_ids) for input_ids in output["input_ids"]]
+            output["tokens"] = [self.tokenizer.convert_ids_to_tokens(input_ids) for input_ids in output["input_ids"]]
             f.write(json.dumps(output))
 
         # import pprint

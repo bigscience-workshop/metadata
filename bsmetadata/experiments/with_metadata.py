@@ -147,12 +147,32 @@ def get_dataloaders(tokenizer, args):
 
     logger.info(f"  Num train examples = {len(train_dataset)}")
     logger.info(f"  Num validation examples = {len(val_dataset)}")
-    for idx in range(10):
-        logger.info(f"  Train sample n°{idx} attention_mask:\n{train_dataset[idx]['attention_mask']}")
-        logger.info(f"  Train sample n°{idx} metadata_mask:\n{train_dataset[idx]['metadata_mask']}")
-        logger.info(f"  Train sample n°{idx} input_ids:\n{train_dataset[idx]['input_ids']}")
-        logger.info(f"  Train sample n°{idx} input_ids decoded:\n{tokenizer.decode(train_dataset[idx]['input_ids'])}")
-        logger.info(f"  Train sample n°{idx} tokens:\n{tokenizer.convert_ids_to_tokens(train_dataset[idx]['input_ids'])}")
+    for idx in range(len(train_dataset)):
+        if 1 in train_dataset[idx]["metadata_mask"]:
+            logger.info("  Train sample with metadata")
+            logger.info(f"  Train sample n°{idx} attention_mask:\n{train_dataset[idx]['attention_mask']}")
+            logger.info(f"  Train sample n°{idx} metadata_mask:\n{train_dataset[idx]['metadata_mask']}")
+            logger.info(f"  Train sample n°{idx} input_ids:\n{train_dataset[idx]['input_ids']}")
+            logger.info(
+                f"  Train sample n°{idx} input_ids decoded:\n{tokenizer.decode(train_dataset[idx]['input_ids'])}"
+            )
+            logger.info(
+                f"  Train sample n°{idx} tokens:\n{tokenizer.convert_ids_to_tokens(train_dataset[idx]['input_ids'])}"
+            )
+            break
+    for idx in range(len(train_dataset)):
+        if 1 not in train_dataset[idx]["metadata_mask"]:
+            logger.info("  Train sample without metadata")
+            logger.info(f"  Train sample n°{idx} attention_mask:\n{train_dataset[idx]['attention_mask']}")
+            logger.info(f"  Train sample n°{idx} metadata_mask:\n{train_dataset[idx]['metadata_mask']}")
+            logger.info(f"  Train sample n°{idx} input_ids:\n{train_dataset[idx]['input_ids']}")
+            logger.info(
+                f"  Train sample n°{idx} input_ids decoded:\n{tokenizer.decode(train_dataset[idx]['input_ids'])}"
+            )
+            logger.info(
+                f"  Train sample n°{idx} tokens:\n{tokenizer.convert_ids_to_tokens(train_dataset[idx]['input_ids'])}"
+            )
+            break
 
     # DataLoaders creation:
     train_dataloader = DataLoader(

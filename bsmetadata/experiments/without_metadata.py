@@ -59,6 +59,7 @@ def get_dataloaders(tokenizer, args):
         datasets = load_dataset(
             args.dataset_name,
             args.dataset_config_name,
+            data_files=data_files,
             cache_dir=args.cache_dir,
             keep_in_memory=False,
         )
@@ -103,7 +104,7 @@ def get_dataloaders(tokenizer, args):
 
     # Preprocessing the datasets.
     # First we tokenize all the texts.
-    column_names = datasets["train"].column_names
+    column_names = datasets["train"].column_names if "train" in datasets else datasets["validation"].column_names
     text_column_name = "text" if "text" in column_names else column_names[0]
 
     def tokenize_function(examples):
@@ -172,11 +173,30 @@ def get_dataloaders(tokenizer, args):
     )
     logger.info("Group texts finished")
 
-    train_dataset = datasets["train"]
+    train_dataset = datasets["train"] if "train" in datasets else None
     val_dataset = datasets["validation"]
 
-    logger.info(f"  Num train examples = {len(train_dataset)}")
+    if "train" in datasets:
+        logger.info(f"  Num train examples = {len(train_dataset)}")
     logger.info(f"  Num validation examples = {len(val_dataset)}")
+    if "train" in datasets:
+        logger.info("  Train sample without metadata")
+        for idx in range(3):
+            logger.info(f"  Train sample n°{idx} attention_mask:\n{train_dataset[idx]['attention_mask']}")
+            logger.info(f"  Train sample n°{idx} input_ids:\n{train_dataset[idx]['input_ids']}")
+            logger.info(f"  Train sample n°{idx} input_ids decoded:\n{tokenizer.decode(train_dataset[idx]['input_ids'])}")
+            logger.info(
+                f"  Train sample n°{idx} tokens:\n{tokenizer.convert_ids_to_tokens(train_dataset[idx]['input_ids'])}"
+            )
+    else:
+        logger.info("  Validation sample without metadata")
+        for idx in range(3):
+            logger.info(f"  Validation sample n°{idx} attention_mask:\n{val_dataset[idx]['attention_mask']}")
+            logger.info(f"  Validation sample n°{idx} input_ids:\n{val_dataset[idx]['input_ids']}")
+            logger.info(f"  Validation sample n°{idx} input_ids decoded:\n{tokenizer.decode(val_dataset[idx]['input_ids'])}")
+            logger.info(
+                f"  Validation sample n°{idx} tokens:\n{tokenizer.convert_ids_to_tokens(val_dataset[idx]['input_ids'])}"
+            )
 
     # DataLoaders creation:
     train_dataloader = DataLoader(
@@ -184,7 +204,7 @@ def get_dataloaders(tokenizer, args):
         shuffle=True,
         collate_fn=default_data_collator,
         batch_size=args.per_device_train_batch_size,
-    )
+    ) if "train" in datasets else None
     val_dataloader1 = DataLoader(
         val_dataset,
         collate_fn=default_data_collator,

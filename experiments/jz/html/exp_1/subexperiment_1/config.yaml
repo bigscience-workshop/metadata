@@ -48,7 +48,7 @@ max_train_steps: null
 lr_scheduler_type: linear
 num_warmup_steps: 1000
 seed: 42
-out_dir: null
+out_dir: metadata_outputs
 model_name: gpt2
 project_name: metadata_lm
 jobid: null

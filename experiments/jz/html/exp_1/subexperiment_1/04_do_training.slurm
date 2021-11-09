@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=modelling-metadata-html-example-train                          # (change me!) job name
+#SBATCH --job-name=modelling-metadata-html-exp1-subexp1-train                          # (change me!) job name
 #SBATCH --ntasks=1                    # number of MP tasks
 #SBATCH --constraint=v100-16g
 #SBATCH --gres=gpu:1                                                   # number of GPUs per node
@@ -46,11 +46,11 @@ while [[ $string ]]; do
 done
 REPO_DIR="${DATASETS_CUSTOM}/${myarray[-1]}"
 
-
-THIS_SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+THEPATH=$(scontrol show job $SLURM_JOBID | awk -F= '/Command=/{print $2}')
+THIS_SCRIPT_DIR=$( dirname $THEPATH)
 echo "$THIS_SCRIPT_DIR"
 
-python bsmetadata/train.py \
+python experiments/jz/html/exp_1/start_training.py \
   --config-dir=$THIS_SCRIPT_DIR \
   data_config.dataset_name="${REPO_DIR}" \
   out_dir="${SCRATCH}/metadata_outputs/${SLURM_JOB_ID}" \

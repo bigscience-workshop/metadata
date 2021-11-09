@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=modelling-metadata-html-metadata-example-create-dataset     # (change me!) job name
+#SBATCH --job-name=modelling-metadata-html-metadata-exp1-subexp1-create-dataset     # (change me!) job name
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1                                            # crucial - only 1 task per dist per node!
 #SBATCH --cpus-per-task=20                                             # (change me! between 0 and 40) number of cores per tasks
@@ -42,13 +42,13 @@ while [[ $string ]]; do
 done
 REPO_DIR="${DATASETS_CUSTOM}/${myarray[-1]}"
 
-
-THIS_SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+THEPATH=$(scontrol show job $SLURM_JOBID | awk -F= '/Command=/{print $2}')
+THIS_SCRIPT_DIR=$( dirname $THEPATH)
 echo "$THIS_SCRIPT_DIR"
 
 # Now we launch the script that will perform the preprocessing of the dataset
 # Feel free to add any arguments you like (change me!)
-python bsmetadata/train.py \
+python experiments/jz/html/exp_1/start_training.py \
   --config-dir=$THIS_SCRIPT_DIR \
   data_config.dataset_name="${REPO_DIR}" \
   data_config.overwrite_cache=true \

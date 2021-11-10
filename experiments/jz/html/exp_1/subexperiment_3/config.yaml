@@ -6,7 +6,7 @@ data_config:
       html: htmlOn
     metadata_sep: ' | '
     metadata_key_value_sep: ': '
-    metadata_probability: 1
+    metadata_probability: 0.5
     treat_local_metadata_as_regular_text: true
     add_local_metadata_special_tokens_in_prefix: true
     metadata_prefix_sep: ' |||'
@@ -46,7 +46,7 @@ data_config:
   preprocessing_num_workers: 80
   validation_split_percentage: 5
   block_size: null
-  map_batch_size: 2
+  map_batch_size: 10
 weight_decay: 0.0
 learning_rate: 5.0e-05
 gradient_accumulation_steps: 50

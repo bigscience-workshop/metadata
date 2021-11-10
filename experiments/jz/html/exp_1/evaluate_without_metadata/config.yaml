@@ -1,0 +1,24 @@
+data_config:
+  experiment: without_metadata
+  per_device_eval_batch_size: 3
+  per_device_train_batch_size: 3
+  dataset_name: null
+  dataset_config_name: null
+  train_file: null
+  validation_file: "nq-dev-*.jsonl.gz"
+  overwrite_cache: false
+  cache_dir: null
+  extension: json
+  preprocessing_num_workers: 80
+  validation_split_percentage: 5
+  block_size: null
+  map_batch_size: 3
+out_dir: output_dir
+training_jobid: null
+jobid: null
+checkpoints_to_evaluate: last
+eval_name: ppl on val without metadata
+seed: 42
+model_name: gpt2
+project_name: metadata_lm
+do_eval: true

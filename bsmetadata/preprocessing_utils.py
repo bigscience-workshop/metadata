@@ -89,12 +89,12 @@ class GenerationLengthPreprocessor(MetadataPreprocessor):
         
         # Iterate through the metadata associated with all examples in this batch.
         for example_metadata in example_metadata_list:
-            example_texts = [md["value"] for md in example_metadata if md["key"] == "text"] # check if text is right
+            example_texts = [md["value"] for md in example_metadata if md["key"] == "text"] # check if text is right key
             
-            if not example_urls:
+            if not example_texts:
                 continue
                 
-            # Try to extract a timestamp from the given URL and add it to the metadata.
+            # Try to extract the length of a given text and add it to the metadata.
             example_length = self._extract_length_from_text(example_texts[0])
             
             if example_timestamp:
@@ -103,7 +103,7 @@ class GenerationLengthPreprocessor(MetadataPreprocessor):
         return example_metadata
     
     def _extract_length_from_text(self, text: str) -> Optional[str]:
-        return len(text) # global
+        return str(len(text)) # global
 
 class DatasourcePreprocessor(MetadataPreprocessor):
     """An exemplary metadata preprocessor for adding datasource information based on URLs."""
@@ -125,11 +125,11 @@ class DatasourcePreprocessor(MetadataPreprocessor):
             if example_datasource:
                 example_metadata.append({"key": "datasource", "type": "global", "value": example_datasource})
 
-        return examples
+        return example_metadata
 
       def _extract_datasource_from_url(self, url: str) -> Optional[str]:
         """Given an input URL (str) this function returns a structured datasource text (str)."""
-        
+
         parts = urlparse(url)
         # Split a raw URL with “/” as separator
         directories_parts = parts.path.strip('/').split('/')
@@ -139,6 +139,7 @@ class DatasourcePreprocessor(MetadataPreprocessor):
     
     def _clean_url_parts(self, url_parts):
         """Clean up a URL to identify the inherent and meaningful data source information."""
+
         datasource_list = []
         # Split sub phrases by a defined set of separators
         url_parts = [_parse_words(i) for i in url_parts]

@@ -39,7 +39,7 @@ data_config:
   preprocessing_num_workers: 80
   validation_split_percentage: 5
   block_size: null
-  map_batch_size: 3
+  map_batch_size: 10
 weight_decay: 0.0
 learning_rate: 5.0e-05
 gradient_accumulation_steps: 50

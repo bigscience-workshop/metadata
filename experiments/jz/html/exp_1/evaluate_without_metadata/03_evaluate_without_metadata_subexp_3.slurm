@@ -54,5 +54,5 @@ python bsmetadata/evaluate.py \
   --config-dir=$THIS_SCRIPT_DIR \
   data_config.dataset_name="${REPO_DIR}" \
   out_dir="${SCRATCH}/metadata_outputs/" \
-  training_jobid="1929863" \
+  training_jobid="1898197" \
   jobid="${SLURM_JOB_ID}" \

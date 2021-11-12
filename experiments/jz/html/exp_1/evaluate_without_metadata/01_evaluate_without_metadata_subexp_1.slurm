@@ -5,7 +5,7 @@
 #SBATCH --gres=gpu:1                                                   # number of GPUs per node
 #SBATCH --cpus-per-task=8                                              # (change me! between 0 and 40) number of cores per tasks
 #SBATCH --hint=nomultithread                                           # we get physical cores not logical
-#SBATCH --time 04:00:00                                                # (change me! between 0 and 20h) maximum execution time (HH:MM:SS)
+#SBATCH --time 20:00:00                                                # (change me! between 0 and 20h) maximum execution time (HH:MM:SS)
 #SBATCH --output=/gpfsdswork/projects/rech/six/uue59kq/logs/%x-%j.out  # output file name
 #SBATCH --error=/gpfsdswork/projects/rech/six/uue59kq/logs/%x-%j.err   # error file name         # error file name
 #SBATCH --account=six@gpu                                              # account

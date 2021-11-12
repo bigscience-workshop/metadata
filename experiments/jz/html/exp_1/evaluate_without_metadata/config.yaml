@@ -16,7 +16,7 @@ data_config:
 out_dir: output_dir
 training_jobid: null
 jobid: null
-checkpoints_to_evaluate: last
+checkpoints_to_evaluate: all
 eval_name: ppl on val without metadata
 seed: 42
 model_name: gpt2

@@ -136,7 +136,8 @@ def loss_fn(batch, outputs, metadata_mask=None):
 
 @hydra.main(config_path=None, config_name="config")
 def main(args: CFG) -> None:
-    print(OmegaConf.to_yaml(args))
+    config_yaml = OmegaConf.to_yaml(args)
+    print(config_yaml)
 
     # The dataset library use the hash of the arguments to create the cache
     # name. Without this transformation the hash of args is not deterministic
@@ -230,7 +231,7 @@ def main(args: CFG) -> None:
 
     progress_bar = tqdm(range(args.max_train_steps), desc="training")
     completed_steps = 0
-    metrics_logger = Logger(is_local_main_process, project=args.project_name, config=args)
+    metrics_logger = Logger(is_local_main_process, project=args.project_name, config=config_yaml)
 
     do_eval = args.do_eval and args.start_with_eval
     if do_eval:

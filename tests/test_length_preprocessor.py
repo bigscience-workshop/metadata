@@ -3,7 +3,7 @@ from unittest import mock
 
 from datasets import Dataset
 
-from bsmetadata.preprocessing_utils import GenerationLengthProcessor
+from bsmetadata.preprocessing_utils import GenerationLengthPreprocessor
 
 class TestGenerationLengthPreprocessor(unittest.TestCase):
     def test_extract_length(self):
@@ -30,7 +30,7 @@ class TestGenerationLengthPreprocessor(unittest.TestCase):
             [{"key": "length", "type": "global", "value": "42"}],
         ]
         
-        processor = GenerationLengthProcessor()
+        processor = GenerationLengthPreprocessor()
         
         ds = Dataset.from_dict(my_dict)
         ds = ds.map(lambda ex: processor.preprocess(ex), batched=True, batch_size=3)

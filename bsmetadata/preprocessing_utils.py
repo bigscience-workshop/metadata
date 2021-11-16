@@ -17,8 +17,11 @@ from abc import ABC, abstractmethod
 from typing import Dict, List, Optional
 from urllib.parse import unquote, urlsplit
 
-from bsmetadata.vendor.dateutil.src.dateutil.parser import ParserError, parse
+import re
+from urllib.parse import urlparse
+import urllib
 
+from bsmetadata.vendor.dateutil.src.dateutil.parser import ParserError, parse
 
 def get_path_from_url(url):
     """get the `path` part of `url`, with %xx escapes replaced by their single-character equivalent"""
@@ -97,7 +100,7 @@ class GenerationLengthPreprocessor(MetadataPreprocessor):
             # Try to extract the length of a given text and add it to the metadata.
             example_length = self._extract_length_from_text(example_texts[0])
             
-            if example_timestamp:
+            if example_texts:
                 example_metadata.append({"key": "length", "type": "global", "value": example_length})
                 
         return example_metadata
@@ -107,7 +110,55 @@ class GenerationLengthPreprocessor(MetadataPreprocessor):
 
 class DatasourcePreprocessor(MetadataPreprocessor):
     """An exemplary metadata preprocessor for adding datasource information based on URLs."""
+    
+    def _check_numbers(self, sub_part):
+        """Check for insignificant numbers (i.e. we delete all numbers at the end or beginning of a given URL part (w/o domain))"""
 
+        # We delete all numbers at the beginning of a given URL sub-phrase
+        if sub_part[0].isdigit():
+          sub_part = sub_part[:1]
+        
+        # We delete all numbers at the end of a given URL sub-phrase
+        if sub_part[-1].isdigit():
+          sub_part = sub_part[:-1]
+
+        return sub_part
+
+    def _parse_words(self, sub_part):
+        """Check for meaningful seperators (chars) to split a phrase into sub-elements."""
+
+        # Separator for splitting a phrase into sub tokens
+        tokens = re.split(r"-|_|\+|\.|&|=", sub_part) 
+        
+        return tokens
+
+    def _clean_url_parts(self, url_parts):
+        """Clean up a URL to identify the inherent and meaningful data source information."""
+
+        datasource_list = []
+        # Split sub phrases by a defined set of separators
+        url_parts = [self._parse_words(i) for i in url_parts]
+        # Delete numbers that are not meaningful (e.g., id, timestamp, ect.)
+        url_parts = [self._check_numbers(i) for i in url_parts]
+        
+        for s in url_parts:
+          if len(s) == 1:
+            datasource_list.append(str(s[0]))
+          elif len(s) > 1:
+            datasource_list.append(' '.join(s))
+          
+        return datasource_list
+        
+    def _extract_datasource_from_url(self, url: str) -> Optional[str]:
+        """Given an input URL (str) this function returns a structured datasource text (str)."""
+
+        parts = urlparse(url)
+        # Split a raw URL with “/” as separator
+        directories_parts = parts.path.strip('/').split('/')
+        directories_parts = self._clean_url_parts(directories_parts)
+        
+        return parts.netloc + ' > ' + ' > '.join(directories_parts)
+    
     def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
         example_metadata_list = examples["metadata"]
 
@@ -126,51 +177,3 @@ class DatasourcePreprocessor(MetadataPreprocessor):
                 example_metadata.append({"key": "datasource", "type": "global", "value": example_datasource})
 
         return example_metadata
-
-      def _extract_datasource_from_url(self, url: str) -> Optional[str]:
-        """Given an input URL (str) this function returns a structured datasource text (str)."""
-
-        parts = urlparse(url)
-        # Split a raw URL with “/” as separator
-        directories_parts = parts.path.strip('/').split('/')
-        directories_parts = _clean_url_parts(directories_parts)
-        
-        return parts.netloc + ' > ' + ' > '.join(directories_parts)
-    
-    def _clean_url_parts(self, url_parts):
-        """Clean up a URL to identify the inherent and meaningful data source information."""
-
-        datasource_list = []
-        # Split sub phrases by a defined set of separators
-        url_parts = [_parse_words(i) for i in url_parts]
-        # Delete numbers that are not meaningful (e.g., id, timestamp, ect.)
-        url_parts = [_check_numbers(i) for i in url_parts]
-        
-        for s in url_parts:
-          if len(s) == 1:
-            datasource_list.append(str(s[0]))
-          elif len(s) > 1:
-            datasource_list.append(' '.join(s))
-          
-        return datasource_list
-
-      def _parse_words(self, sub_part):
-        """Check for meaningful seperators (chars) to split a phrase into sub-elements."""
-
-        # Separator for splitting a phrase into sub tokens
-        tokens = re.split(r"-|_|\+|\.|&|=", sub_part) 
-        
-        return tokens
-      
-      def _check_numbers(self, sub_part):
-        """Check for insignificant numbers (i.e. we delete all numbers at the end or beginning of a given URL part (w/o domain))"""
-
-        # We delete all numbers at the beginning of a given URL sub-phrase
-        if sub_part[0].isdigit():
-          sub_part = sub_part[:1]
-        
-        # We delete all numbers at the end of a given URL sub-phrase
-        if sub_part[-1].isdigit():
-          sub_part = sub_part[:-1]
-
-        return sub_part

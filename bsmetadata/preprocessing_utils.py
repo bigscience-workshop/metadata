@@ -13,20 +13,20 @@
 """
 This script provides functions for adding different kinds of metadata to a pretraining corpus.
 """
+import re
+import sys
+import urllib
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional
-from urllib.parse import unquote, urlsplit
+from urllib.parse import unquote, urlparse, urlsplit
 
-import re
-from urllib.parse import urlparse
-import urllib
-
-import sys
 from bsmetadata import metadata_processors
 
-sys.path.insert(0, '/Users/christopher/git/metadata/')
+
+sys.path.insert(0, "/Users/christopher/git/metadata/")
 
 from bsmetadata.vendor.dateutil.src.dateutil.parser import ParserError, parse
+
 
 def get_path_from_url(url):
     """get the `path` part of `url`, with %xx escapes replaced by their single-character equivalent"""
@@ -89,9 +89,10 @@ class TimestampPreprocessor(MetadataPreprocessor):
         date = str(date) if date is not None else None
         return date
 
+
 class GenerationLengthPreprocessor(MetadataPreprocessor):
     """An exemplary metadata preprocessor for adding generation length information based on text."""
-    
+
     def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
         for example_text, example_metadata in zip(examples["text"], examples["metadata"]):
             example_length = self._extract_length_from_text(example_text)
@@ -102,23 +103,24 @@ class GenerationLengthPreprocessor(MetadataPreprocessor):
             example_metadata.append({"key": "length", "type": "global", "value": example_length})
 
         return examples
-    
+
     def _extract_length_from_text(self, text: str) -> Optional[str]:
-        return str(len(text)) # global
+        return str(len(text))  # global
+
 
 class DatasourcePreprocessor(MetadataPreprocessor):
     """An exemplary metadata preprocessor for adding datasource information based on URLs."""
-    
+
     def _check_numbers(self, sub_part):
         """Check for insignificant numbers (i.e. we delete all numbers at the end or beginning of a given URL part (w/o domain))"""
 
         # We delete all numbers at the beginning of a given URL sub-phrase
         if sub_part[0].isdigit():
-          sub_part = sub_part[:1]
-        
+            sub_part = sub_part[:1]
+
         # We delete all numbers at the end of a given URL sub-phrase
         if sub_part[-1].isdigit():
-          sub_part = sub_part[:-1]
+            sub_part = sub_part[:-1]
 
         return sub_part
 
@@ -126,8 +128,8 @@ class DatasourcePreprocessor(MetadataPreprocessor):
         """Check for meaningful seperators (chars) to split a phrase into sub-elements."""
 
         # Separator for splitting a phrase into sub tokens
-        tokens = re.split(r"-|_|\+|\.|&|=", sub_part) 
-        
+        tokens = re.split(r"-|_|\+|\.|&|=", sub_part)
+
         return tokens
 
     def _clean_url_parts(self, url_parts):
@@ -138,25 +140,25 @@ class DatasourcePreprocessor(MetadataPreprocessor):
         url_parts = [self._parse_words(i) for i in url_parts]
         # Delete numbers that are not meaningful (e.g., id, timestamp, ect.)
         url_parts = [self._check_numbers(i) for i in url_parts]
-        
+
         for s in url_parts:
-          if len(s) == 1:
-            datasource_list.append(str(s[0]))
-          elif len(s) > 1:
-            datasource_list.append(' '.join(s))
-          
+            if len(s) == 1:
+                datasource_list.append(str(s[0]))
+            elif len(s) > 1:
+                datasource_list.append(" ".join(s))
+
         return datasource_list
-        
+
     def _extract_datasource_from_url(self, url: str) -> Optional[str]:
         """Given an input URL (str) this function returns a structured datasource text (str)."""
 
         parts = urlparse(url)
         # Split a raw URL with “/” as separator
-        directories_parts = parts.path.strip('/').split('/')
+        directories_parts = parts.path.strip("/").split("/")
         directories_parts = self._clean_url_parts(directories_parts)
-        
-        return parts.netloc + ' > ' + ' > '.join(directories_parts)
-    
+
+        return parts.netloc + " > " + " > ".join(directories_parts)
+
     def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
         example_metadata_list = examples["metadata"]
 

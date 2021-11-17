@@ -160,20 +160,14 @@ class DatasourcePreprocessor(MetadataPreprocessor):
         return parts.netloc + " > " + " > ".join(directories_parts)
 
     def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
-        example_metadata_list = examples["metadata"]
 
-        # Iterate through the metadata associated with all examples in this batch.
-        for example_metadata in example_metadata_list:
-            # Get the URL associated with this example.
-            example_urls = [md["value"] for md in example_metadata if md["key"] == "url"]
+        for example_url, example_meta in zip(examples["url"], examples["metadata"]):
+            example_datasource = self._extract_datasource_from_url(example_url)
+            print(example_datasource)
 
-            if not example_urls:
+            if not example_datasource:
                 continue
 
-            # Try to extract a datasource from the given URL and add it to the metadata.
-            example_datasource = self._extract_timestamp_from_url(example_urls[0])
+            example_meta.append({"key": "datasource", "type": "global", "value": example_datasource})
 
-            if example_datasource:
-                example_metadata.append({"key": "datasource", "type": "global", "value": example_datasource})
-
-        return example_metadata
+        return examples

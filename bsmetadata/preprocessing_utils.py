@@ -93,12 +93,8 @@ class GenerationLengthPreprocessor(MetadataPreprocessor):
     """An exemplary metadata preprocessor for adding generation length information based on text."""
     
     def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
-        #example_metadata_list = examples["metadata"]
-
         for example_text, example_metadata in zip(examples["text"], examples["metadata"]):
             example_length = self._extract_length_from_text(example_text)
-            print(example_length)
-            print(example_text)
 
             if not example_length:
                 continue

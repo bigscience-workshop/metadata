@@ -36,7 +36,6 @@ class TestGenerationLengthPreprocessor(unittest.TestCase):
         processor = GenerationLengthPreprocessor()
         
         ds = Dataset.from_dict(my_dict)
-        print(ds)
         ds = ds.map(lambda ex: processor.preprocess(ex), batched=True, batch_size=3)
 
         self.assertEqual(ds[:]["id"], target_id)

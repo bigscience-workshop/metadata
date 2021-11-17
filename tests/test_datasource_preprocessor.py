@@ -3,8 +3,8 @@ from unittest import mock
 
 from datasets import Dataset
 
-import sys
-sys.path.insert(0, "/Users/christopher/git/metadata/")
+#import sys
+#sys.path.insert(0, "/Users/christopher/git/metadata/")
 
 from bsmetadata.preprocessing_utils import DatasourcePreprocessor
 

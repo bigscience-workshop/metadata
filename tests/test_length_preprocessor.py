@@ -1,11 +1,11 @@
-import sys
+#import sys
 import unittest
 from unittest import mock
 
 from datasets import Dataset
 
 
-sys.path.insert(0, "/Users/christopher/git/metadata/")
+#sys.path.insert(0, "/Users/christopher/git/metadata/")
 
 from bsmetadata.preprocessing_utils import GenerationLengthPreprocessor
 

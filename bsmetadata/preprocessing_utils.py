@@ -14,7 +14,7 @@
 This script provides functions for adding different kinds of metadata to a pretraining corpus.
 """
 import re
-import sys
+#import sys
 import urllib
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional
@@ -23,7 +23,7 @@ from urllib.parse import unquote, urlparse, urlsplit
 from bsmetadata import metadata_processors
 
 
-sys.path.insert(0, "/Users/christopher/git/metadata/")
+#sys.path.insert(0, "/Users/christopher/git/metadata/")
 
 from bsmetadata.vendor.dateutil.src.dateutil.parser import ParserError, parse
 

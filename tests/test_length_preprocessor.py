@@ -3,6 +3,9 @@ from unittest import mock
 
 from datasets import Dataset
 
+import sys
+sys.path.insert(0, '/Users/christopher/git/metadata/')
+
 from bsmetadata.preprocessing_utils import GenerationLengthPreprocessor
 
 class TestGenerationLengthPreprocessor(unittest.TestCase):
@@ -33,8 +36,9 @@ class TestGenerationLengthPreprocessor(unittest.TestCase):
         processor = GenerationLengthPreprocessor()
         
         ds = Dataset.from_dict(my_dict)
+        print(ds)
         ds = ds.map(lambda ex: processor.preprocess(ex), batched=True, batch_size=3)
-        
+
         self.assertEqual(ds[:]["id"], target_id)
         self.assertEqual(ds[:]["text"], target_text)
         self.assertEqual(ds[:]["metadata"], target_metadata)

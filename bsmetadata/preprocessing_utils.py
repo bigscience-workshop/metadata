@@ -21,6 +21,11 @@ import re
 from urllib.parse import urlparse
 import urllib
 
+import sys
+from bsmetadata import metadata_processors
+
+sys.path.insert(0, '/Users/christopher/git/metadata/')
+
 from bsmetadata.vendor.dateutil.src.dateutil.parser import ParserError, parse
 
 def get_path_from_url(url):
@@ -88,22 +93,19 @@ class GenerationLengthPreprocessor(MetadataPreprocessor):
     """An exemplary metadata preprocessor for adding generation length information based on text."""
     
     def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
-        example_metadata_list = examples["metadata"]
-        
-        # Iterate through the metadata associated with all examples in this batch.
-        for example_metadata in example_metadata_list:
-            example_texts = [md["value"] for md in example_metadata if md["key"] == "text"] # check if text is right key
-            
-            if not example_texts:
+        #example_metadata_list = examples["metadata"]
+
+        for example_text, example_metadata in zip(examples["text"], examples["metadata"]):
+            example_length = self._extract_length_from_text(example_text)
+            print(example_length)
+            print(example_text)
+
+            if not example_length:
                 continue
-                
-            # Try to extract the length of a given text and add it to the metadata.
-            example_length = self._extract_length_from_text(example_texts[0])
-            
-            if example_texts:
-                example_metadata.append({"key": "length", "type": "global", "value": example_length})
-                
-        return example_metadata
+
+            example_metadata.append({"key": "length", "type": "global", "value": example_length})
+
+        return examples
     
     def _extract_length_from_text(self, text: str) -> Optional[str]:
         return str(len(text)) # global

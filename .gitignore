@@ -133,4 +133,3 @@ dmypy.json
 
 # PyCharm config files
 .idea/
-bsmetadata/vendor/dateutil

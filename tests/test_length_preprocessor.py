@@ -1,14 +1,9 @@
-#import sys
 import unittest
 from unittest import mock
 
 from datasets import Dataset
 
-
-#sys.path.insert(0, "/Users/christopher/git/metadata/")
-
 from bsmetadata.preprocessing_utils import GenerationLengthPreprocessor
-
 
 class TestGenerationLengthPreprocessor(unittest.TestCase):
     def test_extract_length(self):

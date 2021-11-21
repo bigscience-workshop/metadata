@@ -23,7 +23,7 @@ jobs:
             - name: Install dependencies
               run: |
                   python -m pip install --upgrade pip
-                  python -m pip install .
+                  python -m pip install .[entity_preprocessing]
                   python -m pip install -r requirements-dev.txt
             - name: Test
               run: |

@@ -88,8 +88,7 @@ Below is a table showing ``relative_start_pos`` (`start`) and ``relative_end_pos
 
 **Pre-requisite steps for preprocessing Entity Tags**
 
-* Run `pip install -r bsmetadata/vendor/REL/requirements.txt`
-* Run `preprocessing_scripts/download_entity_processing_files.sh` to download all the required files.
+* Run `preprocessing_scripts/download_entity_processing_files.sh <"location of the folder to save the files">` to download all the required files. (approximate size of files to be downloaded in total is around 20GB and after extracting the zipped folders, space required is around 60GB.)
 
 ## Contribute 🧠
 

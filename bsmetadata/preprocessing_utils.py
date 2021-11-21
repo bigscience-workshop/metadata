@@ -19,10 +19,11 @@ from typing import Dict, List, Optional
 from urllib.parse import unquote, urlsplit
 
 from bsmetadata.vendor.dateutil.src.dateutil.parser import ParserError, parse
-from bsmetadata.vendor.REL.REL.entity_disambiguation import EntityDisambiguation
-from bsmetadata.vendor.REL.REL.mention_detection import MentionDetection
-from bsmetadata.vendor.REL.REL.ner import load_flair_ner
-from bsmetadata.vendor.REL.REL.utils import process_results
+
+from REL.entity_disambiguation import EntityDisambiguation
+from REL.mention_detection import MentionDetection
+from REL.ner import load_flair_ner
+from REL.utils import process_results
 
 
 def get_path_from_url(url):
@@ -89,11 +90,10 @@ class TimestampPreprocessor(MetadataPreprocessor):
 
 class EntityPreprocessor(MetadataPreprocessor):
     """Metadata preprocessor for adding entity information."""
-
-    base_url = ".\preprocessing_scripts\entity_linking_files"
-    wiki_version = "wiki_2019"
-
-    def __init__(self):
+    
+    def __init__(self, base_url):
+        self.base_url = base_url
+        self.wiki_version = "wiki_2019"
         self.mention_detection = MentionDetection(self.base_url, self.wiki_version)
         self.tagger_ner = load_flair_ner("ner-fast")
         self.config = {
@@ -106,12 +106,11 @@ class EntityPreprocessor(MetadataPreprocessor):
 
         for example_text, example_metadata in zip(examples["text"], examples["metadata"]):
             res = self._extract_entity_from_text(example_text)
-            result = self.postprocess_entity(res)[0]
-
+            result = self.postprocess_entity(res)
             if not result:
                 continue
-
-            example_metadata.append(result)
+            for val in result:
+                example_metadata.append(val)
         return examples
 
     def _extract_entity_from_text(self, text: str) -> Optional:

@@ -19,4 +19,7 @@ setup(
     description="Codebase for including metadata (e.g., URLs, timestamps, HTML tags) during language model pretraining.",
     packages=find_packages(),
     install_requires=install_requires,
+    extras_require={
+        "entity_preprocessing": ["REL @ git+https://github.com/manandey/REL.git#egg=REL"],
+    },
 )

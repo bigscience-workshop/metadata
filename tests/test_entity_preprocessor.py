@@ -28,10 +28,15 @@ class TestEntityPreprocessor(unittest.TestCase):
 
         target_metadata = [
             [{"key": "entity", "type": "local", "char_start_idx": 0, "char_end_idx": 5, "value": "Paris"}],
-            [{'char_end_idx': 18, 'char_start_idx': 13, 'key': 'entity', 'type': 'local', 'value': 'Barack_Obama'}, {'char_end_idx': 29, 'char_start_idx': 23, 'key': 'entity', 'type': 'local', 'value': 'Angela_Merkel'}],
+            [
+                {"char_end_idx": 18, "char_start_idx": 13, "key": "entity", "type": "local", "value": "Barack_Obama"},
+                {"char_end_idx": 29, "char_start_idx": 23, "key": "entity", "type": "local", "value": "Angela_Merkel"},
+            ],
             [{"key": "entity", "type": "local", "char_start_idx": 0, "char_end_idx": 6, "value": "Justin_Bieber"}],
         ]
-        processor = EntityPreprocessor("Enter the path to the folder having the files downloaded after running the bsmetadata\preprocessing_scripts\download_entity_processing_files.sh script")
+        processor = EntityPreprocessor(
+            "Enter the path to the folder having the files downloaded after running the bsmetadata\preprocessing_scripts\download_entity_processing_files.sh script"
+        )
 
         ds = Dataset.from_dict(my_dict)
         ds = ds.map(lambda ex: processor.preprocess(ex), batched=True, batch_size=3)

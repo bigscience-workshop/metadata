@@ -18,12 +18,12 @@ from abc import ABC, abstractmethod
 from typing import Dict, List, Optional
 from urllib.parse import unquote, urlsplit
 
-from bsmetadata.vendor.dateutil.src.dateutil.parser import ParserError, parse
-
 from REL.entity_disambiguation import EntityDisambiguation
 from REL.mention_detection import MentionDetection
 from REL.ner import load_flair_ner
 from REL.utils import process_results
+
+from bsmetadata.vendor.dateutil.src.dateutil.parser import ParserError, parse
 
 
 def get_path_from_url(url):
@@ -90,7 +90,7 @@ class TimestampPreprocessor(MetadataPreprocessor):
 
 class EntityPreprocessor(MetadataPreprocessor):
     """Metadata preprocessor for adding entity information."""
-    
+
     def __init__(self, base_url):
         self.base_url = base_url
         self.wiki_version = "wiki_2019"

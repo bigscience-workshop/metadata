@@ -184,7 +184,7 @@ class DatasourceProcessor(MetadataProcessor):
     def process_global(self, metadata_attrs: Dict[str, Any]) -> Optional[str]:
         # We represent the DATASOURCE by using meaningful information of the URL.
         # URL: http://www.example.de/2015/forum/article/21-new-project
-        # Example: example.de forum article new project
+        # Example: example.de > forum > article > new project
         return "".join(["Datasource", self.cfg.metadata_key_value_sep, metadata_attrs["value"]])
 
 

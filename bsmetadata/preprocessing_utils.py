@@ -17,7 +17,7 @@ from abc import ABC, abstractmethod
 from typing import Dict, List, Optional
 from urllib.parse import unquote, urlsplit
 
-from bsmetadata.vendor.dateutil.src.dateutil.parser import ParserError, parse
+from bs_dateutil.parser import ParserError, parse
 
 
 def get_path_from_url(url):

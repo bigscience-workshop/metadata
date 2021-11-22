@@ -19,4 +19,7 @@ setup(
     description="Codebase for including metadata (e.g., URLs, timestamps, HTML tags) during language model pretraining.",
     packages=find_packages(),
     install_requires=install_requires,
+    extras_require={
+        "timestamp": ["git+git://github.com/cccntu/dateutil@2.8.4"],
+    },
 )

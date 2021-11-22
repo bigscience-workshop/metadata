@@ -150,7 +150,7 @@ class GenerationLengthPreprocessor(MetadataPreprocessor):
 class DatasourcePreprocessor(MetadataPreprocessor):
     """An exemplary metadata preprocessor for adding datasource information based on URLs."""
 
-    def _check_numbers(self, sub_part):
+    def _check_numbers(self, sub_part: List[str]) -> List[str]:
         """Check for insignificant numbers (i.e. we delete all numbers at the end or beginning of a given URL part (w/o domain))"""
 
         # We delete all numbers at the beginning of a given URL sub-phrase

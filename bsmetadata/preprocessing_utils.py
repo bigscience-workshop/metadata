@@ -109,8 +109,7 @@ class EntityPreprocessor(MetadataPreprocessor):
             result = self.postprocess_entity(res)
             if not result:
                 continue
-            for val in result:
-                example_metadata.append(val)
+            example_metadata.extend(result)
         return examples
 
     def _extract_entity_from_text(self, text: str) -> Optional:

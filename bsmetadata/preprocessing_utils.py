@@ -60,7 +60,7 @@ class HtmlPreprocessor(MetadataPreprocessor):
     """Metadata preprocessor for extracting metadata from html text.
 
     Specifically, it separates the html text contained in the `name_html_column`` column into a text and a list of
-    HTML metadata containing the tags, their attributes and their location in the text and their relative location to
+    HTML metadata containing the tags, their attributes, their location in the text and their relative location to
     each other."""
 
     def __init__(self, name_html_column: str = "doc_html") -> None:

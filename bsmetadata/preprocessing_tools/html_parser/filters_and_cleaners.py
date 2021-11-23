@@ -295,7 +295,13 @@ class TextAndMetadataCleaner:
         if self.start_parsing_at_tag is not None:
             root = fromstring(html_str)
             find = etree.XPath(f"//{self.start_parsing_at_tag}")
-            new_etree = find(root)[0]
+            try:
+                new_etree = find(root)[0]
+            except IndexError:
+                raise ValueError(
+                    f"You have asked to start parsing at the {self.start_parsing_at_tag} tag but the current example "
+                    "does not contain this tag"
+                )
             html_str = etree.tostring(new_etree, method="html", encoding="UTF-8", pretty_print=False).decode("UTF-8")
             if not html_str.startswith("<html>"):
                 self.tag_filter.tags_to_remove_alone.update({"html": TagToRemove("html")})

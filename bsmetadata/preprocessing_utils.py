@@ -24,6 +24,8 @@ from REL.mention_detection import MentionDetection
 from REL.ner import load_flair_ner
 from REL.utils import process_results
 
+from bsmetadata.preprocessing_tools.website_desc_utils import WebsiteDescUtils
+
 
 def get_path_from_url(url):
     """get the `path` part of `url`, with %xx escapes replaced by their single-character equivalent"""
@@ -39,6 +41,11 @@ def parse_date(path):
     except OverflowError:
         # this happens sometimes, I don't know why, just ignore it
         return None
+
+
+def fetch_keyword_from_url(url: str) -> str:  # e.g http://www.californialandcan.org/Plumas -> californialandcan.org
+    domain = urlsplit(url).netloc
+    return domain.replace("www.", "")
 
 
 def remove_improbable_date(x):
@@ -85,6 +92,38 @@ class TimestampPreprocessor(MetadataPreprocessor):
         date = remove_improbable_date(date)
         date = str(date) if date is not None else None
         return date
+
+
+class WebsiteDescPreprocessor(MetadataPreprocessor):
+    """Metadata preprocessor for adding website description based on URLs."""
+
+    def __init__(self, path_wiki_db: str = "../preprocessing_data/wiki_dump/wiki_en_dump_db") -> None:
+        self.website_utils = WebsiteDescUtils(path_wiki_db)
+        super().__init__()
+
+    def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
+
+        metadata_list = examples["metadata"]
+
+        # Iterate through the metadata associated with all examples in this batch.
+        for metadata in metadata_list:
+            # Get the URL associated with this example.
+            urls = [md["value"] for md in metadata if md["key"] == "url"]
+
+            if not urls:
+                continue
+
+            # Try to extract a website description from the given URL and add it to the metadata.
+            website_description = self._extract_website_desc_from_url(urls[0])
+
+            if website_description:
+                metadata.append({"key": "website_description", "type": "global", "value": website_description})
+        return examples
+
+    def _extract_website_desc_from_url(self, url: str) -> Optional:
+
+        keyword = fetch_keyword_from_url(url)
+        return self.website_utils.fetch_website_description_from_keyword(keyword)
 
 
 class EntityPreprocessor(MetadataPreprocessor):

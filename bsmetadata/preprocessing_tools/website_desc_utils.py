@@ -1,8 +1,8 @@
+import re
 from collections import defaultdict
 from typing import Optional
 
 import nltk
-import re
 from wikipedia2vec.dump_db import DumpDB
 
 

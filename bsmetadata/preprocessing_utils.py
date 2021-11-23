@@ -18,12 +18,12 @@ from abc import ABC, abstractmethod
 from typing import Dict, List, Optional
 from urllib.parse import unquote, urlsplit
 
-from bsmetadata.preprocessing_tools.website_desc_utils import WebsiteDescUtils
 from REL.entity_disambiguation import EntityDisambiguation
 from REL.mention_detection import MentionDetection
 from REL.ner import load_flair_ner
 from REL.utils import process_results
 
+from bsmetadata.preprocessing_tools.website_desc_utils import WebsiteDescUtils
 from bsmetadata.vendor.dateutil.src.dateutil.parser import ParserError, parse
 
 
@@ -124,7 +124,8 @@ class WebsiteDescPreprocessor(MetadataPreprocessor):
 
         keyword = fetch_keyword_from_url(url)
         return self.website_utils.fetch_website_description_from_keyword(keyword)
-        
+
+
 class EntityPreprocessor(MetadataPreprocessor):
     """Metadata preprocessor for adding entity information."""
 

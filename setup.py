@@ -21,5 +21,6 @@ setup(
     install_requires=install_requires,
     extras_require={
         "entity_preprocessing": ["REL @ git+https://github.com/manandey/REL.git#egg=REL"],
+        "timestamp": ["bs_dateutil @ git+git://github.com/cccntu/dateutil@2.8.5"],
     },
 )

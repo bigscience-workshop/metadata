@@ -2,6 +2,7 @@ from collections import defaultdict
 from typing import Optional
 
 import nltk
+import re
 from wikipedia2vec.dump_db import DumpDB
 
 
@@ -22,6 +23,7 @@ class WebsiteDescUtils:
     def fetch_wikipedia_description_for_title(self, title: str) -> Optional:
         try:
             text = self.wiki_dump_db.get_paragraphs(title)[0].text
+            text = re.sub(r"\((?:[^)(]|\([^)(]*\))*\)", "", text)
             text = nltk.sent_tokenize(text)[0]  # Picking the first sentence
         except Exception:
             return None

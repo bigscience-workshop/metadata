@@ -21,5 +21,6 @@ setup(
     install_requires=install_requires,
     extras_require={
         "entity_preprocessing": ["REL @ git+https://github.com/manandey/REL.git#egg=REL"],
+        "website_description_preprocessing": ["wikipedia2vec==1.0.5", "nltk==3.6.5"],
     },
 )

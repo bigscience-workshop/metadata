@@ -257,15 +257,10 @@ class TextAndMetadataCleaner:
         self.start_parsing_at_tag = start_parsing_at_tag
         self.convert_br_tag_to_breaking_line = convert_br_tag_to_breaking_line
 
-        self.tags_to_remove_alone = (
+        if self.tags_to_remove_alone is None:
+            self.tags_to_remove_alone = []
+        self.tags_to_remove_alone.extend(
             [
-                TagToRemove(FAKE_TAG_BLOCK),
-                TagToRemove(FAKE_TAG_INLINE),
-                TagToRemove(FAKE_TAG_BASIC),
-            ]
-            if self.tags_to_remove_alone is None
-            else self.tags_to_remove_alone
-            + [
                 TagToRemove(FAKE_TAG_BLOCK),
                 TagToRemove(FAKE_TAG_INLINE),
                 TagToRemove(FAKE_TAG_BASIC),

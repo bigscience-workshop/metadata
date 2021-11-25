@@ -39,6 +39,7 @@ def main(args: DataConfig) -> None:
             data_files=data_files,
             cache_dir=args.cache_dir,
             keep_in_memory=False,
+            download_mode="force_redownload",
         )
 
         if "validation" not in raw_datasets.keys():

@@ -9,6 +9,17 @@ def req_file(filename):
 
 install_requires = req_file("requirements.txt")
 
+preprocessing_requires = {
+    "html": ["lxml==4.6.3", "htmlmin==0.1.12"],
+    "entity": ["REL @ git+https://github.com/manandey/REL.git#egg=REL"],
+    "timestamp": ["bs_dateutil @ git+git://github.com/cccntu/dateutil@2.8.5"],
+    "website_description": ["wikipedia2vec==1.0.5", "nltk==3.6.5"],
+}
+
+preprocessing_dependencies = []
+for dependencies in preprocessing_requires.values():
+    preprocessing_dependencies.extend(dependencies)
+
 setup(
     name="bsmetadata",
     python_requires=">=3.7.11, <3.10",
@@ -19,10 +30,5 @@ setup(
     description="Codebase for including metadata (e.g., URLs, timestamps, HTML tags) during language model pretraining.",
     packages=find_packages(),
     install_requires=install_requires,
-    extras_require={
-        "html_parser": ["lxml==4.6.3", "htmlmin==0.1.12"],
-        "entity_preprocessing": ["REL @ git+https://github.com/manandey/REL.git#egg=REL"],
-        "timestamp": ["bs_dateutil @ git+git://github.com/cccntu/dateutil@2.8.5"],
-        "website_description_preprocessing": ["wikipedia2vec==1.0.5", "nltk==3.6.5"],
-    },
+    extras_require={"preprocessing": preprocessing_dependencies},
 )

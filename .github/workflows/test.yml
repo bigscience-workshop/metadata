@@ -23,7 +23,7 @@ jobs:
             - name: Install dependencies
               run: |
                   python -m pip install --upgrade pip
-                  python -m pip install .[html_parser,entity_preprocessing]
+                  python -m pip install .[preprocessing]
                   python -m pip install -r requirements-dev.txt
             - name: Test
               run: |

@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=modelling-metadata-website-desc-create-dataset     # job name
+#SBATCH --job-name=modelling-metadata-website-desc-create-dataset-25k  # job name
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1                                            # crucial - only 1 task per dist per node!
 #SBATCH --cpus-per-task=20                                             # number of cores per tasks

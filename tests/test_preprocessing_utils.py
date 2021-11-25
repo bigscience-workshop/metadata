@@ -1,10 +1,10 @@
 import unittest
 from unittest import mock
+
 from datasets import Dataset
 from mocks.mock_dump_db import MockDumpDB
 
-from bsmetadata.preprocessing_utils import HtmlPreprocessor
-from bsmetadata.preprocessing_utils import WebsiteDescPreprocessor
+from bsmetadata.preprocessing_utils import HtmlPreprocessor, WebsiteDescPreprocessor
 
 
 def mock_sent_tokenize(text):
@@ -49,8 +49,6 @@ class WebsiteDescPreprocessorTester(unittest.TestCase):
             ],
         ]
         self.assertEqual(ds[:]["metadata"], target_metadata)
-
-
 
 
 class HtmlPreprocessorTester(unittest.TestCase):
@@ -184,6 +182,7 @@ class HtmlPreprocessorTester(unittest.TestCase):
 
         self.assertEqual(ds[:]["texts"], target_texts)
         self.assertEqual(ds[:]["metadata"], target_metadata)
+
 
 if __name__ == "__main__":
     unittest.main()

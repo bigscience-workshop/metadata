@@ -24,6 +24,7 @@ from REL.mention_detection import MentionDetection
 from REL.ner import load_flair_ner
 from REL.utils import process_results
 
+from bsmetadata.preprocessing_tools import html_parser
 from bsmetadata.preprocessing_tools.website_desc_utils import WebsiteDescUtils
 
 
@@ -52,9 +53,6 @@ def remove_improbable_date(x):
     if x is not None and (x.year < 1983 or x.year > 2021):
         return None
     return x
-
-
-from bsmetadata.preprocessing_tools import html_parser
 
 
 class MetadataPreprocessor(ABC):

@@ -24,6 +24,7 @@ from REL.mention_detection import MentionDetection
 from REL.ner import load_flair_ner
 from REL.utils import process_results
 
+from bsmetadata.preprocessing_tools import html_parser
 from bsmetadata.preprocessing_tools.website_desc_utils import WebsiteDescUtils
 
 
@@ -92,6 +93,47 @@ class TimestampPreprocessor(MetadataPreprocessor):
         date = remove_improbable_date(date)
         date = str(date) if date is not None else None
         return date
+
+
+class HtmlPreprocessor(MetadataPreprocessor):
+    """Metadata preprocessor for extracting metadata from html text.
+
+    Specifically, it separates the html text contained in the `name_html_column`` column into a text and a list of
+    HTML metadata containing the tags, their attributes, their location in the text and their relative location to
+    each other."""
+
+    def __init__(self, name_html_column: str = "doc_html") -> None:
+        self.name_html_column = name_html_column
+        super().__init__()
+
+    def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
+        tags_to_remove_with_content = [
+            html_parser.objects.TagToRemoveWithContent(tag="script"),
+            html_parser.objects.TagToRemoveWithContent(tag="style"),
+            html_parser.objects.TagToRemoveWithContent(tag="header"),
+            html_parser.objects.TagToRemoveWithContent(tag="iframe"),
+            html_parser.objects.TagToRemoveWithContent(tag="footer"),  # copyright in footer
+            html_parser.objects.TagToRemoveWithContent(tag="form"),
+        ]
+
+        new_texts = []
+        for example_doc_html, example_metadata in zip(
+            examples[self.name_html_column], examples["metadata"]
+        ):  # if metadata already exists
+
+            plain_text, metadata = html_parser.get_clean_text_and_metadata(
+                example_doc_html,
+                tags_to_remove_with_content=tags_to_remove_with_content,
+                consecutive_tags_to_fold=["div"],
+                convert_br_tag_to_breaking_line=True,
+            )
+            new_texts.append(plain_text)
+            example_metadata.extend(
+                [html_parser.objects.convert_html_metadata_dataclass_to_dict(node) for node in metadata]
+            )
+
+        examples["texts"] = new_texts
+        return examples
 
 
 class WebsiteDescPreprocessor(MetadataPreprocessor):

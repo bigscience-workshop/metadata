@@ -21,5 +21,8 @@ setup(
     install_requires=install_requires,
     extras_require={
         "html_parser": ["lxml==4.6.3", "htmlmin==0.1.12"],
+        "entity_preprocessing": ["REL @ git+https://github.com/manandey/REL.git#egg=REL"],
+        "timestamp": ["bs_dateutil @ git+git://github.com/cccntu/dateutil@2.8.5"],
+        "website_description_preprocessing": ["wikipedia2vec==1.0.5", "nltk==3.6.5"],
     },
 )

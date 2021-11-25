@@ -9,6 +9,10 @@ class TagToRemove:
     content_max_char_length: float = float("inf")
 
 
+# The "top-down" method will consist in going through the DOM from the root to the leaves and if during this traversal
+# a node fulfills the conditions of elimination it will be deleted.
+# On the contrary, the "bottom-up" method will consist in going through the DOM from the leaves to the root and if
+# during this traversal a node meets the conditions of elimination it will be deleted.
 @dataclass
 class TagToRemoveWithContent:
     tag: str

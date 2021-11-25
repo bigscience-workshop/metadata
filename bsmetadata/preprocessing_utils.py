@@ -13,10 +13,46 @@
 """
 This script provides functions for adding different kinds of metadata to a pretraining corpus.
 """
+import uuid
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional
+from urllib.parse import unquote, urlsplit
+
+from bs_dateutil.parser import ParserError, parse
+from REL.entity_disambiguation import EntityDisambiguation
+from REL.mention_detection import MentionDetection
+from REL.ner import load_flair_ner
+from REL.utils import process_results
 
 from bsmetadata.preprocessing_tools import html_parser
+from bsmetadata.preprocessing_tools.website_desc_utils import WebsiteDescUtils
+
+
+def get_path_from_url(url):
+    """get the `path` part of `url`, with %xx escapes replaced by their single-character equivalent"""
+    parts = urlsplit(url)
+    return unquote(parts.path)
+
+
+def parse_date(path):
+    try:
+        return parse(path, fuzzy=True, date_only=True)
+    except ParserError:
+        return None
+    except OverflowError:
+        # this happens sometimes, I don't know why, just ignore it
+        return None
+
+
+def fetch_keyword_from_url(url: str) -> str:  # e.g http://www.californialandcan.org/Plumas -> californialandcan.org
+    domain = urlsplit(url).netloc
+    return domain.replace("www.", "")
+
+
+def remove_improbable_date(x):
+    if x is not None and (x.year < 1983 or x.year > 2021):
+        return None
+    return x
 
 
 class MetadataPreprocessor(ABC):
@@ -51,13 +87,20 @@ class TimestampPreprocessor(MetadataPreprocessor):
 
         return examples
 
-    def _extract_timestamp_from_url(self, url: str) -> Optional:
-        # This would have to be implemented.
-        return None
+    def _extract_timestamp_from_url(self, url: str) -> Optional[str]:
+        path = get_path_from_url(url)
+        date = parse_date(path)
+        date = remove_improbable_date(date)
+        date = str(date) if date is not None else None
+        return date
 
 
 class HtmlPreprocessor(MetadataPreprocessor):
-    """todo"""
+    """Metadata preprocessor for extracting metadata from html text.
+
+    Specifically, it separates the html text contained in the `name_html_column`` column into a text and a list of
+    HTML metadata containing the tags, their attributes, their location in the text and their relative location to
+    each other."""
 
     def __init__(self, name_html_column: str = "doc_html") -> None:
         self.name_html_column = name_html_column
@@ -91,3 +134,99 @@ class HtmlPreprocessor(MetadataPreprocessor):
 
         examples["texts"] = new_texts
         return examples
+
+
+class WebsiteDescPreprocessor(MetadataPreprocessor):
+    """Metadata preprocessor for adding website description based on URLs."""
+
+    def __init__(self, path_wiki_db: str = "../preprocessing_data/wiki_dump/wiki_en_dump_db") -> None:
+        self.website_utils = WebsiteDescUtils(path_wiki_db)
+        super().__init__()
+
+    def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
+
+        metadata_list = examples["metadata"]
+
+        # Iterate through the metadata associated with all examples in this batch.
+        for metadata in metadata_list:
+            # Get the URL associated with this example.
+            urls = [md["value"] for md in metadata if md["key"] == "url"]
+
+            if not urls:
+                continue
+
+            # Try to extract a website description from the given URL and add it to the metadata.
+            website_description = self._extract_website_desc_from_url(urls[0])
+
+            if website_description:
+                metadata.append({"key": "website_description", "type": "global", "value": website_description})
+        return examples
+
+    def _extract_website_desc_from_url(self, url: str) -> Optional:
+
+        keyword = fetch_keyword_from_url(url)
+        return self.website_utils.fetch_website_description_from_keyword(keyword)
+
+
+class EntityPreprocessor(MetadataPreprocessor):
+    """Metadata preprocessor for adding entity information."""
+
+    def __init__(self, base_url):
+        self.base_url = base_url
+        self.wiki_version = "wiki_2019"
+        self.mention_detection = MentionDetection(self.base_url, self.wiki_version)
+        self.tagger_ner = load_flair_ner("ner-fast")
+        self.config = {
+            "mode": "eval",
+            "model_path": "ed-wiki-2019",
+        }
+        self.model = EntityDisambiguation(self.base_url, self.wiki_version, self.config)
+
+    def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
+
+        for example_text, example_metadata in zip(examples["text"], examples["metadata"]):
+            res = self._extract_entity_from_text(example_text)
+            result = self.postprocess_entity(res)
+            if not result:
+                continue
+            example_metadata.extend(result)
+        return examples
+
+    def _extract_entity_from_text(self, text: str) -> Optional:
+        input_text = self.preprocess_example(text)
+        res = self.fetch_mention_predictions(input_text)
+        res_list = []
+        for key, value in res.items():
+            res_list = [list(elem) for elem in value]
+        return res_list
+
+    def postprocess_entity(self, resu_list):
+        entities = []
+        for ent in range(len(resu_list)):
+            entity = resu_list[ent][3]  # element at index = 3 in the result list corresponds to the predicted entity
+            en = {
+                "key": "entity",
+                "type": "local",
+                "char_start_idx": resu_list[ent][
+                    0
+                ],  # element at index = 0 in the result list corresponds to the char start index
+                "char_end_idx": (
+                    resu_list[ent][0] + resu_list[ent][1]
+                ),  # element at index = 1 in the result list corresponds to length of the entity
+                "value": entity,
+            }
+            entities.append(en)
+        return entities
+
+    def preprocess_example(self, text: str) -> Optional:
+        id_ = uuid.uuid4().hex.upper()[0:6]
+        text_ = text
+        value = [text_, []]
+        processed = {id_: value}
+        return processed
+
+    def fetch_mention_predictions(self, input_text: str) -> Optional:
+        mentions_dataset, n_mentions = self.mention_detection.find_mentions(input_text, self.tagger_ner)
+        predictions, timing = self.model.predict(mentions_dataset)
+        result = process_results(mentions_dataset, predictions, input_text)
+        return result

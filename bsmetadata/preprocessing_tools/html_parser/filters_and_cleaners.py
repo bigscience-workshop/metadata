@@ -257,15 +257,10 @@ class TextAndMetadataCleaner:
         self.start_parsing_at_tag = start_parsing_at_tag
         self.convert_br_tag_to_breaking_line = convert_br_tag_to_breaking_line
 
-        self.tags_to_remove_alone = (
+        if self.tags_to_remove_alone is None:
+            self.tags_to_remove_alone = []
+        self.tags_to_remove_alone.extend(
             [
-                TagToRemove(FAKE_TAG_BLOCK),
-                TagToRemove(FAKE_TAG_INLINE),
-                TagToRemove(FAKE_TAG_BASIC),
-            ]
-            if self.tags_to_remove_alone is None
-            else self.tags_to_remove_alone
-            + [
                 TagToRemove(FAKE_TAG_BLOCK),
                 TagToRemove(FAKE_TAG_INLINE),
                 TagToRemove(FAKE_TAG_BASIC),
@@ -300,7 +295,13 @@ class TextAndMetadataCleaner:
         if self.start_parsing_at_tag is not None:
             root = fromstring(html_str)
             find = etree.XPath(f"//{self.start_parsing_at_tag}")
-            new_etree = find(root)[0]
+            try:
+                new_etree = find(root)[0]
+            except IndexError:
+                raise ValueError(
+                    f"You have asked to start parsing at the {self.start_parsing_at_tag} tag but the current example "
+                    "does not contain this tag"
+                )
             html_str = etree.tostring(new_etree, method="html", encoding="UTF-8", pretty_print=False).decode("UTF-8")
             if not html_str.startswith("<html>"):
                 self.tag_filter.tags_to_remove_alone.update({"html": TagToRemove("html")})
@@ -325,7 +326,7 @@ class TextAndMetadataCleaner:
         self.text = ""
         self.last_tag = None
 
-        plain_text = self._get_text_and_metadata(new_etree)
+        plain_text = self._get_text_and_update_metadata(new_etree)
 
         self._clean_relative_pos(self.metadata)
 
@@ -405,7 +406,7 @@ class TextAndMetadataCleaner:
                 sb += PLAIN_TEXT_SEPARATOR
         return sb
 
-    def _get_text_and_metadata(self, root):
+    def _get_text_and_update_metadata(self, root):
         self.current_tag = root.tag
 
         metadata_node = Metadata(
@@ -421,7 +422,7 @@ class TextAndMetadataCleaner:
 
         self._add_text(root.tag, root.text)
         for idx, child in enumerate(root):
-            _ = self._get_text_and_metadata(child)
+            _ = self._get_text_and_update_metadata(child)
 
         self.current_tag = root.tag
 

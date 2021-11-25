@@ -65,7 +65,9 @@ def main(args: DataConfig) -> None:
             )
         if extension == "jsonl":
             extension = "json"
-        raw_datasets = load_dataset(extension, data_files=data_files, cache_dir=args.cache_dir)
+        raw_datasets = load_dataset(
+            extension, data_files=data_files, cache_dir=args.cache_dir, download_mode="force_redownload"
+        )
 
         if "validation" not in raw_datasets.keys():
             raw_datasets["validation"] = load_dataset(
@@ -80,6 +82,16 @@ def main(args: DataConfig) -> None:
                 split=f"train[{args.validation_split_percentage}%:]",
                 cache_dir=args.cache_dir,
             )
+
+    train_dataset = raw_datasets["train"]
+    val_dataset = raw_datasets["validation"]
+
+    logger.info(f"  Num train examples = {len(train_dataset)}")
+    logger.info(f"  Num validation examples = {len(val_dataset)}")
+
+    logger.info("  Train sample:")
+    logger.info(f"  Train sample n°{0} text:\n{train_dataset[0]['text']}")
+    logger.info(f"  Train sample n°{0} metadata:\n{train_dataset[0]['metadata']}")
 
 
 if __name__ == "__main__":

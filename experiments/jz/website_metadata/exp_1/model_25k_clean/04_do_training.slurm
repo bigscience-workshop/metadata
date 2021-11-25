@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=modelling-metadata-website-desc-clean-train                          # job name
+#SBATCH --job-name=modelling-metadata-website-desc-clean-train-25k     # job name
 #SBATCH --ntasks=1                    # number of MP tasks
 #SBATCH --constraint=v100-16g
 #SBATCH --gres=gpu:1                                                   # number of GPUs per node

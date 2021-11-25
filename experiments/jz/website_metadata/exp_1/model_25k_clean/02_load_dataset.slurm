@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=modelling-metadata-website-desc-load-dataset              #   job name
+#SBATCH --job-name=modelling-metadata-website-desc-load-dataset-25k     #   job name
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1                                             # crucial - only 1 task per dist per node!
 #SBATCH --cpus-per-task=8                                               # number of cores per tasks
@@ -43,6 +43,9 @@ REPO_DIR="${DATASETS_CUSTOM}/${myarray[-1]}"
 # We clone the repo if it doesn't exist
 if [[ -d "${REPO_DIR}" ]]; then
     echo "${REPO_DIR} already exists on your filesystem."
+    cd ${REPO_DIR}
+    git lfs install
+    git pull
 else
     echo "${REPO_DIR} doesn't exists on your filesystem."
     cd $DATASETS_CUSTOM/

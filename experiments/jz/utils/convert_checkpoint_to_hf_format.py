@@ -1,12 +1,9 @@
 import dataclasses
-import gc
 import json
 import logging
-import math
 import os
 import sys
 from dataclasses import dataclass, field
-from functools import partial
 from typing import Optional
 
 import hydra
@@ -14,11 +11,9 @@ import torch
 import torch.nn.functional as F
 import wandb
 from accelerate import Accelerator
-from datasets.features import Value
 from git import Repo
 from hydra.core.config_store import ConfigStore
 from omegaconf import OmegaConf
-from tqdm.auto import tqdm as original_tqdm
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 
@@ -109,7 +104,6 @@ def main(args: CFG) -> None:
 
     accelerator = Accelerator()
     is_local_main_process = accelerator.is_local_main_process
-    tqdm = partial(original_tqdm, disable=not is_local_main_process, position=0)
 
     os.makedirs(args.out_dir, exist_ok=True)
 

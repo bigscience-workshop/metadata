@@ -1,6 +1,8 @@
-import logging
-from wikipedia2vec.dump_db import DumpDB
 import argparse
+import logging
+
+from wikipedia2vec.dump_db import DumpDB
+
 
 logger = logging.getLogger(__name__)
 

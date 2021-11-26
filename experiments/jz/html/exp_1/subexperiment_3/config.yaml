@@ -1,0 +1,70 @@
+data_config:
+  metadata_config:
+    metadata_list:
+    - html
+    local_metadata_special_tokens:
+      html: htmlOn
+    metadata_sep: ' | '
+    metadata_key_value_sep: ': '
+    metadata_probability: 0.5
+    treat_local_metadata_as_regular_text: true
+    add_local_metadata_special_tokens_in_prefix: true
+    metadata_prefix_sep: ' |||'
+    metadata_prefix_start_seq: ' '
+    max_seq_len: 1024
+    html_parser_config:
+      all_tags_rules:
+        attributes_to_keep:
+        - class
+        - id
+        txt_max_chr_len: .inf
+        txt_min_chr_len: 0
+        tags_exceptions_to_txt_max_min_chr_len: 
+        - h1
+        - h2
+        - h3
+        - h4
+        - h5
+        - h6
+        - p
+      tags_to_remove_alone_tag_name:
+      - body
+      tags_to_remove_alone_txt_max_chr_len:
+      - .inf
+      tags_to_remove_alone_txt_min_chr_len:
+      - 0.0
+  experiment: with_metadata
+  per_device_eval_batch_size: 3
+  per_device_train_batch_size: 3
+  dataset_name: null
+  dataset_config_name: null
+  train_file: "nq-train-*.jsonl.gz"
+  validation_file: "nq-dev-*.jsonl.gz"
+  overwrite_cache: false
+  cache_dir: null
+  extension: json
+  preprocessing_num_workers: 80
+  validation_split_percentage: 5
+  block_size: null
+  map_batch_size: 10
+weight_decay: 0.0
+learning_rate: 5.0e-05
+gradient_accumulation_steps: 50
+num_train_epochs: 3
+max_train_steps: null
+lr_scheduler_type: linear
+num_warmup_steps: 1000
+seed: 42
+out_dir: metadata_outputs
+model_name: gpt2
+project_name: metadata_lm
+jobid: null
+start_with_eval: true
+evaluation_strategy: STEPS
+eval_num_per_epoch: 3
+eval_steps: 200
+save_strategy: STEPS
+save_num_per_epoch: 3
+save_steps: 200
+do_train: false
+do_eval: false

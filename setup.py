@@ -12,7 +12,7 @@ install_requires = req_file("requirements.txt")
 preprocessing_requires = {
     "html": ["lxml==4.6.3", "htmlmin==0.1.12"],
     "entity": ["REL @ git+https://github.com/manandey/REL.git#egg=REL"],
-    "timestamp": ["bs_dateutil @ git+git://github.com/cccntu/dateutil@2.8.5"],
+    "timestamp": ["bs_dateutil @ git+https://github.com/cccntu/dateutil.git@2.8.5"],
     "website_description": ["wikipedia2vec==1.0.5", "nltk==3.6.5"],
 }
 

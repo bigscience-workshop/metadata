@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=modelling-metadata-c3-dataset-toy             # (change me!) job name
+#SBATCH --job-name=modelling-metadata-c4-dataset-create-toy             # (change me!) job name
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1                                             # crucial - only 1 task per dist per node!
 #SBATCH --cpus-per-task=8                                               # (change me! between 0 and 48) number of cores per tasks
@@ -47,4 +47,4 @@ cd $WORK/repos/sync/metadata/
 python experiments/jz/dataset/c4/python_scripts/dataset_reducer.py \
     --data-path $SCRATCH/new_dataset/c4-en-reduced-tmp \
     --new-dataset-path $SCRATCH/new_dataset/c4-en-reduced \
-    --total-number-examples 20
+    --total-number-examples 1000

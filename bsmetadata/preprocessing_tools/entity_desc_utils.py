@@ -13,7 +13,6 @@ class EntityDescUtils:
         self.redirects_map = {
             key.lower(): value for key, value in self.wiki_dump_db.redirects()
         }  # loading all redirect information: takes ~10s
-        nltk.download("punkt")
 
     def fetch_entity_description_from_keyword(self, keyword: str) -> str:
         try:

@@ -1,7 +1,6 @@
 import re
 import string
 from collections import defaultdict
-from typing import Optional
 
 import nltk
 from wikipedia2vec.dump_db import DumpDB

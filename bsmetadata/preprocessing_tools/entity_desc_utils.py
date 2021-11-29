@@ -27,5 +27,5 @@ class EntityDescUtils:
                 text = self.wiki_dump_db.get_paragraphs(self.redirects_map[keyword])[0].text
                 text = nltk.tokenize.sent_tokenize(text)[0]
             except:
-                text = ""
+                return None
         return text

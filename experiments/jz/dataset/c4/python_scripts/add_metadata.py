@@ -1,29 +1,32 @@
-from dataclasses import dataclass,field
 import logging
 import os
 import sys
+from dataclasses import dataclass, field
 from typing import Optional
 
 import hydra
 from datasets import config, load_dataset
 from hydra.core.config_store import ConfigStore
-from bsmetadata.preprocessing_utils import EntityPreprocessor, TimestampPreprocessor, WebsiteDescPreprocessor
 
+from bsmetadata.preprocessing_utils import EntityPreprocessor, TimestampPreprocessor, WebsiteDescPreprocessor
 from bsmetadata.train import show_help
 
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class PreprocessingConfig:
     file_name: str = field(metadata={"help": "The input file name(a jsonl file, eventually compressed)."})
     out_file_name: str = field(metadata={"help": "The output file name(a jsonl file)."})
-    out_dir :str = field(metadata={"help": "where to save the resulting dataset."})
+    out_dir: str = field(metadata={"help": "where to save the resulting dataset."})
     website_desc_path_wiki_db: str = field(
         metadata={"help": "The path to the wikipedia database file necessary for the website descriptions"}
     )
     entity_path_data_dir: str = field(
-        metadata={"help": "The path to the directory containing the directories `ed-wiki-2019`, `generic` and `wiki_2019` "}
+        metadata={
+            "help": "The path to the directory containing the directories `ed-wiki-2019`, `generic` and `wiki_2019` "
+        }
     )
     dataset_name: Optional[str] = field(
         default=None, metadata={"help": "The name of the dataset to use (via the datasets library)"}
@@ -47,6 +50,7 @@ class PreprocessingConfig:
             " the dataset. If you are using `with_metadata` the recommended batch size is 1.."
         },
     )
+
 
 cs = ConfigStore.instance()
 cs.store(name="preprocessing_config", node=PreprocessingConfig)
@@ -82,39 +86,38 @@ def main(args: PreprocessingConfig) -> None:
     timestamp_preprocessor = TimestampPreprocessor()
     website_desc_preprocessor = WebsiteDescPreprocessor(path_wiki_db=args.website_desc_path_wiki_db)
     entity_preprocessing = EntityPreprocessor(base_url=args.entity_path_data_dir)
-    
+
     logger.info("Start timestamp preprocessing")
     raw_datasets = raw_datasets.map(
-            timestamp_preprocessor.preprocess,
-            batched=True,
-            num_proc=args.preprocessing_num_workers,
-            load_from_cache_file=not args.overwrite_cache,
-            desc="Running timestamp_preprocessor on dataset",
-            batch_size=args.map_batch_size,
-        )
-    
+        timestamp_preprocessor.preprocess,
+        batched=True,
+        num_proc=args.preprocessing_num_workers,
+        load_from_cache_file=not args.overwrite_cache,
+        desc="Running timestamp_preprocessor on dataset",
+        batch_size=args.map_batch_size,
+    )
+
     logger.info("Start website description preprocessing")
     raw_datasets = raw_datasets.map(
-            website_desc_preprocessor.preprocess,
-            batched=True,
-            num_proc=args.preprocessing_num_workers,
-            load_from_cache_file=not args.overwrite_cache,
-            desc="Running website_desc_preprocessor on dataset",
-            batch_size=args.map_batch_size,
-        )
+        website_desc_preprocessor.preprocess,
+        batched=True,
+        num_proc=args.preprocessing_num_workers,
+        load_from_cache_file=not args.overwrite_cache,
+        desc="Running website_desc_preprocessor on dataset",
+        batch_size=args.map_batch_size,
+    )
 
     logger.info("Start entity preprocessing")
     raw_datasets = raw_datasets.map(
-            entity_preprocessing.preprocess,
-            batched=True,
-            num_proc=args.preprocessing_num_workers,
-            load_from_cache_file=not args.overwrite_cache,
-            desc="Running entity_preprocessing on dataset",
-            batch_size=args.map_batch_size,
-        )
+        entity_preprocessing.preprocess,
+        batched=True,
+        num_proc=args.preprocessing_num_workers,
+        load_from_cache_file=not args.overwrite_cache,
+        desc="Running entity_preprocessing on dataset",
+        batch_size=args.map_batch_size,
+    )
 
     raw_datasets["file"].to_json(os.path.join(args.out_dir, args.out_file_name))
-
 
 
 if __name__ == "__main__":

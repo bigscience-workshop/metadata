@@ -44,7 +44,11 @@ cp $DSDIR/c4/en/c4-train.00001-of-01024.json.gz $SCRATCH/new_dataset/c4-en-reduc
 
 cd $WORK/repos/sync/metadata/
 
+NEW_DATASET_DIR=$SCRATCH/new_dataset/c4-en-reduced-10000
 python experiments/jz/dataset/c4/python_scripts/dataset_reducer.py \
     --data-path $SCRATCH/new_dataset/c4-en-reduced-tmp \
-    --new-dataset-path $SCRATCH/new_dataset/c4-en-reduced \
-    --total-number-examples 1000
+    --new-dataset-path $NEW_DATASET_DIR \
+    --total-number-examples 10000
+
+cd $NEW_DATASET_DIR
+rename -v 'c4-train.' 'c4-train_' *

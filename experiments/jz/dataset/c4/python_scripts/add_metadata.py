@@ -2,7 +2,8 @@ import logging
 import os
 import sys
 from dataclasses import dataclass, field
-from typing import Optional
+from functools import partial
+from typing import Dict, List, Optional
 
 import hydra
 from datasets import config, load_dataset
@@ -63,6 +64,18 @@ cs = ConfigStore.instance()
 cs.store(name="preprocessing_config", node=PreprocessingConfig)
 
 
+def add_url_as_metadata(examples: Dict[str, List], column_name_url: str = "url") -> Dict[str, List]:
+
+    example_url_list = examples[column_name_url]
+    example_metadata = []
+
+    for example_url in example_url_list:
+        example_metadata.append([{"key": "url", "type": "global", "value": example_url}])
+
+    examples["metadata"] = example_metadata
+    return examples
+
+
 @hydra.main(config_name="preprocessing_config")
 def main(args: PreprocessingConfig) -> None:
     data_files = {"file": args.file_name}
@@ -88,7 +101,7 @@ def main(args: PreprocessingConfig) -> None:
         keep_in_memory=False,
         download_mode="force_redownload",
     )
-    raw_datasets = raw_datasets.map(lambda batch: {"metadata": [[] for i in range(len(batch["text"]))]}, batched=True)
+    raw_datasets = raw_datasets.map(partial(add_url_as_metadata, column_name_url="url"), batched=True)
 
     if "timestamp" in args.metadata_to_include:
         timestamp_preprocessor = TimestampPreprocessor()

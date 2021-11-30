@@ -116,7 +116,9 @@ def main(args: PreprocessingConfig) -> None:
 
     if "entity" in args.metadata_to_include:
         logger.info("Start entity preprocessing")
-        entity_preprocessing = EntityPreprocessor(base_url=args.entity_path_data_dir, path_or_url_flair_ner_model=args.path_or_url_flair_ner_model)
+        entity_preprocessing = EntityPreprocessor(
+            base_url=args.entity_path_data_dir, path_or_url_flair_ner_model=args.path_or_url_flair_ner_model
+        )
         raw_datasets = raw_datasets.map(
             entity_preprocessing.preprocess,
             batched=True,

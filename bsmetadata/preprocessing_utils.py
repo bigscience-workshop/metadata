@@ -171,11 +171,11 @@ class WebsiteDescPreprocessor(MetadataPreprocessor):
 class EntityPreprocessor(MetadataPreprocessor):
     """Metadata preprocessor for adding entity information."""
 
-    def __init__(self, base_url):
+    def __init__(self, base_url, path_or_url_flair_ner_model="ner-fast"):
         self.base_url = base_url
         self.wiki_version = "wiki_2019"
         self.mention_detection = MentionDetection(self.base_url, self.wiki_version)
-        self.tagger_ner = load_flair_ner("ner-fast")
+        self.tagger_ner = load_flair_ner(path_or_url_flair_ner_model)
         self.config = {
             "mode": "eval",
             "model_path": "ed-wiki-2019",

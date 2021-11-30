@@ -6,8 +6,8 @@
 #SBATCH --hint=nomultithread                                            # we get physical cores not logical
 #SBATCH --gres=gpu:0                                                    # (change me! between 0 and 1) number of gpus
 #SBATCH --time 01:00:00                                                 # (change me! between 0 and 20h) maximum execution time (HH:MM:SS)
-#SBATCH --output=/gpfsdswork/projects/rech/six/uue59kq/logs/%x-%j.out   # output file name
-#SBATCH --error=/gpfsdswork/projects/rech/six/uue59kq/logs/%x-%j.err    # error file name
+#SBATCH --output=/gpfsdswork/projects/rech/six/uue59kq/logs/create-dataset-toy/%j-%x.out   # output file name
+#SBATCH --error=/gpfsdswork/projects/rech/six/uue59kq/logs/create-dataset-toy/%j-%x.err    # error file name
 #SBATCH --account=six@gpu                                               # account
 #SBATCH -p compil                                                       # partition with internet
 
@@ -23,20 +23,26 @@ source $HOME/start-modelling-metadata-user
 
 cd $WORK/repos/sync/metadata/
 
-DATASET_FILES_DIR=$SCRATCH/new_dataset/hub/c4-en-reduced
+export FLAIR_CACHE_ROOT=$SCRATCH/cache_dir/flair
 
-for filename in $DATASET_FILES_DIR/*; do
-    FILENAME="${filename##*/}"
-    NEW_FILENAME="${FILENAME::-3}l" #   the last 3 characters correspond to the compression algorithm format .gz
-    echo "Processing $FILENAME and save results into $NEW_FILENAME"
-    python experiments/jz/dataset/c4/python_scripts/add_metadata.py \
-        file_name=$FILENAME \
-        out_file_name=$NEW_FILENAME \
-        out_dir=$SCRATCH/new_dataset/c4-en-reduced-with-metadata \
-        website_desc_path_wiki_db=$SCRATCH/modeling-metadata-artefacts/wiki_en_dump.db \
-        entity_path_data_dir=$SCRATCH/modeling-metadata-artefacts/entity_preprocessing \
-        dataset_name=$DATASET_FILES_DIR
-        
-    gzip $SCRATCH/new_dataset/c4-en-reduced-with-metadata/$NEW_FILENAME
-    echo "Processing $FILENAME finished"
-done
+echo "Args:"
+echo "    file_name=$FILENAME"
+echo "    out_file_name=$NEW_FILENAME"
+echo "    out_dir=$OUT_DIR"
+echo "    dataset_name=$DATASET_FILES_DIR"
+echo "    metadata_to_include=$METADATA_TO_INCLUDE"
+
+echo "Processing $DATASET_FILES_DIR/$FILENAME to add timestamp and save results into $OUT_DIR/$NEW_FILENAME"
+python experiments/jz/dataset/c4/python_scripts/add_metadata.py \
+    file_name=$FILENAME \
+    out_file_name=$NEW_FILENAME \
+    out_dir=$OUT_DIR \
+    website_desc_path_wiki_db=$SCRATCH/modeling-metadata-artefacts/wiki_en_dump.db \
+    entity_path_data_dir=$SCRATCH/modeling-metadata-artefacts/entity_preprocessing \
+    dataset_name=$DATASET_FILES_DIR \
+    metadata_to_include=$METADATA_TO_INCLUDE \
+    path_or_url_flair_ner_model=$PATH_OR_URL_FLAIR_NER_MODEL
+
+gzip $OUT_DIR/$NEW_FILENAME
+
+echo "$OUT_DIR/$NEW_FILENAME created"

@@ -28,6 +28,13 @@ class PreprocessingConfig:
             "help": "The path to the directory containing the directories `ed-wiki-2019`, `generic` and `wiki_2019` "
         }
     )
+    path_or_url_flair_ner_model: Optional[str] = field(
+        default=None, metadata={"help": "TThe path or name of the flair ner model to use to preprocess entities"}
+    )
+    metadata_to_include: Optional[list] = field(
+        default_factory=lambda: ["website_description", "entity", "timestamp"],
+        metadata={"help": "The list of metadata to extract"},
+    )
     dataset_name: Optional[str] = field(
         default=None, metadata={"help": "The name of the dataset to use (via the datasets library)"}
     )
@@ -79,45 +86,49 @@ def main(args: PreprocessingConfig) -> None:
         data_files=data_files,
         cache_dir=args.cache_dir,
         keep_in_memory=False,
+        download_mode="force_redownload",
     )
     raw_datasets = raw_datasets.map(lambda batch: {"metadata": [[] for i in range(len(batch["text"]))]}, batched=True)
 
-    # Initialize MetadataPreprocessors
-    timestamp_preprocessor = TimestampPreprocessor()
-    website_desc_preprocessor = WebsiteDescPreprocessor(path_wiki_db=args.website_desc_path_wiki_db)
-    entity_preprocessing = EntityPreprocessor(base_url=args.entity_path_data_dir)
+    if "timestamp" in args.metadata_to_include:
+        timestamp_preprocessor = TimestampPreprocessor()
+        logger.info("Start timestamp preprocessing")
+        raw_datasets = raw_datasets.map(
+            timestamp_preprocessor.preprocess,
+            batched=True,
+            num_proc=args.preprocessing_num_workers,
+            load_from_cache_file=not args.overwrite_cache,
+            desc="Running timestamp_preprocessor on dataset",
+            batch_size=args.map_batch_size,
+        )
 
-    logger.info("Start timestamp preprocessing")
-    raw_datasets = raw_datasets.map(
-        timestamp_preprocessor.preprocess,
-        batched=True,
-        num_proc=args.preprocessing_num_workers,
-        load_from_cache_file=not args.overwrite_cache,
-        desc="Running timestamp_preprocessor on dataset",
-        batch_size=args.map_batch_size,
-    )
+    if "website_description" in args.metadata_to_include:
+        logger.info("Start website description preprocessing")
+        website_desc_preprocessor = WebsiteDescPreprocessor(path_wiki_db=args.website_desc_path_wiki_db)
+        raw_datasets = raw_datasets.map(
+            website_desc_preprocessor.preprocess,
+            batched=True,
+            num_proc=args.preprocessing_num_workers,
+            load_from_cache_file=not args.overwrite_cache,
+            desc="Running website_desc_preprocessor on dataset",
+            batch_size=args.map_batch_size,
+        )
 
-    logger.info("Start website description preprocessing")
-    raw_datasets = raw_datasets.map(
-        website_desc_preprocessor.preprocess,
-        batched=True,
-        num_proc=args.preprocessing_num_workers,
-        load_from_cache_file=not args.overwrite_cache,
-        desc="Running website_desc_preprocessor on dataset",
-        batch_size=args.map_batch_size,
-    )
+    if "entity" in args.metadata_to_include:
+        logger.info("Start entity preprocessing")
+        entity_preprocessing = EntityPreprocessor(base_url=args.entity_path_data_dir, path_or_url_flair_ner_model=args.path_or_url_flair_ner_model)
+        raw_datasets = raw_datasets.map(
+            entity_preprocessing.preprocess,
+            batched=True,
+            num_proc=args.preprocessing_num_workers,
+            load_from_cache_file=not args.overwrite_cache,
+            desc="Running entity_preprocessing on dataset",
+            batch_size=args.map_batch_size,
+        )
 
-    logger.info("Start entity preprocessing")
-    raw_datasets = raw_datasets.map(
-        entity_preprocessing.preprocess,
-        batched=True,
-        num_proc=args.preprocessing_num_workers,
-        load_from_cache_file=not args.overwrite_cache,
-        desc="Running entity_preprocessing on dataset",
-        batch_size=args.map_batch_size,
-    )
-
-    raw_datasets["file"].to_json(os.path.join(args.out_dir, args.out_file_name))
+    saving_path = os.path.join(args.out_dir, args.out_file_name)
+    logger.info(f"Save resulting dataset at {saving_path}")
+    raw_datasets["file"].to_json(saving_path)
 
 
 if __name__ == "__main__":

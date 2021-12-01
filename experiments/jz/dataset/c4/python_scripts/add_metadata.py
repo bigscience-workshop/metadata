@@ -101,7 +101,8 @@ def main(args: PreprocessingConfig) -> None:
         keep_in_memory=False,
         download_mode="force_redownload",
     )
-    raw_datasets = raw_datasets.map(partial(add_url_as_metadata, column_name_url="url"), batched=True)
+    if "url" in args.metadata_to_include:
+        raw_datasets = raw_datasets.map(partial(add_url_as_metadata, column_name_url="url"), batched=True)
 
     if "timestamp" in args.metadata_to_include:
         timestamp_preprocessor = TimestampPreprocessor()

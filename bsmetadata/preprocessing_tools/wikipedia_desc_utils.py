@@ -1,4 +1,5 @@
 import re
+import string
 from collections import defaultdict
 from typing import Optional
 
@@ -6,7 +7,7 @@ import nltk
 from wikipedia2vec.dump_db import DumpDB
 
 
-class WebsiteDescUtils:
+class WikipediaDescUtils:
     def __init__(self, path_wiki_db) -> None:
         self.cache = defaultdict(str)
         self.wiki_dump_db = DumpDB(path_wiki_db)
@@ -40,3 +41,17 @@ class WebsiteDescUtils:
             self.cache[keyword] = self.extract_wiki_desc(keyword)
 
         return self.cache[keyword]
+
+    def fetch_entity_description_from_keyword(self, keyword: str) -> str:
+        try:
+            key = string.capwords(keyword)
+            text = self.wiki_dump_db.get_paragraphs(key)[0].text
+            text = re.sub(r"\((?:[^)(]|\([^)(]*\))*\)", "", text)
+            text = nltk.sent_tokenize(text)[0]
+        except Exception:
+            try:
+                text = self.wiki_dump_db.get_paragraphs(self.redirects_map[keyword])[0].text
+                text = nltk.tokenize.sent_tokenize(text)[0]
+            except Exception:
+                text = ""
+        return text

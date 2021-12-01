@@ -25,8 +25,7 @@ from REL.ner import load_flair_ner
 from REL.utils import process_results
 
 from bsmetadata.preprocessing_tools import html_parser
-from bsmetadata.preprocessing_tools.entity_desc_utils import EntityDescUtils
-from bsmetadata.preprocessing_tools.website_desc_utils import WebsiteDescUtils
+from bsmetadata.preprocessing_tools.wikipedia_desc_utils import WikipediaDescUtils
 
 
 def get_path_from_url(url):
@@ -141,7 +140,7 @@ class WebsiteDescPreprocessor(MetadataPreprocessor):
     """Metadata preprocessor for adding website description based on URLs."""
 
     def __init__(self, path_wiki_db: str = "../preprocessing_data/wiki_dump/wiki_en_dump_db") -> None:
-        self.website_utils = WebsiteDescUtils(path_wiki_db)
+        self.website_utils = WikipediaDescUtils(path_wiki_db)
         super().__init__()
 
     def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
@@ -172,9 +171,9 @@ class WebsiteDescPreprocessor(MetadataPreprocessor):
 class EntityPreprocessor(MetadataPreprocessor):
     """Metadata preprocessor for adding entity information."""
 
-    def __init__(self, base_url, wiki_db_path):
-        self.wiki_db_path = wiki_db_path
-        self.entity_utils = EntityDescUtils(wiki_db_path)
+    def __init__(self, base_url, path_wiki_db):
+        self.wiki_db_path = path_wiki_db
+        self.entity_utils = WikipediaDescUtils(path_wiki_db)
         self.base_url = base_url
         self.wiki_version = "wiki_2019"
         self.mention_detection = MentionDetection(self.base_url, self.wiki_version)

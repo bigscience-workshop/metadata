@@ -51,8 +51,8 @@ class WikipediaDescUtils:
         if text is not None:
             key = self.redirects_map[keyword]
             text = self.fetch_wikipedia_description_for_title(key)
-        
+
         if text is None:
             text = ""
-        
+
         return text

@@ -29,7 +29,7 @@ for filename in $DATASET_FILES_DIR_INIT/*; do
 
         ID_JOB2=$(sbatch --dependency=afterok:$ID_JOB1 --job-name=modelling-metadata-c4-dataset-toy-add-metadata-url \
         --export=ALL,FILENAME=$NEW_FILENAME,NEW_FILENAME=$NEW_FILENAME,OUT_DIR=$OUT_DIR,METADATA_TO_INCLUDE=$METADATA_TO_INCLUDE,DATASET_FILES_DIR=$DATASET_FILES_DIR,PATH_OR_URL_FLAIR_NER_MODEL=$PATH_OR_URL_FLAIR_NER_MODEL \
-        02_add_metadata_to_toy_c4_dataset.slurm | cut -d " " -f 4)
+        01_add_metadata_to_toy_c4_dataset.slurm | cut -d " " -f 4)
 
         echo "Launch jobid $ID_JOB2 to extract url from $DATASET_FILES_DIR/$FILENAME and save to $OUT_DIR/$NEW_FILENAME"
 
@@ -39,10 +39,10 @@ for filename in $DATASET_FILES_DIR_INIT/*; do
         OUT_DIR=$OUT_DIR_1
 
         NEW_FILENAME="$NEW_FILENAME.gz"
-        
+
         ID_JOB1=$(sbatch --job-name=modelling-metadata-c4-dataset-toy-add-metadata-timestamp \
         --export=ALL,FILENAME=$FILENAME,NEW_FILENAME=$NEW_FILENAME,OUT_DIR=$OUT_DIR,METADATA_TO_INCLUDE=$METADATA_TO_INCLUDE,DATASET_FILES_DIR=$DATASET_FILES_DIR,PATH_OR_URL_FLAIR_NER_MODEL=$PATH_OR_URL_FLAIR_NER_MODEL \
-        02_add_metadata_to_toy_c4_dataset.slurm | cut -d " " -f 4)
+        01_add_metadata_to_toy_c4_dataset.slurm | cut -d " " -f 4)
 
         echo "Launch jobid $ID_JOB1 to extract timestamp from $DATASET_FILES_DIR/$FILENAME and save to $OUT_DIR/$NEW_FILENAME"
 
@@ -53,7 +53,7 @@ for filename in $DATASET_FILES_DIR_INIT/*; do
 
         ID_JOB2=$(sbatch --dependency=afterok:$ID_JOB1 --job-name=modelling-metadata-c4-dataset-toy-add-metadata-website_description \
         --export=ALL,FILENAME=$NEW_FILENAME,NEW_FILENAME=$NEW_FILENAME,OUT_DIR=$OUT_DIR,METADATA_TO_INCLUDE=$METADATA_TO_INCLUDE,DATASET_FILES_DIR=$DATASET_FILES_DIR,PATH_OR_URL_FLAIR_NER_MODEL=$PATH_OR_URL_FLAIR_NER_MODEL \
-        02_add_metadata_to_toy_c4_dataset.slurm | cut -d " " -f 4)
+        01_add_metadata_to_toy_c4_dataset.slurm | cut -d " " -f 4)
 
         echo "Launch jobid $ID_JOB2 to extract website_description from $DATASET_FILES_DIR/$FILENAME and save to $OUT_DIR/$NEW_FILENAME"
 
@@ -69,7 +69,7 @@ for filename in $DATASET_FILES_DIR_INIT/*; do
         --constraint=v100-16g \
         --partition=gpu_p13 \
         --export=ALL,FILENAME=$NEW_FILENAME,NEW_FILENAME=$NEW_FILENAME,OUT_DIR=$OUT_DIR,METADATA_TO_INCLUDE=$METADATA_TO_INCLUDE,DATASET_FILES_DIR=$DATASET_FILES_DIR,PATH_OR_URL_FLAIR_NER_MODEL=$PATH_OR_URL_FLAIR_NER_MODEL \
-        02_add_metadata_to_toy_c4_dataset.slurm | cut -d " " -f 4)
+        01_add_metadata_to_toy_c4_dataset.slurm | cut -d " " -f 4)
 
         echo "Launch jobid $ID_JOB3 to extract entity from $DATASET_FILES_DIR/$FILENAME and save to $OUT_DIR/$NEW_FILENAME"
     fi

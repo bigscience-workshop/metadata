@@ -24,7 +24,7 @@ class WebsiteDescUtils:
         try:
             text = self.wiki_dump_db.get_paragraphs(title)[0].text
         except KeyError:
-            # In case the title has not corresponding paragraph
+            # If the title does not have a corresponding paragraph
             return None
 
         text = re.sub(r"\((?:[^)(]|\([^)(]*\))*\)", "", text)

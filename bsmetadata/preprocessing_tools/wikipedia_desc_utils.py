@@ -24,10 +24,12 @@ class WikipediaDescUtils:
     def fetch_wikipedia_description_for_title(self, title: str) -> Optional:
         try:
             text = self.wiki_dump_db.get_paragraphs(title)[0].text
-            text = re.sub(r"\((?:[^)(]|\([^)(]*\))*\)", "", text)
-            text = nltk.sent_tokenize(text)[0]  # Picking the first sentence
-        except Exception:
+        except KeyError:
+            # If the title does not have a corresponding paragraph
             return None
+
+        text = re.sub(r"\((?:[^)(]|\([^)(]*\))*\)", "", text)
+        text = nltk.sent_tokenize(text)[0]  # Picking the first sentence
         return text
 
     def extract_wiki_desc(self, keyword: str) -> Optional:
@@ -48,10 +50,10 @@ class WikipediaDescUtils:
             text = self.wiki_dump_db.get_paragraphs(key)[0].text
             text = re.sub(r"\((?:[^)(]|\([^)(]*\))*\)", "", text)
             text = nltk.sent_tokenize(text)[0]
-        except Exception:
+        except KeyError:
             try:
                 text = self.wiki_dump_db.get_paragraphs(self.redirects_map[keyword])[0].text
                 text = nltk.tokenize.sent_tokenize(text)[0]
-            except Exception:
+            except KeyError:
                 text = ""
         return text

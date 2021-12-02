@@ -21,7 +21,9 @@ source $HOME/start-modelling-metadata-user
 
 cd $WORK/repos/sync/metadata/
 
+# We are on an offline partition
 export FLAIR_CACHE_ROOT=$SCRATCH/cache_dir/flair
+export HF_DATASETS_OFFLINE=1
 
 echo "Args:"
 echo "    file_name=$FILENAME"

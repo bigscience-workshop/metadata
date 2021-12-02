@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=modelling-metadata-website-desc-create-dataset-25k  # job name
+#SBATCH --job-name=modelling-metadata-test-database-download           # job name
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1                                            # crucial - only 1 task per dist per node!
 #SBATCH --cpus-per-task=20                                             # number of cores per tasks
@@ -24,5 +24,5 @@ cd $WORK/repos/sync/metadata/
 
 # Now we launch the script that will perform the preprocessing of the dataset
 # Feel free to add any arguments you like (change me!)
-python experiments/jz/toy_experiments/dumpdb.py \
-    --path-to-dump "${SCRATCH}/tmp/en_wiki_new.db"
+python experiments/jz/toy_experiments/dumpdb/dumpdb.py \
+    --path-to-dump "${SCRATCH}/modeling-metadata-artefacts/wiki_en_dump.db"

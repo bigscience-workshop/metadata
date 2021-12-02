@@ -51,8 +51,8 @@ class WikipediaDescUtils:
         text = nltk.sent_tokenize(text)[0]
 
         if text is None:
-            title = self.redirects_map[keyword]
-            text = self.fetch_wikipedia_description_for_title(title)
+            text = self.wiki_dump_db.get_paragraphs(self.redirects_map[keyword])[0].text
+            text = nltk.tokenize.sent_tokenize(text)[0]
 
         if text is None:
             text = ""

@@ -25,7 +25,7 @@ from REL.ner import load_flair_ner
 from REL.utils import process_results
 
 from bsmetadata.preprocessing_tools import html_parser
-from bsmetadata.preprocessing_tools.website_desc_utils import WebsiteDescUtils
+from bsmetadata.preprocessing_tools.wikipedia_desc_utils import WikipediaDescUtils
 
 
 def get_path_from_url(url):
@@ -140,7 +140,7 @@ class WebsiteDescPreprocessor(MetadataPreprocessor):
     """Metadata preprocessor for adding website description based on URLs."""
 
     def __init__(self, path_wiki_db: str = "../preprocessing_data/wiki_dump/wiki_en_dump_db") -> None:
-        self.website_utils = WebsiteDescUtils(path_wiki_db)
+        self.website_utils = WikipediaDescUtils(path_wiki_db)
         super().__init__()
 
     def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
@@ -171,7 +171,9 @@ class WebsiteDescPreprocessor(MetadataPreprocessor):
 class EntityPreprocessor(MetadataPreprocessor):
     """Metadata preprocessor for adding entity information."""
 
-    def __init__(self, base_url):
+    def __init__(self, base_url, path_wiki_db):
+        self.wiki_db_path = path_wiki_db
+        self.entity_utils = WikipediaDescUtils(path_wiki_db)
         self.base_url = base_url
         self.wiki_version = "wiki_2019"
         self.mention_detection = MentionDetection(self.base_url, self.wiki_version)
@@ -181,6 +183,7 @@ class EntityPreprocessor(MetadataPreprocessor):
             "model_path": "ed-wiki-2019",
         }
         self.model = EntityDisambiguation(self.base_url, self.wiki_version, self.config)
+        super().__init__()
 
     def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
 
@@ -204,6 +207,7 @@ class EntityPreprocessor(MetadataPreprocessor):
         entities = []
         for ent in range(len(resu_list)):
             entity = resu_list[ent][3]  # element at index = 3 in the result list corresponds to the predicted entity
+            ent_desc = self._extract_desc_from_entity(entity)  # single sentence description of the entity
             en = {
                 "key": "entity",
                 "type": "local",
@@ -214,9 +218,16 @@ class EntityPreprocessor(MetadataPreprocessor):
                     resu_list[ent][0] + resu_list[ent][1]
                 ),  # element at index = 1 in the result list corresponds to length of the entity
                 "value": entity,
+                "ent_desc": ent_desc,
             }
             entities.append(en)
         return entities
+
+    def _extract_desc_from_entity(self, keyword: str) -> Optional:
+        key = keyword
+        key = key.lower()
+        key = key.replace("_", " ")
+        return self.entity_utils.fetch_entity_description_from_keyword(key)
 
     def preprocess_example(self, text: str) -> Optional:
         id_ = uuid.uuid4().hex.upper()[0:6]

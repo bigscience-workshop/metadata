@@ -13,7 +13,6 @@
 """
 This script provides functions for adding different kinds of metadata to a pretraining corpus.
 """
-import uuid
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional
 from urllib.parse import unquote, urlsplit

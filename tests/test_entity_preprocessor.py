@@ -9,21 +9,23 @@ class TestEntityPreprocessor(unittest.TestCase):
     def test_extract_entities(self):
 
         my_dict = {
-            "id": [0, 1, 2],
+            "id": [0, 1, 2, 3],
             "text": [
                 "Paris is the beautiful place to visit",
                 "This Friday, Obama and Merkel will be meeting to discuss on issues related to climate change",
                 "Bieber performed at the concert last night",
+                "He was playing a game",
             ],
-            "metadata": [[], [], []],
+            "metadata": [[], [], [], []],
         }  # toy dataset
 
-        target_id = [0, 1, 2]
+        target_id = [0, 1, 2, 3]
 
         target_text = [
             "Paris is the beautiful place to visit",
             "This Friday, Obama and Merkel will be meeting to discuss on issues related to climate change",
             "Bieber performed at the concert last night",
+            "He was playing a game",
         ]
 
         target_metadata = [
@@ -65,10 +67,11 @@ class TestEntityPreprocessor(unittest.TestCase):
                     "value": "Justin_Bieber",
                 }
             ],
+            [],
         ]
         processor = EntityPreprocessor(
-            "Enter the path to the folder having the files downloaded after running the bsmetadata\preprocessing_scripts\download_entity_processing_files.sh script",
-            "Enter the path where the wiki_en_dump.db file is located",
+            # "Enter the path to the folder having the files downloaded after running the bsmetadata\preprocessing_scripts\download_entity_processing_files.sh script",
+            # "Enter the path where the wiki_en_dump.db file is located",
         )
 
         ds = Dataset.from_dict(my_dict)

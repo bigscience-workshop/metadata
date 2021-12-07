@@ -45,16 +45,16 @@ class WikipediaDescUtils:
         return self.cache[keyword]
 
     def fetch_entity_description_from_keyword(self, keyword: str) -> str:
-        title = string.capwords(keyword)
-        text = self.wiki_dump_db.get_paragraphs(title)[0].text
-        text = re.sub(r"\((?:[^)(]|\([^)(]*\))*\)", "", text)
-        text = nltk.sent_tokenize(text)[0]
-
-        if text is None:
-            text = self.wiki_dump_db.get_paragraphs(self.redirects_map[keyword])[0].text
-            text = nltk.tokenize.sent_tokenize(text)[0]
-
-        if text is None:
-            text = ""
-
+        # try-catch block : incase the description in not found in the first try block, then it will throw KeyError
+        try:
+            title = string.capwords(keyword)
+            text = self.wiki_dump_db.get_paragraphs(title)[0].text
+            text = re.sub(r"\((?:[^)(]|\([^)(]*\))*\)", "", text)
+            text = nltk.sent_tokenize(text)[0]
+        except KeyError:
+            try:
+                text = self.wiki_dump_db.get_paragraphs(self.redirects_map[keyword])[0].text
+                text = nltk.tokenize.sent_tokenize(text)[0]
+            except KeyError:
+                text = ""
         return text

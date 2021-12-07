@@ -12,7 +12,7 @@ def mock_sent_tokenize(text):
 
 
 class WebsiteDescPreprocessorTester(unittest.TestCase):
-    @mock.patch("bsmetadata.preprocessing_tools.website_desc_utils.DumpDB")
+    @mock.patch("bsmetadata.preprocessing_tools.wikipedia_desc_utils.DumpDB")
     def setUp(self, mock_db) -> None:
         mock_db.return_value = MockDumpDB("some/path")
         self.website_processor = WebsiteDescPreprocessor()
@@ -29,7 +29,7 @@ class WebsiteDescPreprocessorTester(unittest.TestCase):
 
         self.example_dict = {"id": self.example_ids, "metadata": self.example_metadata, "text": self.example_text}
 
-    @mock.patch("bsmetadata.preprocessing_tools.website_desc_utils.nltk.sent_tokenize", new=mock_sent_tokenize)
+    @mock.patch("bsmetadata.preprocessing_tools.wikipedia_desc_utils.nltk.sent_tokenize", new=mock_sent_tokenize)
     def test_website_metadata_processor(self):
         ds = Dataset.from_dict(self.example_dict)
         ds = ds.map(lambda ex: self.website_processor.preprocess(ex), batched=True)

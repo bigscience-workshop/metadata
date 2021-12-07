@@ -5,8 +5,8 @@ from datasets import Dataset
 
 from bsmetadata.preprocessing_utils import GenerationLengthPreprocessor
 
-class TestGenerationLengthPreprocessor(unittest.TestCase):
 
+class TestGenerationLengthPreprocessor(unittest.TestCase):
     def test_text_length(self):
         my_dict = {
             "id": [0, 1, 2],
@@ -60,59 +60,17 @@ class TestGenerationLengthPreprocessor(unittest.TestCase):
 
         target_metadata = [
             [
-                {
-                    "key": "length", 
-                    "type": "local", 
-                    "char_start_idx": 0, 
-                    "char_end_idx": 37, 
-                    "value": "37"
-                }, 
-                {
-                    "key": "length", 
-                    "type": "local", 
-                    "char_start_idx": 37, 
-                    "char_end_idx": 85, 
-                    "value": "47"
-                }, 
-                {
-                    "key": "length", 
-                    "type": "local", 
-                    "char_start_idx": 85, 
-                    "char_end_idx": 129, 
-                    "value": "43"
-                }
+                {"key": "length", "type": "local", "char_start_idx": 0, "char_end_idx": 37, "value": "37"},
+                {"key": "length", "type": "local", "char_start_idx": 37, "char_end_idx": 85, "value": "47"},
+                {"key": "length", "type": "local", "char_start_idx": 85, "char_end_idx": 129, "value": "43"},
             ],
             [
-                {
-                    "key": "length", 
-                    "type": "local", 
-                    "char_start_idx": 0, 
-                    "char_end_idx": 46, 
-                    "value": "46"
-                }, 
-                {
-                    "key": "length", 
-                    "type": "local", 
-                    "char_start_idx": 46, 
-                    "char_end_idx": 90, 
-                    "value": "43"
-                }
+                {"key": "length", "type": "local", "char_start_idx": 0, "char_end_idx": 46, "value": "46"},
+                {"key": "length", "type": "local", "char_start_idx": 46, "char_end_idx": 90, "value": "43"},
             ],
             [
-                {
-                    "key": "length", 
-                    "type": "local", 
-                    "char_start_idx": 0, 
-                    "char_end_idx": 42, 
-                    "value": '42'
-                }, 
-                {
-                    "key": "length", 
-                    "type": "local", 
-                    "char_start_idx": 42, 
-                    "char_end_idx": 81, 
-                    "value": "38"
-                }
+                {"key": "length", "type": "local", "char_start_idx": 0, "char_end_idx": 42, "value": "42"},
+                {"key": "length", "type": "local", "char_start_idx": 42, "char_end_idx": 81, "value": "38"},
             ],
         ]
 
@@ -124,6 +82,7 @@ class TestGenerationLengthPreprocessor(unittest.TestCase):
         self.assertEqual(ds[:]["id"], target_id)
         self.assertEqual(ds[:]["text"], target_text)
         self.assertEqual(ds[:]["metadata"], target_metadata)
+
 
 if __name__ == "__main__":
     unittest.main()

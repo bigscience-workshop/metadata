@@ -5,6 +5,7 @@ from datasets import Dataset
 
 from bsmetadata.preprocessing_utils import DatasourcePreprocessor
 
+
 class TestDatasourcePreprocessor(unittest.TestCase):
     def test_extract_datasource(self):
         my_dict = {
@@ -38,6 +39,7 @@ class TestDatasourcePreprocessor(unittest.TestCase):
         self.assertEqual(ds[:]["id"], target_id)
         self.assertEqual(ds[:]["url"], target_url)
         self.assertEqual(ds[:]["metadata"], target_metadata)
+
 
 if __name__ == "__main__":
     unittest.main()

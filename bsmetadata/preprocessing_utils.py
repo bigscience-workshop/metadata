@@ -13,12 +13,10 @@
 """
 This script provides functions for adding different kinds of metadata to a pretraining corpus.
 """
-<<<<<<< HEAD
+
 import uuid
-=======
 import re
 import urllib
->>>>>>> datasource-example
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional
 from urllib.parse import unquote, urlparse, urlsplit
@@ -100,7 +98,6 @@ class TimestampPreprocessor(MetadataPreprocessor):
         return date
 
 
-<<<<<<< HEAD
 class HtmlPreprocessor(MetadataPreprocessor):
     """Metadata preprocessor for extracting metadata from html text.
 
@@ -247,7 +244,8 @@ class EntityPreprocessor(MetadataPreprocessor):
         predictions, timing = self.model.predict(mentions_dataset)
         result = process_results(mentions_dataset, predictions, input_text)
         return result
-=======
+
+
 class GenerationLengthPreprocessor(MetadataPreprocessor):
     """An exemplary metadata preprocessor for adding generation length information based on text."""
 
@@ -380,4 +378,3 @@ class DatasourcePreprocessor(MetadataPreprocessor):
             example_meta.append({"key": "datasource", "type": "global", "value": example_datasource})
 
         return examples
->>>>>>> datasource-example

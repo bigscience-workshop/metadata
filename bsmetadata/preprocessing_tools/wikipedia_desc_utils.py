@@ -49,7 +49,7 @@ class WikipediaDescUtils:
         title = string.capwords(keyword)
         text = self.fetch_wikipedia_description_for_title(title)
 
-        if text is None:
+        if text is None and keyword in self.redirects_map:
             title = self.redirects_map[keyword]
             text = self.fetch_wikipedia_description_for_title(title)
 

@@ -70,8 +70,8 @@ class TestEntityPreprocessor(unittest.TestCase):
             [],
         ]
         processor = EntityPreprocessor(
-            # "Enter the path to the folder having the files downloaded after running the bsmetadata\preprocessing_scripts\download_entity_processing_files.sh script",
-            # "Enter the path where the wiki_en_dump.db file is located",
+            "Enter the path to the folder having the files downloaded after running the bsmetadata\preprocessing_scripts\download_entity_processing_files.sh script",
+            "Enter the path where the wiki_en_dump.db file is located",
         )
 
         ds = Dataset.from_dict(my_dict)

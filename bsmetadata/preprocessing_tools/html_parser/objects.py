@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import Optional, OrderedDict
 
+from lxml.etree import Comment
+
 
 @dataclass
 class TagToRemove:
@@ -49,7 +51,8 @@ def convert_html_metadata_dataclass_to_dict(metadata: Metadata):
             "relative_end_pos": metadata.relative_end_pos,
             # The information about the HTML tag is separated into two keys because the dictionary must have a stable
             # format between the different types of metadata
-            "value": metadata.value.tag,
+            # the comment have a specific type that is not recognized by pyArrow when we load it in a dataset
+            "value": str(metadata.value.tag) if metadata.value.tag == Comment else metadata.value.tag,
             "html_attrs": metadata.value.attrs,
         }
     )

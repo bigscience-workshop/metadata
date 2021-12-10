@@ -14,14 +14,14 @@
 This script provides functions for adding different kinds of metadata to a pretraining corpus.
 """
 
-import uuid
 import re
 import urllib
+import uuid
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional
 from urllib.parse import unquote, urlparse, urlsplit
 
-from bs_dateutil.parser import ParserError, parse
+# from bs_dateutil.parser import ParserError, parse
 from REL.entity_disambiguation import EntityDisambiguation
 from REL.mention_detection import MentionDetection
 from REL.ner import load_flair_ner

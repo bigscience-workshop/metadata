@@ -30,5 +30,8 @@ setup(
     description="Codebase for including metadata (e.g., URLs, timestamps, HTML tags) during language model pretraining.",
     packages=find_packages(),
     install_requires=install_requires,
-    extras_require={"preprocessing": preprocessing_dependencies},
+    extras_require={
+        "preprocessing": preprocessing_dependencies,
+        "torch": "torch==1.9.0" # for Flair
+        },
 )

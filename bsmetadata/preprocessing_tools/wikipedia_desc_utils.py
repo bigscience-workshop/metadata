@@ -1,4 +1,5 @@
 import re
+import string
 from collections import defaultdict
 from typing import Optional
 
@@ -6,7 +7,7 @@ import nltk
 from wikipedia2vec.dump_db import DumpDB
 
 
-class WebsiteDescUtils:
+class WikipediaDescUtils:
     def __init__(self, path_wiki_db) -> None:
         self.cache = defaultdict(str)
         self.wiki_dump_db = DumpDB(path_wiki_db)
@@ -23,10 +24,12 @@ class WebsiteDescUtils:
     def fetch_wikipedia_description_for_title(self, title: str) -> Optional:
         try:
             text = self.wiki_dump_db.get_paragraphs(title)[0].text
-            text = re.sub(r"\((?:[^)(]|\([^)(]*\))*\)", "", text)
-            text = nltk.sent_tokenize(text)[0]  # Picking the first sentence
-        except Exception:
+        except KeyError:
+            # If the title does not have a corresponding paragraph
             return None
+
+        text = re.sub(r"\((?:[^)(]|\([^)(]*\))*\)", "", text)
+        text = nltk.sent_tokenize(text)[0]  # Picking the first sentence
         return text
 
     def extract_wiki_desc(self, keyword: str) -> Optional:
@@ -40,3 +43,17 @@ class WebsiteDescUtils:
             self.cache[keyword] = self.extract_wiki_desc(keyword)
 
         return self.cache[keyword]
+
+    def fetch_entity_description_from_keyword(self, keyword: str) -> str:
+
+        title = string.capwords(keyword)
+        text = self.fetch_wikipedia_description_for_title(title)
+
+        if text is None and keyword in self.redirects_map:
+            title = self.redirects_map[keyword]
+            text = self.fetch_wikipedia_description_for_title(title)
+
+        if text is None:
+            text = ""
+
+        return text

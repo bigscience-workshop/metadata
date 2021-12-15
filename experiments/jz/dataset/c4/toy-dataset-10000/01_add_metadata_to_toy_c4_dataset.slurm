@@ -45,8 +45,7 @@ python experiments/jz/dataset/c4/python_scripts/add_metadata.py \
     dataset_name=$DATASET_FILES_DIR \
     metadata_to_include=$METADATA_TO_INCLUDE \
     path_or_url_flair_ner_model=$PATH_OR_URL_FLAIR_NER_MODEL \
-    map_batch_size=100 \
-    preprocessing_num_workers=8
+    map_batch_size=$MAP_BATCH_SIZE
 
 gzip $OUT_DIR/$NEW_FILENAME
 

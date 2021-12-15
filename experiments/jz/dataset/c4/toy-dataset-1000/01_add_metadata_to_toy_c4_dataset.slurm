@@ -26,6 +26,7 @@ export FLAIR_CACHE_ROOT=$SCRATCH/cache_dir/flair
 export HF_DATASETS_OFFLINE=1
 # be careful about the cache folder for Wandb
 export WANDB_MODE=offline
+export WANDB_DIR=$SCRATCH
 
 echo "Args:"
 echo "    file_name=$FILENAME"

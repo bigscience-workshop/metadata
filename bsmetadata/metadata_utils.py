@@ -124,6 +124,33 @@ def add_metadata_and_chunk_examples(
     return linearized_examples
 
 
+def get_metadata_types(metadata_list):
+    return list(set(m["key"] for m in metadata_list))
+
+
+def random_drop_metadata(
+    examples: Dict[str, List],
+) -> Dict[str, List]:
+    """Randomly drop some of the metadata from the provided examples.
+    Uniformly decide the number of metadata to keep. And drop the metadata uniformly.
+
+    Args:
+        examples: The examples to process, with required keys "text" and "metadata".
+
+    Returns:
+        A new (potentially larger) collection of examples
+    """
+    new_metadata = []
+    for example_metadata_list in examples["metadata"]:
+        metadata_types = get_metadata_types(example_metadata_list)
+        num_metadata_to_keep = random.randint(0, len(metadata_types))
+        random.shuffle(metadata_types)
+        metadata_types = metadata_types[:num_metadata_to_keep]
+        new_metadata.append([m for m in example_metadata_list if m["key"] in metadata_types])
+    examples["metadata"] = new_metadata
+    return examples
+
+
 def create_metadata_prefix(example: Dict[str, Any], cfg: MetadataConfig) -> str:
     """Creates a prefix containing all global metadata information (including URLs, timestamps, etc)
     and/or local metadata special tokens

@@ -24,6 +24,8 @@ cd $WORK/repos/sync/metadata/
 # We are on an offline partition
 export FLAIR_CACHE_ROOT=$SCRATCH/cache_dir/flair
 export HF_DATASETS_OFFLINE=1
+# be careful about the cache folder for Wandb
+export WANDB_MODE=offline
 
 echo "Args:"
 echo "    file_name=$FILENAME"
@@ -37,7 +39,7 @@ python experiments/jz/dataset/c4/python_scripts/add_metadata.py \
     file_name=$FILENAME \
     out_file_name=$NEW_FILENAME \
     out_dir=$OUT_DIR \
-    website_desc_path_wiki_db=$SCRATCH/modeling-metadata-artefacts/wiki_en_dump.db \
+    path_wiki_db=$SCRATCH/modeling-metadata-artefacts/wiki_en_dump.db \
     entity_path_data_dir=$SCRATCH/modeling-metadata-artefacts/entity_preprocessing \
     dataset_name=$DATASET_FILES_DIR \
     metadata_to_include=$METADATA_TO_INCLUDE \

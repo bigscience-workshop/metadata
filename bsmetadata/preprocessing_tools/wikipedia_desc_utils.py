@@ -23,11 +23,15 @@ class WikipediaDescUtils:
 
     def fetch_wikipedia_description_for_title(self, title: str) -> Optional:
         try:
-            text = self.wiki_dump_db.get_paragraphs(title)[0].text
+            paragraphs = self.wiki_dump_db.get_paragraphs(title)
         except KeyError:
             # If the title does not have a corresponding paragraph
             return None
+        if len(paragraphs) == 0:
+            # If there is no corresponding paragraphs
+            return None
 
+        text = paragraphs[0].text
         text = re.sub(r"\((?:[^)(]|\([^)(]*\))*\)", "", text)
         text = nltk.sent_tokenize(text)[0]  # Picking the first sentence
         return text

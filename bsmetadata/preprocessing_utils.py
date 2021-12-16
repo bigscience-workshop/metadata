@@ -17,6 +17,7 @@ from abc import ABC, abstractmethod
 from typing import Dict, List, Optional, Any, Tuple
 from urllib.parse import unquote, urlsplit
 import copy
+import logging
 from bs_dateutil.parser import ParserError, parse
 from REL.entity_disambiguation import EntityDisambiguation
 from REL.mention_detection import MentionDetection
@@ -26,6 +27,7 @@ from REL.utils import process_results
 from bsmetadata.preprocessing_tools import html_parser
 from bsmetadata.preprocessing_tools.wikipedia_desc_utils import WikipediaDescUtils
 
+logger = logging.getLogger(__name__)
 
 def get_path_from_url(url):
     """get the `path` part of `url`, with %xx escapes replaced by their single-character equivalent"""
@@ -240,9 +242,10 @@ class EntityPreprocessor(
         return examples
 
 class ErrorWrapperPreprocessor:
-    def __init__(self, metadata_preprocessor: MetadataPreprocessor, output_keys: Dict[str, Any]) -> None:
+    def __init__(self, metadata_preprocessor: MetadataPreprocessor, output_keys: Dict[str, Any], verbose:bool=True) -> None:
         self.metadata_preprocessor = metadata_preprocessor
         self.output_keys = output_keys
+        self.verbose = verbose
 
         self.error_column_name = f"{type(metadata_preprocessor).__name__}_error"
         self.error_comment_column_name = f"{type(metadata_preprocessor).__name__}_error_comment"
@@ -297,4 +300,6 @@ class ErrorWrapperPreprocessor:
                     processed_examples[self.error_column_name].append(1)
                     processed_examples[self.error_comment_column_name].append(str(e))
                     num_errors += 1
-        return processed_examples, num_errors
+        if self.verbose:
+            logger.warning(f"{num_errors} errors occurred during the preprocessing")
+        return processed_examples

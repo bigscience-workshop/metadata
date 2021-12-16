@@ -14,9 +14,9 @@
 This script provides functions for adding different kinds of metadata to a pretraining corpus.
 """
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any, Tuple
 from urllib.parse import unquote, urlsplit
-
+import copy
 from bs_dateutil.parser import ParserError, parse
 from REL.entity_disambiguation import EntityDisambiguation
 from REL.mention_detection import MentionDetection
@@ -238,3 +238,63 @@ class EntityPreprocessor(
                     example_metadata.append(en)
             continue
         return examples
+
+class ErrorWrapperPreprocessor:
+    def __init__(self, metadata_preprocessor: MetadataPreprocessor, output_keys: Dict[str, Any]) -> None:
+        self.metadata_preprocessor = metadata_preprocessor
+        self.output_keys = output_keys
+
+        self.error_column_name = f"{type(metadata_preprocessor).__name__}_error"
+        self.error_comment_column_name = f"{type(metadata_preprocessor).__name__}_error_comment"
+
+    def preprocess(self, examples: Dict[str, List]) -> Tuple[Dict[str, List], int]:
+        """Process a batch of examples and add or extract corresponding metadata."""
+        num_errors = 0
+
+        metadata_list_backup = copy.deepcopy(examples["metadata"])
+        try:
+            processed_examples = self.metadata_preprocessor.preprocess(examples=examples)
+
+            random_key = list(processed_examples)[0]
+            num_examples = len(processed_examples[random_key])
+            if self.error_column_name not in processed_examples:
+                processed_examples[self.error_column_name] = [0 for _ in range(num_examples)]
+
+            if self.error_comment_column_name not in processed_examples:
+                processed_examples[self.error_comment_column_name] = ["" for _ in range(num_examples)]
+        except:
+            # we try the example one by one to find the culprit(s) and strore the error
+            processed_examples = {
+                key: []
+                for key in list(self.output_keys.keys()) + [self.error_column_name, self.error_comment_column_name]
+            }
+
+            examples["metadata"] = copy.deepcopy(metadata_list_backup)
+
+            random_key = list(examples)[0]
+            for idx in range(len(examples[random_key])):
+                example = {key: [values[idx]] for key, values in examples.items()}
+                try:
+                    processed_example = self.metadata_preprocessor.preprocess(examples=example)
+
+                    for key, value in processed_example.items():
+                        processed_examples[key].append(value[0])
+
+                    processed_examples[self.error_column_name].append(0)
+                    processed_examples[self.error_comment_column_name].append("")
+                except Exception as e:
+                    for output_key in self.output_keys.keys():
+                        if output_key == "metadata":
+                            # We keep the initial value
+                            processed_examples[output_key].append(metadata_list_backup[idx])
+                        elif output_key in example:
+                            # We keep the initial value
+                            processed_examples[output_key].append(example[output_key][0])
+                        else:
+                            # We use the default value
+                            processed_examples[output_key].append(self.output_keys[output_key])
+
+                    processed_examples[self.error_column_name].append(1)
+                    processed_examples[self.error_comment_column_name].append(str(e))
+                    num_errors += 1
+        return processed_examples, num_errors

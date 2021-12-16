@@ -14,7 +14,7 @@
 This script provides functions for adding different kinds of metadata to a pretraining corpus.
 """
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 from urllib.parse import unquote, urlsplit
 
 from bs_dateutil.parser import ParserError, parse
@@ -116,14 +116,11 @@ class HtmlPreprocessor(MetadataPreprocessor):
         ]
 
         new_texts = []
-        error_list = []
-        error_comment_list = []
-
         for example_doc_html, example_metadata in zip(
             examples[self.name_html_column], examples["metadata"]
         ):  # if metadata already exists
 
-            plain_text, metadata, error, error_comment = html_parser.get_clean_text_and_metadata(
+            plain_text, metadata = html_parser.get_clean_text_and_metadata(
                 example_doc_html,
                 tags_to_remove_with_content=tags_to_remove_with_content,
                 consecutive_tags_to_fold=["div"],
@@ -133,12 +130,8 @@ class HtmlPreprocessor(MetadataPreprocessor):
             example_metadata.extend(
                 [html_parser.objects.convert_html_metadata_dataclass_to_dict(node) for node in metadata]
             )
-            error_list.append(error)
-            error_comment_list.append(error_comment)
 
         examples["texts"] = new_texts
-        examples["HtmlPreprocessor_error"] = error_list
-        examples["HtmlPreprocessor_error_comment"] = error_comment_list
         return examples
 
 

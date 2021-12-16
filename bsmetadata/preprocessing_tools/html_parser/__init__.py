@@ -33,4 +33,13 @@ def get_clean_text_and_metadata(
         txt_min_chr_len_with_content=txt_min_chr_len_with_content,
         tags_exceptions_to_txt_max_min_chr_len_with_content=tags_exceptions_to_txt_max_min_chr_len_with_content,
     )
-    return text_and_metadata_cleaner.apply()
+
+
+    try:
+        plain_text, metadata = text_and_metadata_cleaner.apply()
+    except ValueError as e:
+        # the html string can't be recognized as an HTML (the doc might be XML? wrong encoding?)
+        # Unfortunately, I didn't found a feature to check the doctype and would allow to avoid this try/catch
+        return "", [], 1, str(e)
+
+    return plain_text, metadata, 0, ""

@@ -304,6 +304,7 @@ class TextAndMetadataCleaner:
                     f"You have asked to start parsing at the {self.start_parsing_at_tag} tag but the current example "
                     "does not contain this tag"
                 )
+                return "", []
             new_etree = matches[0]
 
             html_str = etree.tostring(new_etree, method="html", encoding="UTF-8", pretty_print=False).decode("UTF-8")

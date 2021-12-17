@@ -20,6 +20,7 @@ from bsmetadata.preprocessing_tools.html_parser.variables import (
 
 logger = logging.getLogger(__name__)
 
+
 class AttributeCleaner:
     def __init__(self, attrs_to_keep: Optional[List[str]]):
         self.attrs_to_keep = attrs_to_keep
@@ -292,11 +293,17 @@ class TextAndMetadataCleaner:
             tags_to_remove_with_content=tags_to_remove_with_content,
         )
 
+    @profile
     def apply(self):
         html_str = self.html_str
         # Traitement n°1: start the parsing at a special tags (mostly tested with <body>)
         if self.start_parsing_at_tag is not None:
-            root = fromstring(html_str)
+            try:
+                root = fromstring(html_str)
+            except ValueError:
+                # this is not a valid HTML (begin probably with <?xml version="1.0")
+                logger.warning(f"This example wasn't parsed: invalid HTML")
+                return "", []
             find = etree.XPath(f"//{self.start_parsing_at_tag}")
             matches = find(root)
             if len(matches) == 0:

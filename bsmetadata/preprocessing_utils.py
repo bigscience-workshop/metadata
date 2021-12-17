@@ -71,6 +71,7 @@ class MetadataPreprocessor(ABC):
 class TimestampPreprocessor(MetadataPreprocessor):
     """An exemplary metadata preprocessor for adding timestamp information based on URLs."""
 
+    @profile
     def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
 
         example_metadata_list = examples["metadata"]
@@ -110,6 +111,7 @@ class HtmlPreprocessor(MetadataPreprocessor):
         self.name_html_column = name_html_column
         super().__init__()
 
+    @profile
     def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
         tags_to_remove_with_content = [
             html_parser.objects.TagToRemoveWithContent(tag="script"),
@@ -118,12 +120,19 @@ class HtmlPreprocessor(MetadataPreprocessor):
             html_parser.objects.TagToRemoveWithContent(tag="iframe"),
             html_parser.objects.TagToRemoveWithContent(tag="footer"),  # copyright in footer
             html_parser.objects.TagToRemoveWithContent(tag="form"),
+            html_parser.objects.TagToRemoveWithContent(tag="body", content_max_char_length=64),
+            html_parser.objects.TagToRemoveWithContent(tag="div", content_max_char_length=64),
+            html_parser.objects.TagToRemoveWithContent(tag="p", content_max_char_length=64),
+            html_parser.objects.TagToRemoveWithContent(tag="section", content_max_char_length=64),
+            html_parser.objects.TagToRemoveWithContent(tag="table", content_max_char_length=64),
+            html_parser.objects.TagToRemoveWithContent(tag="ul", content_max_char_length=64),
+            html_parser.objects.TagToRemoveWithContent(tag="ol", content_max_char_length=64),
+            html_parser.objects.TagToRemoveWithContent(tag="dl", content_max_char_length=64),
         ]
 
         new_texts = []
-        for example_doc_html, example_metadata in zip(
-            examples[self.name_html_column], examples["metadata"]
-        ):  # if metadata already exists
+        new_metadata = []
+        for idx, example_doc_html in enumerate(examples[self.name_html_column]):  # if metadata already exists
 
             plain_text, metadata = html_parser.get_clean_text_and_metadata(
                 example_doc_html,
@@ -131,12 +140,15 @@ class HtmlPreprocessor(MetadataPreprocessor):
                 consecutive_tags_to_fold=["div"],
                 convert_br_tag_to_breaking_line=True,
             )
+            if metadata == []:  # to delete
+                print(f"bad url: {examples['url'][idx]}")
             new_texts.append(plain_text)
-            example_metadata.extend(
+            new_metadata.append(
                 [html_parser.objects.convert_html_metadata_dataclass_to_dict(node) for node in metadata]
             )
 
-        examples["texts"] = new_texts
+        examples["text"] = new_texts
+        examples["metadata_html"] = new_metadata
         return examples
 
 
@@ -147,6 +159,7 @@ class WebsiteDescPreprocessor(MetadataPreprocessor):
         self.website_utils = WikipediaDescUtils(path_wiki_db)
         super().__init__()
 
+    @profile
     def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
 
         metadata_list = examples["metadata"]
@@ -217,6 +230,7 @@ class EntityPreprocessor(
         key = key.replace("_", " ")
         return self.entity_utils.fetch_entity_description_from_keyword(key)
 
+    @profile
     def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
         # process all the examples in a particular batch and all the metadata extracted for entities for those examples
 
@@ -256,11 +270,12 @@ class ErrorWrapperPreprocessor:
         self.error_column_name = f"{type(metadata_preprocessor).__name__}_error"
         self.error_comment_column_name = f"{type(metadata_preprocessor).__name__}_error_comment"
 
+    @profile
     def preprocess(self, examples: Dict[str, List]) -> Tuple[Dict[str, List], int]:
         """Process a batch of examples and add or extract corresponding metadata."""
         num_errors = 0
-
-        metadata_list_backup = copy.deepcopy(examples["metadata"])
+        bad_urls = []
+        # metadata_list_backup = copy.deepcopy(examples["metadata"]) # todo
         try:
             processed_examples = self.metadata_preprocessor.preprocess(examples=examples)
 
@@ -278,7 +293,7 @@ class ErrorWrapperPreprocessor:
                 for key in list(self.output_keys.keys()) + [self.error_column_name, self.error_comment_column_name]
             }
 
-            examples["metadata"] = copy.deepcopy(metadata_list_backup)
+            # examples["metadata"] = copy.deepcopy(metadata_list_backup) # todo
 
             random_key = list(examples)[0]
             for idx in range(len(examples[random_key])):
@@ -293,10 +308,10 @@ class ErrorWrapperPreprocessor:
                     processed_examples[self.error_comment_column_name].append("")
                 except Exception as e:
                     for output_key in self.output_keys.keys():
-                        if output_key == "metadata":
-                            # We keep the initial value
-                            processed_examples[output_key].append(metadata_list_backup[idx])
-                        elif output_key in example:
+                        # if output_key == "metadata":
+                        #     # We keep the initial value
+                        #     processed_examples[output_key].append(metadata_list_backup[idx]) # todo
+                        if output_key in example:
                             # We keep the initial value
                             processed_examples[output_key].append(example[output_key][0])
                         else:

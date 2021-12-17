@@ -1,6 +1,6 @@
 DATASET_FILES_DIR_INIT=$SCRATCH/new_dataset/c4-en-reduced-10000
 
-PROCESS_DIR=$SCRATCH/new_dataset/c4-en-reduced-in-progess-10000-v3
+PROCESS_DIR=$SCRATCH/new_dataset/c4-en-reduced-in-progess-10000-v5
 OUT_DIR_0=$PROCESS_DIR/c4-en-reduced-with-metadata-url
 OUT_DIR_1=$PROCESS_DIR/c4-en-reduced-with-metadata-url-timestamp
 OUT_DIR_2=$PROCESS_DIR/c4-en-reduced-with-metadata-url-timestamp-website_description
@@ -12,7 +12,7 @@ mkdir $OUT_DIR_1
 mkdir $OUT_DIR_2
 mkdir $OUT_DIR_3
 
-MAP_BATCH_SIZE=1000
+MAP_BATCH_SIZE=1
 
 PATH_OR_URL_FLAIR_NER_MODEL=$SCRATCH/cache_dir/flair/ner-fast/en-ner-fast-conll03-v0.4.pt
 

@@ -5,13 +5,19 @@ from dataclasses import dataclass, field
 from functools import partial
 from typing import Dict, List, Optional
 
-import wandb
 import hydra
+import wandb
 from datasets import config, load_dataset
 from hydra.core.config_store import ConfigStore
 from omegaconf import OmegaConf
 
-from bsmetadata.preprocessing_utils import EntityPreprocessor, TimestampPreprocessor, WebsiteDescPreprocessor
+from bsmetadata.preprocessing_utils import (
+    EntityPreprocessor,
+    TimestampPreprocessor,
+    WebsiteDescPreprocessor,
+    HtmlPreprocessor,
+    ErrorWrapperPreprocessor,
+)
 from bsmetadata.train import show_help
 
 
@@ -62,15 +68,17 @@ class PreprocessingConfig:
     )
     project_name: str = field(default="metadata_lm_exploration", metadata={"help": "The project name."})
 
+
 class Logger:
     def __init__(self, *args, **kwargs):
-            self.run = wandb.init(*args, **kwargs)
+        self.run = wandb.init(*args, **kwargs)
 
     def log(self, dic):
-            wandb.log(dic)
+        wandb.log(dic)
 
     def close(self):
-            wandb.finish()
+        wandb.finish()
+
 
 cs = ConfigStore.instance()
 cs.store(name="preprocessing_config", node=PreprocessingConfig)
@@ -80,17 +88,15 @@ def add_url_as_metadata(examples: Dict[str, List], column_name_url: str = "url")
 
     example_url_list = examples[column_name_url]
     example_metadata = []
-    example_urls = []
 
     for example_url in example_url_list:
         example_metadata.append([{"key": "url", "type": "global", "value": example_url}])
-        example_urls.append(example_url)
-        
+
     examples["metadata"] = example_metadata
-    examples["id"] = example_urls # to change
+    examples["id"] = example_url_list  # to change
     return examples
 
-
+@profile
 @hydra.main(config_name="preprocessing_config")
 def main(args: PreprocessingConfig) -> None:
     data_files = {"file": args.file_name}
@@ -120,13 +126,46 @@ def main(args: PreprocessingConfig) -> None:
         cache_dir=args.cache_dir,
         keep_in_memory=False,
         download_mode="force_redownload",
+        split="file[0:1000]"
     )
     metrics_logger.log({"load_dataset": 1})
+    logger.info(f"Dataset loaded :{raw_datasets}")
 
     if "url" in args.metadata_to_include:
         metrics_logger.log({"add_url_as_metadata": 0})
         raw_datasets = raw_datasets.map(partial(add_url_as_metadata, column_name_url="url"), batched=True)
         metrics_logger.log({"add_url_as_metadata": 1})
+
+    if "html" in args.metadata_to_include:
+        html_preprocessor = HtmlPreprocessor(name_html_column="html")
+        output_keys = {
+            "metadata": [],
+            "metadata_html": [],
+            "html": "",
+            "text": "",
+            "timestamp": 0,
+            "id": "",
+            "url": "",
+        }
+        # for col_name in raw_datasets["file"].features.keys():
+        #     if col_name not in output_keys:
+        #         output_keys[col_name] = None
+
+        error_wrapper_preprocessor = ErrorWrapperPreprocessor(
+            metadata_preprocessor=html_preprocessor, output_keys=output_keys
+        )
+
+        logger.info("Start HTML preprocessing")
+        metrics_logger.log({"html_preprocessor": 0})
+        raw_datasets = raw_datasets.map(
+            error_wrapper_preprocessor.preprocess,
+            batched=True,
+            num_proc=args.preprocessing_num_workers,
+            load_from_cache_file=not args.overwrite_cache,
+            desc="Running html_preprocessor on dataset",
+            batch_size=args.map_batch_size,
+        )
+        metrics_logger.log({"html_preprocessor": 1})
 
     if "timestamp" in args.metadata_to_include:
         timestamp_preprocessor = TimestampPreprocessor()
@@ -159,7 +198,9 @@ def main(args: PreprocessingConfig) -> None:
     if "entity" in args.metadata_to_include:
         logger.info("Start entity preprocessing")
         entity_preprocessing = EntityPreprocessor(
-            base_url=args.entity_path_data_dir, path_wiki_db=args.path_wiki_db, path_or_url_flair_ner_model=args.path_or_url_flair_ner_model
+            base_url=args.entity_path_data_dir,
+            path_wiki_db=args.path_wiki_db,
+            path_or_url_flair_ner_model=args.path_or_url_flair_ner_model,
         )
         metrics_logger.log({"entity_preprocessing": 0})
         raw_datasets = raw_datasets.map(
@@ -174,7 +215,7 @@ def main(args: PreprocessingConfig) -> None:
 
     saving_path = os.path.join(args.out_dir, args.out_file_name)
     logger.info(f"Save resulting dataset at {saving_path}")
-    raw_datasets["file"].to_json(saving_path)
+    raw_datasets.to_json(saving_path)
     metrics_logger.close()
 
 

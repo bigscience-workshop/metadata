@@ -186,7 +186,7 @@ class HtmlPreprocessorTester(unittest.TestCase):
         ds = Dataset.from_dict(my_dict)
         ds = ds.map(lambda ex: self.html_processor.preprocess(ex), batched=True, batch_size=3)
 
-        self.assertEqual(ds[:]["texts"], target_texts)
+        self.assertEqual(ds[:]["text"], target_texts)
         self.assertEqual(ds[:]["metadata"], target_metadata)
 
 
@@ -199,22 +199,23 @@ class ErrorWrapperPreprocessorTester(unittest.TestCase):
                 example_metadata_list = examples["metadata"]
                 example_url_list = examples["urls"]
                 new_column = []
-
-                print(example_metadata_list, example_url_list)
+                new_metadata_lst = []
 
                 # Iterate through the metadata associated with all examples in this batch.
                 for example_metadata, example_url in zip(example_metadata_list, example_url_list):
-                    example_metadata.append({"key": "toy", "type": "global", "value": 2})
+                    new_metadata_lst.append([{"key": "toy_new", "type": "global", "value": 2}])
                     if example_url == 1:
                         raise ValueError("this is an error")
                     new_column.append(True)
 
                 examples["new_col"] = new_column
+                examples["new_metadata"] = new_metadata_lst
                 return examples
 
         toy_metadata_preprocessor = ToyMetadataPreprocessor()
         error_wrapper_preprocessor = ErrorWrapperPreprocessor(
-            metadata_preprocessor=toy_metadata_preprocessor, output_keys={"metadata": [], "urls": 10, "new_col": False}
+            metadata_preprocessor=toy_metadata_preprocessor,
+            output_keys={"metadata": [], "new_metadata": [], "urls": 10, "new_col": False},
         )
 
         examples = {
@@ -222,15 +223,16 @@ class ErrorWrapperPreprocessorTester(unittest.TestCase):
             "urls": [0, 0, 0],
         }
 
-        examples_preprocessed, num_errors = error_wrapper_preprocessor.preprocess(examples)
+        examples_preprocessed = error_wrapper_preprocessor.preprocess(examples)
+        print(examples_preprocessed)
+        print("\n***\n")
         assert examples_preprocessed["ToyMetadataPreprocessor_error"] == [0, 0, 0]
         assert examples_preprocessed["ToyMetadataPreprocessor_error_comment"] == ["", "", ""]
-        assert examples_preprocessed["metadata"] == [
-            [{"key": "toy", "type": "global", "value": 2}],
-            [{"key": "toy", "type": "global", "value": 2}],
-            [{"key": "toy_before", "type": "global", "value": 1}, {"key": "toy", "type": "global", "value": 2}],
+        assert examples_preprocessed["new_metadata"] == [
+            [{"key": "toy_new", "type": "global", "value": 2}],
+            [{"key": "toy_new", "type": "global", "value": 2}],
+            [{"key": "toy_new", "type": "global", "value": 2}],
         ]
-        assert num_errors == 0
 
         # Bad apple in the batch
         examples = {
@@ -238,18 +240,17 @@ class ErrorWrapperPreprocessorTester(unittest.TestCase):
             "urls": [0, 0, 1],
         }
 
-        examples_preprocessed, num_errors = error_wrapper_preprocessor.preprocess(examples)
+        examples_preprocessed = error_wrapper_preprocessor.preprocess(examples)
+
+        print(examples_preprocessed)
 
         assert examples_preprocessed["ToyMetadataPreprocessor_error"] == [0, 0, 1]
         assert examples_preprocessed["ToyMetadataPreprocessor_error_comment"] == ["", "", "this is an error"]
-        assert examples_preprocessed["metadata"] == [
-            [{"key": "toy", "type": "global", "value": 2}],
-            [{"key": "toy", "type": "global", "value": 2}],
-            [{"key": "toy_before", "type": "global", "value": 1}],
+        assert examples_preprocessed["new_metadata"] == [
+            [{"key": "toy_new", "type": "global", "value": 2}],
+            [{"key": "toy_new", "type": "global", "value": 2}],
+            [],
         ]
-        assert num_errors == 1
-
-
 
 
 if __name__ == "__main__":

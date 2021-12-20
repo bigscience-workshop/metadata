@@ -132,13 +132,13 @@ def random_drop_metadata(
     examples: Dict[str, List],
 ) -> Dict[str, List]:
     """Randomly drop some of the metadata from the provided examples.
-    Uniformly decide the number of metadata to keep. And drop the metadata uniformly.
+    Uniformly decide the number of metadata types to keep. And drop the metadata uniformly.
 
     Args:
-        examples: The examples to process, with required keys "text" and "metadata".
+        examples: The examples to process, with required "metadata".
 
     Returns:
-        A new (potentially larger) collection of examples
+        A new collection of examples, with some metadata dropped.
     """
     new_metadata = []
     for example_metadata_list in examples["metadata"]:

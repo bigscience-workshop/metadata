@@ -23,11 +23,15 @@ class WikipediaDescUtils:
 
     def fetch_wikipedia_description_for_title(self, title: str) -> Optional:
         try:
-            text = self.wiki_dump_db.get_paragraphs(title)[0].text
+            paragraphs = self.wiki_dump_db.get_paragraphs(title)
         except KeyError:
             # If the title does not have a corresponding paragraph
             return None
+        if len(paragraphs) == 0:
+            # If there is no corresponding paragraphs
+            return None
 
+        text = paragraphs[0].text
         text = re.sub(r"\((?:[^)(]|\([^)(]*\))*\)", "", text)
         text = nltk.sent_tokenize(text)[0]  # Picking the first sentence
         return text
@@ -45,14 +49,13 @@ class WikipediaDescUtils:
         return self.cache[keyword]
 
     def fetch_entity_description_from_keyword(self, keyword: str) -> str:
-        title = string.capwords(keyword)
-        text = self.wiki_dump_db.get_paragraphs(title)[0].text
-        text = re.sub(r"\((?:[^)(]|\([^)(]*\))*\)", "", text)
-        text = nltk.sent_tokenize(text)[0]
 
-        if text is None:
-            text = self.wiki_dump_db.get_paragraphs(self.redirects_map[keyword])[0].text
-            text = nltk.tokenize.sent_tokenize(text)[0]
+        title = string.capwords(keyword)
+        text = self.fetch_wikipedia_description_for_title(title)
+
+        if text is None and keyword in self.redirects_map:
+            title = self.redirects_map[keyword]
+            text = self.fetch_wikipedia_description_for_title(title)
 
         if text is None:
             text = ""

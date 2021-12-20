@@ -371,6 +371,5 @@ class DatasourcePreprocessor(MetadataPreprocessor):
                 continue
 
             example_meta.append({"key": "datasource", "type": "global", "value": example_datasource})
-        
+
         return examples
-   

@@ -5,7 +5,7 @@ from datasets import config, load_dataset
 from torch.utils.data import DataLoader
 from transformers import default_data_collator
 
-from bsmetadata.metadata_utils import add_metadata_and_chunk_examples
+from bsmetadata.metadata_utils import add_metadata_and_chunk_examples, random_drop_metadata
 
 
 logger = logging.getLogger(__name__)
@@ -118,6 +118,15 @@ def get_dataloaders(tokenizer, args):
     logger.info("Start to add metadata and chunk examples")
 
     # First we pre-process our text and metadata
+    if args.metadata_config.random_drop_metadata:
+        datasets = datasets.map(
+            random_drop_metadata,
+            batched=True,
+            num_proc=args.preprocessing_num_workers,
+            load_from_cache_file=not args.overwrite_cache,
+            desc="Randomly dropping metadata",
+            batch_size=args.map_batch_size,
+        )
     datasets = datasets.map(
         functools.partial(add_metadata_and_chunk_examples, tokenizer=tokenizer, cfg=args.metadata_config),
         batched=True,

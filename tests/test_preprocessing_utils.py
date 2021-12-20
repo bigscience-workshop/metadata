@@ -19,15 +19,25 @@ class WebsiteDescPreprocessorTester(unittest.TestCase):
         self.example_ids = [0, 1, 2]
         self.example_text = ["test text 1", "test text 2", "test text 3"]
         self.example_metadata = [
-            [{"key": "url", "type": "global", "value": "https://www.xyz.com"}],
+            [{"key": "prev_metadata", "type": "global", "value": "1"}],
             [
-                {"key": "url", "type": "global", "value": "http://sometitle.com"},
-                {"key": "url", "type": "global", "value": "http://notfound.com"},
+                {"key": "prev_metadata", "type": "global", "value": "2"},
+                {"key": "prev_metadata", "type": "global", "value": "3"},
             ],
-            [{"key": "url", "type": "global", "value": "https://www.test.com"}],
+            [{"key": "prev_metadata", "type": "global", "value": "4"}],
+        ]
+        self.url = [
+            "https://www.xyz.com",
+            "http://sometitle.com",
+            "https://www.test.com",
         ]
 
-        self.example_dict = {"id": self.example_ids, "metadata": self.example_metadata, "text": self.example_text}
+        self.example_dict = {
+            "id": self.example_ids,
+            "metadata": self.example_metadata,
+            "text": self.example_text,
+            "url": self.url,
+        }
 
     @mock.patch("bsmetadata.preprocessing_tools.wikipedia_desc_utils.nltk.sent_tokenize", new=mock_sent_tokenize)
     def test_website_metadata_processor(self):
@@ -35,16 +45,16 @@ class WebsiteDescPreprocessorTester(unittest.TestCase):
         ds = ds.map(lambda ex: self.website_processor.preprocess(ex), batched=True)
         target_metadata = [
             [
-                {"key": "url", "type": "global", "value": "https://www.xyz.com"},
+                {"key": "prev_metadata", "type": "global", "value": "1"},
                 {"key": "website_description", "type": "global", "value": "XYZ is a U.S. based company."},
             ],
             [
-                {"key": "url", "type": "global", "value": "http://sometitle.com"},
-                {"key": "url", "type": "global", "value": "http://notfound.com"},
+                {"key": "prev_metadata", "type": "global", "value": "2"},
+                {"key": "prev_metadata", "type": "global", "value": "3"},
                 {"key": "website_description", "type": "global", "value": "SomeTitle is a U.S. based company."},
             ],
             [
-                {"key": "url", "type": "global", "value": "https://www.test.com"},
+                {"key": "prev_metadata", "type": "global", "value": "4"},
                 {"key": "website_description", "type": "global", "value": "Test is a U.S. based company."},
             ],
         ]

@@ -67,19 +67,13 @@ class TimestampPreprocessor(MetadataPreprocessor):
     """An exemplary metadata preprocessor for adding timestamp information based on URLs."""
 
     def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
-
+        example_url_list = examples["url"]
         example_metadata_list = examples["metadata"]
 
         # Iterate through the metadata associated with all examples in this batch.
-        for example_metadata in example_metadata_list:
-            # Get the URL associated with this example.
-            example_urls = [md["value"] for md in example_metadata if md["key"] == "url"]
-
-            if not example_urls:
-                continue
-
+        for example_metadata, example_url in zip(example_metadata_list, example_url_list):
             # Try to extract a timestamp from the given URL and add it to the metadata.
-            example_timestamp = self._extract_timestamp_from_url(example_urls[0])
+            example_timestamp = self._extract_timestamp_from_url(example_url)
 
             if example_timestamp:
                 example_metadata.append({"key": "timestamp", "type": "global", "value": example_timestamp})
@@ -143,19 +137,13 @@ class WebsiteDescPreprocessor(MetadataPreprocessor):
         super().__init__()
 
     def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
-
+        urls_list = examples["url"]
         metadata_list = examples["metadata"]
 
         # Iterate through the metadata associated with all examples in this batch.
-        for metadata in metadata_list:
-            # Get the URL associated with this example.
-            urls = [md["value"] for md in metadata if md["key"] == "url"]
-
-            if not urls:
-                continue
-
+        for metadata, url in zip(metadata_list, urls_list):
             # Try to extract a website description from the given URL and add it to the metadata.
-            website_description = self._extract_website_desc_from_url(urls[0])
+            website_description = self._extract_website_desc_from_url(url)
 
             if website_description:
                 metadata.append({"key": "website_description", "type": "global", "value": website_description})

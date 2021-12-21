@@ -313,6 +313,7 @@ class EntityPreprocessor(
         examples[self.col_to_store_metadata] = example_metadata_list
         return examples
 
+
 class GenerationLengthPreprocessor(MetadataPreprocessor):
     """An exemplary metadata preprocessor for adding generation length information based on text."""
 

@@ -404,7 +404,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
                 "key": "entity",
                 "type": "local",
                 "value": "Barack_Obama",
-                "ent_desc": "Barack Hussein Obama II is an American politician."
+                "ent_desc": "Barack Hussein Obama II is an American politician.",
             },
             {
                 "char_end_idx": 48,
@@ -504,7 +504,6 @@ class PipelinePreprocessorTester(unittest.TestCase):
 
         features = Features(
             {
-                
                 "doc_html": Value("string"),
                 "metadata": [
                     {
@@ -519,7 +518,6 @@ class PipelinePreprocessorTester(unittest.TestCase):
                         "ent_desc": Value("string"),
                     }
                 ],
-                
                 "text": Value("string"),
                 "url": Value("string"),
             }

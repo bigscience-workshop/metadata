@@ -220,14 +220,14 @@ class EntityPreprocessor(
         for example_id, example_metadata in enumerate(examples["metadata"]):
             if example_id not in mentions_predicted:
                 continue
-            
+
             # fetch all the elements for which entity tags are present by mapping through "id"
             mentions_predicted_for_id = mentions_predicted[example_id]
             for mention_predicted in mentions_predicted_for_id:
                 # element at index = 3 in the result list corresponds to the predicted entity
-                entity = mention_predicted[3]  
+                entity = mention_predicted[3]
                 # element at index = 0 in the result list corresponds to the char start ind
-                char_start_idx = mention_predicted[0] 
+                char_start_idx = mention_predicted[0]
                 # element at index = 1 in the result list corresponds to length of the entity
                 char_end_idx = mention_predicted[0] + mention_predicted[1]
 
@@ -235,8 +235,8 @@ class EntityPreprocessor(
                 en = {
                     "key": "entity",
                     "type": "local",
-                    "char_start_idx": char_start_idx, 
-                    "char_end_idx": char_end_idx,  
+                    "char_start_idx": char_start_idx,
+                    "char_end_idx": char_end_idx,
                     "value": entity,
                     "ent_desc": ent_desc,
                 }

@@ -19,7 +19,6 @@ class TestEntityPreprocessor(unittest.TestCase):
             "metadata": [[], [], [], [], []],
         }  # toy dataset
 
-
         target_text = [
             "Paris is the beautiful place to visit",
             "This Friday, Obama and Merkel will be meeting to discuss on issues related to climate change",
@@ -90,6 +89,7 @@ class TestEntityPreprocessor(unittest.TestCase):
 
         self.assertEqual(ds[:]["text"], target_text)
         self.assertEqual(ds[:]["metadata"], target_metadata)
+
 
 if __name__ == "__main__":
     unittest.main()

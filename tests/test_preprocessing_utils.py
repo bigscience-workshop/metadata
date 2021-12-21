@@ -352,7 +352,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
 
     @mock.patch("bsmetadata.preprocessing_tools.wikipedia_desc_utils.DumpDB")
     @mock.patch("bsmetadata.preprocessing_tools.wikipedia_desc_utils.nltk.sent_tokenize", new=mock_sent_tokenize)
-    def test_toy_dataset(self, mock_db):
+    def test_extraction_in_different_columns(self, mock_db):
         mock_db.return_value = MockDumpDB("some/path")
         # Define preprocessors
         col_to_store_text = "text"
@@ -384,6 +384,83 @@ class PipelinePreprocessorTester(unittest.TestCase):
         self.assertEqual(ds[:][col_to_store_metadata_url], self.target_metadata_url)
         self.assertEqual(ds[:][col_to_store_metadata_timestamp], self.target_metadata_timestamp)
         self.assertEqual(ds[:][col_to_store_metadata_website_desc], self.target_metadata_website_desc)
+
+        ds.set_format("pandas")
+        print(ds[:])
+
+    @mock.patch("bsmetadata.preprocessing_tools.wikipedia_desc_utils.DumpDB")
+    @mock.patch("bsmetadata.preprocessing_tools.wikipedia_desc_utils.nltk.sent_tokenize", new=mock_sent_tokenize)
+    def test_extraction_in_same_column(self, mock_db):
+        mock_db.return_value = MockDumpDB("some/path")
+        # Define preprocessors
+        col_to_store_text = "text"
+        col_to_store_metadata_html = "metadata"
+        col_to_store_metadata_url = "metadata"
+        col_to_store_metadata_timestamp = "metadata"
+        col_to_store_metadata_website_desc = "metadata"
+
+        html_processor = HtmlPreprocessor(
+            col_to_store_metadata=col_to_store_metadata_html, col_to_store_text=col_to_store_text
+        )
+        url_processor = UrlPreprocessor(col_to_store_metadata=col_to_store_metadata_url, col_url="url")
+        timestamp_processor = TimestampPreprocessor(
+            col_to_store_metadata=col_to_store_metadata_timestamp, col_metadata_url=col_to_store_metadata_url
+        )
+        website_processor = WebsiteDescPreprocessor(
+            col_to_store_metadata=col_to_store_metadata_website_desc, col_metadata_url=col_to_store_metadata_url
+        )
+
+        # Apply function
+        ds = Dataset.from_dict(self.init_dict)
+        ds = ds.map(lambda ex: html_processor.preprocess(ex), batched=True, batch_size=3)
+        ds = ds.map(lambda ex: url_processor.preprocess(ex), batched=True, batch_size=3)
+        ds = ds.map(lambda ex: timestamp_processor.preprocess(ex), batched=True, batch_size=3)
+        ds = ds.map(lambda ex: website_processor.preprocess(ex), batched=True, batch_size=3)
+
+        self.assertEqual(ds[:][col_to_store_text], self.target_texts)
+
+        for id, metadata_example in enumerate(self.target_metadata_html):
+            for metadata in metadata_example:
+                self.assertIn(metadata, ds[id][col_to_store_metadata_html])
+
+        for id, metadata_example in enumerate(self.target_metadata_url):
+            for metadata in metadata_example:
+                metadata.update(
+                    {
+                        "char_end_idx": None,
+                        "char_start_idx": None,
+                        "relative_end_pos": None,
+                        "relative_start_pos": None,
+                        'html_attrs': None,
+                    }
+                )
+                self.assertIn(metadata, ds[id][col_to_store_metadata_url])
+
+        for id, metadata_example in enumerate(self.target_metadata_timestamp):
+            for metadata in metadata_example:
+                metadata.update(
+                    {
+                        "char_end_idx": None,
+                        "char_start_idx": None,
+                        "relative_end_pos": None,
+                        "relative_start_pos": None,
+                        'html_attrs': None,
+                    }
+                )
+                self.assertIn(metadata, ds[id][col_to_store_metadata_timestamp])
+
+        for id, metadata_example in enumerate(self.target_metadata_website_desc):
+            for metadata in metadata_example:
+                metadata.update(
+                    {
+                        "char_end_idx": None,
+                        "char_start_idx": None,
+                        "relative_end_pos": None,
+                        "relative_start_pos": None,
+                        'html_attrs': None,
+                    }
+                )
+                self.assertIn(metadata, ds[id][col_to_store_metadata_website_desc])
 
         ds.set_format("pandas")
         print(ds[:])

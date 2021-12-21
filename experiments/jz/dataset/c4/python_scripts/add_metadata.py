@@ -197,6 +197,7 @@ def main(args: PreprocessingConfig) -> None:
             load_from_cache_file=not args.overwrite_cache,
             desc="Running html_preprocessor on dataset",
             batch_size=args.map_batch_size,
+            features=features,
         )
         metrics_logger.log({"html_preprocessor": 1})
 

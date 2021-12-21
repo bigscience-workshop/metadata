@@ -24,7 +24,7 @@ source $HOME/start-modelling-metadata-user
 
 # For the moment we can't directly use the new dataset feature on JZ which would avoid having to clone the dataset
 # repo from the HUB. So the first thing to do is to clone the repo of the XXX dataset if it does not already exist.
-HUB_REPO_NAME='XXX' # (change me! e.g. SaulLu/Natural_Questions_HTML_Toy_v2)
+HUB_REPO_NAME='bs-modeling-metadata/c4-en-reduced-with-metadata' # (change me! e.g. SaulLu/Natural_Questions_HTML_Toy_v2)
 
 # We define the name of the folder in which the clone will be made
 #Define multi-character delimiter
@@ -57,6 +57,7 @@ cd $WORK/repos/sync/metadata/
 
 # We check that the dataset can indeed be loaded
 python experiments/jz/utils/loading_script_utils/load_dataset.py \
-    dataset_name="${REPO_DIR}" \
-    train_file="XXX" \ # (change me and remove the comment! e.g "nq-train-*.jsonl.gz" or remove arg)
-    validation_file="XXX" # (change me and remove the comment! e.g. "nq-dev-*.jsonl.gz" or remove arg)
+    dataset_name="${REPO_DIR}" 
+    # \
+    # train_file="XXX" \ # (change me and remove the comment! e.g "nq-train-*.jsonl.gz" or remove arg)
+    # validation_file="XXX" # (change me and remove the comment! e.g. "nq-dev-*.jsonl.gz" or remove arg)

@@ -26,7 +26,7 @@ export TRANSFORMERS_OFFLINE=1
 # Folder for the clone of github.com/bigscience-workshop/metadata/
 cd $WORK/repos/metadata/
 
-HUB_REPO_NAME='XXX' # (change me! e.g. SaulLu/Natural_Questions_HTML_Toy_v2)
+HUB_REPO_NAME='bs-modeling-metadata/c4-en-reduced-with-metadata' # (change me! e.g. SaulLu/Natural_Questions_HTML_Toy_v2)
 
 # We define the name of the folder in which the clone will be made
 #Define multi-character delimiter
@@ -44,14 +44,12 @@ REPO_DIR="${DATASETS_CUSTOM}/${myarray[-1]}"
 
 # Now we launch the script that will perform the preprocessing of the dataset
 # Feel free to add any arguments you like (change me!)
-python bsmetadata/train.py \ # (change me and remove the comment! if you have a specific script)
+python bsmetadata/train.py \
     data_config.experiment="with_metadata" \
-    data_config.metadata_config.metadata_list=["html"] \ # (change me and remove the comment!)
+    data_config.metadata_config.metadata_list=["entity", "timestamp", "url", "website_description"] \
     data_config.metadata_config.max_seq_len=1024 \
     data_config.dataset_name="${REPO_DIR}" \
-    data_config.train_file="XXX" \ # (change me and remove the comment! e.g "nq-train-0\[0-2\].jsonl.gz" or remove arg)
-    data_config.validation_file"XXX" \ # (change me and remove the comment! e.g "nq-dev-00.jsonl.gz" or remove arg)
     data_config.preprocessing_num_workers=80 \
     out_dir="${SCRATCH}/metadata_outputs" \
     do_train=False \
-    do_eval=False \
+    do_eval=False

@@ -26,4 +26,4 @@ cd $WORK/repos/metadata/
 
 # Command to load the XXX model and tokenizer stored on https://huggingface.co/models
 python experiments/jz/utils/loading_script_utils/load_tokenizer_and_model.py \
-    model_name=XXX # (change me! e.g. gpt2)
+    model_name=gpt2 # (change me! e.g. gpt2)

@@ -13,9 +13,10 @@ class TestEntityPreprocessor(unittest.TestCase):
                 "Paris is the beautiful place to visit",
                 "This Friday, Obama and Merkel will be meeting to discuss on issues related to climate change",
                 "Bieber performed at the concert last night",
+                "Paris is the beautiful place to visit",
                 "He was playing a game",
             ],
-            "metadata": [[], [], [], []],
+            "metadata": [[], [], [], [], []],
         }  # toy dataset
 
 
@@ -23,6 +24,7 @@ class TestEntityPreprocessor(unittest.TestCase):
             "Paris is the beautiful place to visit",
             "This Friday, Obama and Merkel will be meeting to discuss on issues related to climate change",
             "Bieber performed at the concert last night",
+            "Paris is the beautiful place to visit",
             "He was playing a game",
         ]
 
@@ -65,10 +67,20 @@ class TestEntityPreprocessor(unittest.TestCase):
                     "value": "Justin_Bieber",
                 }
             ],
+            [
+                {
+                    "char_end_idx": 5,
+                    "char_start_idx": 0,
+                    "ent_desc": "Paris  is the capital and most populous city of France, with an estimated population of 2,175,601 residents , in an area of more than .",
+                    "key": "entity",
+                    "type": "local",
+                    "value": "Paris",
+                }
+            ],
             [],
         ]
         processor = EntityPreprocessor(
-            base_url="/gpfsscratch/rech/six/uue59k/modeling-metadata-artefacts/entity_preprocessing",
+            base_url="/gpfsssd/scratch/rech/six/uue59kq/modeling-metadata-artefacts/entity_preprocessing",
             path_wiki_db="/gpfsscratch/rech/six/uue59kq/modeling-metadata-artefacts/wiki_en_dump.db",
             path_or_url_flair_ner_model="/gpfsscratch/rech/six/uue59kq/cache_dir/flair/ner-fast/en-ner-fast-conll03-v0.4.pt",
         )
@@ -78,7 +90,6 @@ class TestEntityPreprocessor(unittest.TestCase):
 
         self.assertEqual(ds[:]["text"], target_text)
         self.assertEqual(ds[:]["metadata"], target_metadata)
-
 
 if __name__ == "__main__":
     unittest.main()

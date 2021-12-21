@@ -142,17 +142,50 @@ def main(args: PreprocessingConfig) -> None:
             "metadata": [],
             "metadata_html": [],
             "html": "",
+            "id": "",
             "text": "",
             "timestamp": 0,
-            "id": "",
             "url": "",
         }
-        # for col_name in raw_datasets["file"].features.keys():
-        #     if col_name not in output_keys:
-        #         output_keys[col_name] = None
 
         error_wrapper_preprocessor = ErrorWrapperPreprocessor(
             metadata_preprocessor=html_preprocessor, output_keys=output_keys
+        )
+
+        features = Features(
+            {
+                "HtmlPreprocessor_error": Value("int64"),
+                "HtmlPreprocessor_error_comment": Value("string"),
+                "html": Value("string"),
+                "id": Value("string"),
+                "metadata": [
+                    {
+                        "char_end_idx": Value("int64"),
+                        "char_start_idx": Value("int64"),
+                        "html_attrs": {"attrs": [Value("string")], "values": [Value("string")]},
+                        "key": Value("string"),
+                        "relative_end_pos": Value("int64"),
+                        "relative_start_pos": Value("int64"),
+                        "type": Value("string"),
+                        "value": Value("string"),
+                    }
+                ],
+                "metadata_html": [
+                    {
+                        "char_end_idx": Value("int64"),
+                        "char_start_idx": Value("int64"),
+                        "html_attrs": {"attrs": [Value("string")], "values": [Value("string")]},
+                        "key": Value("string"),
+                        "relative_end_pos": Value("int64"),
+                        "relative_start_pos": Value("int64"),
+                        "type": Value("string"),
+                        "value": Value("string"),
+                    }
+                ],
+                "text": Value("string"),
+                "timestamp": Value("int64"),
+                "url": Value("string"),
+            }
         )
 
         logger.info("Start HTML preprocessing")

@@ -1,10 +1,12 @@
 import unittest
 from unittest import mock
 
-from datasets import Dataset
+from datasets import Dataset, Features, Value
 from mocks.mock_dump_db import MockDumpDB
+from bsmetadata.preprocessing_tools.wikipedia_desc_utils import WikipediaDescUtils
 
 from bsmetadata.preprocessing_utils import (
+    EntityPreprocessor,
     HtmlPreprocessor,
     TimestampPreprocessor,
     UrlPreprocessor,
@@ -189,6 +191,48 @@ class HtmlPreprocessorTester(unittest.TestCase):
         self.assertEqual(ds[:]["metadata"], target_metadata)
 
 
+def mock_fetch_mention_predictions(self, examples):
+    hardcoded_dict = {"Paris": "Paris", "Obama": "Barack_Obama", "Merkel": "Angela_Merkel", "Bieber": "Justin_Bieber"}
+
+    result = {}
+    for idx, example_text in enumerate(examples["text"]):
+        result[idx] = []
+        for keyword, entity_value in hardcoded_dict.items():
+            index = example_text.find(keyword)
+            print(index)
+            if index == -1:
+                continue
+            result[idx].append(
+                [
+                    index,
+                    len(keyword),
+                    None,
+                    entity_value,
+                ]
+            )
+    return result
+
+
+def mock_EntityPreprocessor__init__(
+    self,
+    base_url,
+    path_wiki_db,
+    path_or_url_flair_ner_model="ner-fast",
+    col_to_store_metadata="metadata",
+    col_text="text",
+):
+    self.wiki_db_path = path_wiki_db
+    self.entity_utils = WikipediaDescUtils(path_wiki_db)
+    self.base_url = base_url
+    self.wiki_version = "wiki_2019"
+    self.config = {
+        "mode": "eval",
+        "model_path": "ed-wiki-2019",
+    }
+    self.col_to_store_metadata = col_to_store_metadata
+    self.col_text = col_text
+
+
 class PipelinePreprocessorTester(unittest.TestCase):
     def setUp(self) -> None:
         self.create_data()
@@ -198,8 +242,8 @@ class PipelinePreprocessorTester(unittest.TestCase):
         self.init_dict = {
             "doc_html": [
                 "\n    <html>\n    <head>\n    </head>\n    <body>\n    <h1>This is a title</h1>\n    </body>\n    </html>\n",
-                "<html><body><p>this is a simple paragraph</p></body></html>",
-                "<html><body><p id=1>paragraph 1</p><p id=2>paragraph 2</p></body></html>",
+                "<html><body><p>this is a simple paragraph with Obama and Merkel mentioned </p></body></html>",
+                "<html><body><p id=1>paragraph 1</p><p id=2>paragraph 2 is in Paris</p></body></html>",
                 '<html><body><div class="div-level-1">blablabla<div class="div-level-2">tidi tidi</div></div></body></html>',
             ],
             "url": [
@@ -213,8 +257,8 @@ class PipelinePreprocessorTester(unittest.TestCase):
         # Define target values
         self.target_texts = [
             "This is a title\n",
-            "this is a simple paragraph\n",
-            "paragraph 1\nparagraph 2\n",
+            "this is a simple paragraph with Obama and Merkel mentioned\n",
+            "paragraph 1\nparagraph 2 is in Paris\n",
             "blablabla\ntidi tidi\n",
         ]
 
@@ -274,7 +318,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
             ],
             [
                 {
-                    "char_end_idx": 26,
+                    "char_end_idx": 59,
                     "char_start_idx": 0,
                     "html_attrs": {"attrs": [], "values": []},
                     "key": "html",
@@ -284,11 +328,11 @@ class PipelinePreprocessorTester(unittest.TestCase):
                     "value": "p",
                 },
                 {
-                    "char_end_idx": 27,
+                    "char_end_idx": 59,
                     "char_start_idx": 0,
                     "html_attrs": {"attrs": [], "values": []},
                     "key": "html",
-                    "relative_end_pos": 0,
+                    "relative_end_pos": 1,
                     "relative_start_pos": 0,
                     "type": "local",
                     "value": "body",
@@ -306,7 +350,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
                     "value": "p",
                 },
                 {
-                    "char_end_idx": 23,
+                    "char_end_idx": 35,
                     "char_start_idx": 12,
                     "html_attrs": {"attrs": ["id"], "values": ["2"]},
                     "key": "html",
@@ -316,7 +360,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
                     "value": "p",
                 },
                 {
-                    "char_end_idx": 24,
+                    "char_end_idx": 36,
                     "char_start_idx": 0,
                     "html_attrs": {"attrs": [], "values": []},
                     "key": "html",
@@ -350,8 +394,44 @@ class PipelinePreprocessorTester(unittest.TestCase):
             ],
         ]
 
+    target_metadata_entities = [
+        [],
+        [
+            {
+                "char_end_idx": 37,
+                "char_start_idx": 32,
+                "ent_desc": "",
+                "key": "entity",
+                "type": "local",
+                "value": "Barack_Obama",
+                "ent_desc": "Barack Hussein Obama II is an American politician."
+            },
+            {
+                "char_end_idx": 48,
+                "char_start_idx": 42,
+                "ent_desc": "",
+                "key": "entity",
+                "type": "local",
+                "value": "Angela_Merkel",
+            },
+        ],
+        [
+            {
+                "char_end_idx": 35,
+                "char_start_idx": 30,
+                "ent_desc": "",
+                "key": "entity",
+                "type": "local",
+                "value": "Paris",
+            }
+        ],
+        [],
+    ]
+
     @mock.patch("bsmetadata.preprocessing_tools.wikipedia_desc_utils.DumpDB")
     @mock.patch("bsmetadata.preprocessing_tools.wikipedia_desc_utils.nltk.sent_tokenize", new=mock_sent_tokenize)
+    @mock.patch.object(EntityPreprocessor, "fetch_mention_predictions", new=mock_fetch_mention_predictions)
+    @mock.patch.object(EntityPreprocessor, "__init__", new=mock_EntityPreprocessor__init__)
     def test_extraction_in_different_columns(self, mock_db):
         mock_db.return_value = MockDumpDB("some/path")
         # Define preprocessors
@@ -360,6 +440,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
         col_to_store_metadata_url = "metadata_url"
         col_to_store_metadata_timestamp = "metadata_timestamp"
         col_to_store_metadata_website_desc = "metadata_website_desc"
+        col_to_store_metadata_entities = "metadata_entity"
 
         html_processor = HtmlPreprocessor(
             col_to_store_metadata=col_to_store_metadata_html, col_to_store_text=col_to_store_text
@@ -371,6 +452,9 @@ class PipelinePreprocessorTester(unittest.TestCase):
         website_processor = WebsiteDescPreprocessor(
             col_to_store_metadata=col_to_store_metadata_website_desc, col_metadata_url=col_to_store_metadata_url
         )
+        entity_processor = EntityPreprocessor(
+            base_url="", path_wiki_db="", col_to_store_metadata=col_to_store_metadata_entities
+        )
 
         # Apply function
         ds = Dataset.from_dict(self.init_dict)
@@ -378,18 +462,22 @@ class PipelinePreprocessorTester(unittest.TestCase):
         ds = ds.map(lambda ex: url_processor.preprocess(ex), batched=True, batch_size=3)
         ds = ds.map(lambda ex: timestamp_processor.preprocess(ex), batched=True, batch_size=3)
         ds = ds.map(lambda ex: website_processor.preprocess(ex), batched=True, batch_size=3)
+        ds = ds.map(lambda ex: entity_processor.preprocess(ex), batched=True, batch_size=3)
 
         self.assertEqual(ds[:][col_to_store_text], self.target_texts)
         self.assertEqual(ds[:][col_to_store_metadata_html], self.target_metadata_html)
         self.assertEqual(ds[:][col_to_store_metadata_url], self.target_metadata_url)
         self.assertEqual(ds[:][col_to_store_metadata_timestamp], self.target_metadata_timestamp)
         self.assertEqual(ds[:][col_to_store_metadata_website_desc], self.target_metadata_website_desc)
+        self.assertEqual(ds[:][col_to_store_metadata_entities], self.target_metadata_entities)
 
         ds.set_format("pandas")
         print(ds[:])
 
     @mock.patch("bsmetadata.preprocessing_tools.wikipedia_desc_utils.DumpDB")
     @mock.patch("bsmetadata.preprocessing_tools.wikipedia_desc_utils.nltk.sent_tokenize", new=mock_sent_tokenize)
+    @mock.patch.object(EntityPreprocessor, "fetch_mention_predictions", new=mock_fetch_mention_predictions)
+    @mock.patch.object(EntityPreprocessor, "__init__", new=mock_EntityPreprocessor__init__)
     def test_extraction_in_same_column(self, mock_db):
         mock_db.return_value = MockDumpDB("some/path")
         # Define preprocessors
@@ -398,6 +486,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
         col_to_store_metadata_url = "metadata"
         col_to_store_metadata_timestamp = "metadata"
         col_to_store_metadata_website_desc = "metadata"
+        col_to_store_metadata_entities = "metadata"
 
         html_processor = HtmlPreprocessor(
             col_to_store_metadata=col_to_store_metadata_html, col_to_store_text=col_to_store_text
@@ -409,18 +498,50 @@ class PipelinePreprocessorTester(unittest.TestCase):
         website_processor = WebsiteDescPreprocessor(
             col_to_store_metadata=col_to_store_metadata_website_desc, col_metadata_url=col_to_store_metadata_url
         )
+        entity_processor = EntityPreprocessor(
+            base_url="", path_wiki_db="", col_to_store_metadata=col_to_store_metadata_entities
+        )
+
+        features = Features(
+            {
+                
+                "doc_html": Value("string"),
+                "metadata": [
+                    {
+                        "char_end_idx": Value("int64"),
+                        "char_start_idx": Value("int64"),
+                        "html_attrs": {"attrs": [Value("string")], "values": [Value("string")]},
+                        "key": Value("string"),
+                        "relative_end_pos": Value("int64"),
+                        "relative_start_pos": Value("int64"),
+                        "type": Value("string"),
+                        "value": Value("string"),
+                        "ent_desc": Value("string"),
+                    }
+                ],
+                
+                "text": Value("string"),
+                "url": Value("string"),
+            }
+        )
 
         # Apply function
         ds = Dataset.from_dict(self.init_dict)
-        ds = ds.map(lambda ex: html_processor.preprocess(ex), batched=True, batch_size=3)
-        ds = ds.map(lambda ex: url_processor.preprocess(ex), batched=True, batch_size=3)
-        ds = ds.map(lambda ex: timestamp_processor.preprocess(ex), batched=True, batch_size=3)
-        ds = ds.map(lambda ex: website_processor.preprocess(ex), batched=True, batch_size=3)
+        ds = ds.map(lambda ex: html_processor.preprocess(ex), batched=True, batch_size=3, features=features)
+        ds = ds.map(lambda ex: url_processor.preprocess(ex), batched=True, batch_size=3, features=features)
+        ds = ds.map(lambda ex: timestamp_processor.preprocess(ex), batched=True, batch_size=3, features=features)
+        ds = ds.map(lambda ex: website_processor.preprocess(ex), batched=True, batch_size=3, features=features)
+        ds = ds.map(lambda ex: entity_processor.preprocess(ex), batched=True, batch_size=3, features=features)
 
         self.assertEqual(ds[:][col_to_store_text], self.target_texts)
 
         for id, metadata_example in enumerate(self.target_metadata_html):
             for metadata in metadata_example:
+                metadata.update(
+                    {
+                        "ent_desc": None,
+                    }
+                )
                 self.assertIn(metadata, ds[id][col_to_store_metadata_html])
 
         for id, metadata_example in enumerate(self.target_metadata_url):
@@ -431,7 +552,8 @@ class PipelinePreprocessorTester(unittest.TestCase):
                         "char_start_idx": None,
                         "relative_end_pos": None,
                         "relative_start_pos": None,
-                        'html_attrs': None,
+                        "html_attrs": None,
+                        "ent_desc": None,
                     }
                 )
                 self.assertIn(metadata, ds[id][col_to_store_metadata_url])
@@ -444,7 +566,8 @@ class PipelinePreprocessorTester(unittest.TestCase):
                         "char_start_idx": None,
                         "relative_end_pos": None,
                         "relative_start_pos": None,
-                        'html_attrs': None,
+                        "html_attrs": None,
+                        "ent_desc": None,
                     }
                 )
                 self.assertIn(metadata, ds[id][col_to_store_metadata_timestamp])
@@ -457,10 +580,22 @@ class PipelinePreprocessorTester(unittest.TestCase):
                         "char_start_idx": None,
                         "relative_end_pos": None,
                         "relative_start_pos": None,
-                        'html_attrs': None,
+                        "html_attrs": None,
+                        "ent_desc": None,
                     }
                 )
                 self.assertIn(metadata, ds[id][col_to_store_metadata_website_desc])
+
+        for id, metadata_example in enumerate(self.target_metadata_entities):
+            for metadata in metadata_example:
+                metadata.update(
+                    {
+                        "relative_start_pos": None,
+                        "relative_end_pos": None,
+                        "html_attrs": None,
+                    }
+                )
+                self.assertIn(metadata, ds[id][col_to_store_metadata_entities])
 
         ds.set_format("pandas")
         print(ds[:])

@@ -9,7 +9,7 @@ class MockParagraph:
 class MockDumpDB:
     def __init__(self, db_file) -> None:
         self.db_file = db_file
-        self.redirect_info = [("xyz.com", "XYZ"), ("test.com", "Test"), ("test_key", "Test Key")]
+        self.redirect_info = [('barack obama','barack obama'),("xyz.com", "XYZ"), ("test.com", "Test"), ("test_key", "Test Key")]
         self.paragraphs_map = {
             "XYZ": [
                 MockParagraph("XYZ is a U.S. based company."),
@@ -23,6 +23,9 @@ class MockDumpDB:
                 MockParagraph("SomeTitle is a U.S. based company."),
                 MockParagraph("Test paragraph for the key SomeTitle."),
             ],
+            'barack obama':[
+                MockParagraph("Barack Hussein Obama II is an American politician."),
+            ]
         }
 
     def redirects(self) -> List[tuple]:

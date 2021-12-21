@@ -232,7 +232,12 @@ class EntityPreprocessor(
     """Metadata preprocessor for adding entity information."""
 
     def __init__(
-        self, base_url, path_wiki_db, path_or_url_flair_ner_model="ner-fast", col_to_store_metadata="metadata"
+        self,
+        base_url,
+        path_wiki_db,
+        path_or_url_flair_ner_model="ner-fast",
+        col_to_store_metadata="metadata",
+        col_text="text",
     ):
         self.wiki_db_path = path_wiki_db
         self.entity_utils = WikipediaDescUtils(path_wiki_db)
@@ -245,11 +250,13 @@ class EntityPreprocessor(
             "model_path": "ed-wiki-2019",
         }
         self.model = EntityDisambiguation(self.base_url, self.wiki_version, self.config, reset_embeddings=True)
+
+        self.col_text = col_text
         super().__init__(col_to_store_metadata=col_to_store_metadata)
 
     def preprocess_example(self, examples: Dict[str, List]) -> Dict[str, List]:
         # preprocess all the examples in a particular batch in the required format
-        processed = {ex_id: [ex_text, []] for ex_id, ex_text in enumerate(examples["text"])}
+        processed = {ex_id: [ex_text, []] for ex_id, ex_text in enumerate(examples[self.col_text])}
         return processed
 
     def fetch_mention_predictions(self, examples: Dict[str, List]) -> Dict[str, List]:
@@ -271,7 +278,13 @@ class EntityPreprocessor(
         # process all the examples in a particular batch and all the metadata extracted for entities for those examples
         mentions_predicted = self.fetch_mention_predictions(examples)
 
-        for example_id, example_metadata in enumerate(examples[self.col_to_store_metadata]):
+        example_metadata_list = (
+            examples[self.col_to_store_metadata]
+            if self.col_to_store_metadata in examples
+            else [[] for _ in range(len(examples[self.col_text]))]
+        )
+
+        for example_id, example_metadata in enumerate(example_metadata_list):
             if example_id not in mentions_predicted:
                 continue
 
@@ -286,6 +299,7 @@ class EntityPreprocessor(
                 char_end_idx = mention_predicted[0] + mention_predicted[1]
 
                 ent_desc = self._extract_desc_from_entity(entity)
+                print("ent_desc", ent_desc, "entity", entity)
                 en = {
                     "key": "entity",
                     "type": "local",
@@ -295,8 +309,9 @@ class EntityPreprocessor(
                     "ent_desc": ent_desc,
                 }
                 example_metadata.append(en)
-        return examples
 
+        examples[self.col_to_store_metadata] = example_metadata_list
+        return examples
 
 class GenerationLengthPreprocessor(MetadataPreprocessor):
     """An exemplary metadata preprocessor for adding generation length information based on text."""

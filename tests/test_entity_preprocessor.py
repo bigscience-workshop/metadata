@@ -9,22 +9,21 @@ class TestEntityPreprocessor(unittest.TestCase):
     def test_extract_entities(self):
 
         my_dict = {
-            "id": [0, 1, 2, 3],
             "text": [
                 "Paris is the beautiful place to visit",
                 "This Friday, Obama and Merkel will be meeting to discuss on issues related to climate change",
                 "Bieber performed at the concert last night",
+                "Paris is the beautiful place to visit",
                 "He was playing a game",
             ],
-            "metadata": [[], [], [], []],
+            "metadata": [[], [], [], [], []],
         }  # toy dataset
-
-        target_id = [0, 1, 2, 3]
 
         target_text = [
             "Paris is the beautiful place to visit",
             "This Friday, Obama and Merkel will be meeting to discuss on issues related to climate change",
             "Bieber performed at the concert last night",
+            "Paris is the beautiful place to visit",
             "He was playing a game",
         ]
 
@@ -67,17 +66,27 @@ class TestEntityPreprocessor(unittest.TestCase):
                     "value": "Justin_Bieber",
                 }
             ],
+            [
+                {
+                    "char_end_idx": 5,
+                    "char_start_idx": 0,
+                    "ent_desc": "Paris  is the capital and most populous city of France, with an estimated population of 2,175,601 residents , in an area of more than .",
+                    "key": "entity",
+                    "type": "local",
+                    "value": "Paris",
+                }
+            ],
             [],
         ]
         processor = EntityPreprocessor(
-            "Enter the path to the folder having the files downloaded after running the bsmetadata\preprocessing_scripts\download_entity_processing_files.sh script",
-            "Enter the path where the wiki_en_dump.db file is located",
+            base_url="Enter the path to the folder having the files downloaded after running the bsmetadata\preprocessing_scripts\download_entity_processing_files.sh script",
+            path_wiki_db="Enter the path where the wiki_en_dump.db file is located",
+            path_or_url_flair_ner_model="Enter the path where you runned `wget https://nlp.informatik.hu-berlin.de/resources/models/ner-fast/en-ner-fast-conll03-v0.4.pt`",
         )
 
         ds = Dataset.from_dict(my_dict)
         ds = ds.map(lambda ex: processor.preprocess(ex), batched=True, batch_size=3)
 
-        self.assertEqual(ds[:]["id"], target_id)
         self.assertEqual(ds[:]["text"], target_text)
         self.assertEqual(ds[:]["metadata"], target_metadata)
 

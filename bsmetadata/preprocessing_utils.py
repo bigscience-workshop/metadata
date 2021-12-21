@@ -195,13 +195,7 @@ class EntityPreprocessor(
 
     def preprocess_example(self, examples: Dict[str, List]) -> Dict[str, List]:
         # preprocess all the examples in a particular batch in the required format
-        processed = {}
-        for example_id, example_text in zip(examples["id"], examples["text"]):
-            id_ = example_id
-            text_ = example_text
-            value = [text_, []]
-            d = {id_: value}
-            processed.update(d)
+        processed = {ex_id: [ex_text, []] for ex_id, ex_text in enumerate(examples["text"])}
         return processed
 
     def fetch_mention_predictions(self, examples: Dict[str, List]) -> Dict[str, List]:
@@ -221,29 +215,32 @@ class EntityPreprocessor(
 
     def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
         # process all the examples in a particular batch and all the metadata extracted for entities for those examples
+        mentions_predicted = self.fetch_mention_predictions(examples)
 
-        res = self.fetch_mention_predictions(examples)
+        for example_id, example_metadata in enumerate(examples["metadata"]):
+            if example_id not in mentions_predicted:
+                continue
 
-        for example_id, example_metadata in zip(examples["id"], examples["metadata"]):
-            if example_id in res:  # fetch all the elements for which entity tags are present by mapping through "id"
-                r = res[example_id]
-                for i in range(len(r)):
-                    entity = r[i][3]  # element at index = 3 in the result list corresponds to the predicted entity
-                    ent_desc = self._extract_desc_from_entity(entity)
-                    en = {
-                        "key": "entity",
-                        "type": "local",
-                        "char_start_idx": r[i][
-                            0
-                        ],  # element at index = 0 in the result list corresponds to the char start index
-                        "char_end_idx": (
-                            r[i][0] + r[i][1]
-                        ),  # element at index = 1 in the result list corresponds to length of the entity
-                        "value": entity,
-                        "ent_desc": ent_desc,
-                    }
-                    example_metadata.append(en)
-            continue
+            # fetch all the elements for which entity tags are present by mapping through "id"
+            mentions_predicted_for_id = mentions_predicted[example_id]
+            for mention_predicted in mentions_predicted_for_id:
+                # element at index = 3 in the result list corresponds to the predicted entity
+                entity = mention_predicted[3]
+                # element at index = 0 in the result list corresponds to the char start ind
+                char_start_idx = mention_predicted[0]
+                # element at index = 1 in the result list corresponds to length of the entity
+                char_end_idx = mention_predicted[0] + mention_predicted[1]
+
+                ent_desc = self._extract_desc_from_entity(entity)
+                en = {
+                    "key": "entity",
+                    "type": "local",
+                    "char_start_idx": char_start_idx,
+                    "char_end_idx": char_end_idx,
+                    "value": entity,
+                    "ent_desc": ent_desc,
+                }
+                example_metadata.append(en)
         return examples
 
 

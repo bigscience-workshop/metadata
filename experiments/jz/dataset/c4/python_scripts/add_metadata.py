@@ -96,7 +96,7 @@ def add_url_as_metadata(examples: Dict[str, List], column_name_url: str = "url")
     examples["id"] = example_url_list  # to change
     return examples
 
-@profile
+
 @hydra.main(config_name="preprocessing_config")
 def main(args: PreprocessingConfig) -> None:
     data_files = {"file": args.file_name}

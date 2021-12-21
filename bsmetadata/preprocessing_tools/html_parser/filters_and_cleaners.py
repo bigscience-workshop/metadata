@@ -293,7 +293,6 @@ class TextAndMetadataCleaner:
             tags_to_remove_with_content=tags_to_remove_with_content,
         )
 
-    @profile
     def apply(self):
         html_str = self.html_str
         # Traitement n°1: start the parsing at a special tags (mostly tested with <body>)

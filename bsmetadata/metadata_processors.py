@@ -178,26 +178,6 @@ class WebsiteDescriptionProcessor(MetadataProcessor):
         return "".join(["Website Description", self.cfg.metadata_key_value_sep, metadata_attrs["value"]])
 
 
-class DatasourceProcessor(MetadataProcessor):
-    """An example metadata processor for datasource types."""
-
-    def process_global(self, metadata_attrs: Dict[str, Any]) -> Optional[str]:
-        # We represent the DATASOURCE by using meaningful information of the URL.
-        # URL: http://www.example.de/2015/forum/article/21-new-project
-        # Example: example.de > forum > article > new project
-        return "".join(["Datasource", self.cfg.metadata_key_value_sep, metadata_attrs["value"]])
-
-
-class GenerationLengthProcessor(MetadataProcessor):
-    """An example metadata processor for the text length."""
-
-    def process_global(self, metadata_attrs: Dict[str, Any]) -> Optional[str]:
-        # We represent the length of a text by the number of characters.
-        # Example: Length: 123
-
-        return "".join(["Text Length", self.cfg.metadata_key_value_sep, metadata_attrs["value"]])
-
-
 class BasicStartLocalProcessor(MetadataProcessor):
     def process_local(self, metadata_attrs: Dict[str, Any]) -> Optional[Tuple[str, str]]:
         # This is a basic processor that just creates a local start tag from the value stored in the metadata
@@ -206,8 +186,6 @@ class BasicStartLocalProcessor(MetadataProcessor):
 
 PROCESSORS = {
     "timestamp": TimestampProcessor,
-    "source": DatasourceProcessor,
-    "length": GenerationLengthProcessor,
     "entity": EntityProcessor,
     "html": HtmlProcessor,
     "url": UrlProcessor,

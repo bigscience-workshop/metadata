@@ -80,9 +80,9 @@ class TestEntityPreprocessor(unittest.TestCase):
             [],
         ]
         processor = EntityPreprocessor(
-            base_url="/gpfsssd/scratch/rech/six/uue59kq/modeling-metadata-artefacts/entity_preprocessing",
-            path_wiki_db="/gpfsscratch/rech/six/uue59kq/modeling-metadata-artefacts/wiki_en_dump.db",
-            path_or_url_flair_ner_model="/gpfsscratch/rech/six/uue59kq/cache_dir/flair/ner-fast/en-ner-fast-conll03-v0.4.pt",
+            base_url="Enter the path to the folder having the files downloaded after running the bsmetadata\preprocessing_scripts\download_entity_processing_files.sh script",
+            path_wiki_db="Enter the path where the wiki_en_dump.db file is located",
+            path_or_url_flair_ner_model="Enter the path where you runned `wget https://nlp.informatik.hu-berlin.de/resources/models/ner-fast/en-ner-fast-conll03-v0.4.pt`",
         )
 
         ds = Dataset.from_dict(my_dict)

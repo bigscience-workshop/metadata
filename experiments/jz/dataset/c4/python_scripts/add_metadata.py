@@ -7,7 +7,7 @@ from typing import Dict, List, Optional
 
 import hydra
 import wandb
-from datasets import config, load_dataset
+from datasets import config, load_dataset, Features, Value
 from hydra.core.config_store import ConfigStore
 from omegaconf import OmegaConf
 

@@ -174,13 +174,13 @@ class EntityPreprocessor(
 ):  # Note: To run this pre-processor, make sure that you have a column named "id" in the dataset.
     """Metadata preprocessor for adding entity information."""
 
-    def __init__(self, base_url, path_wiki_db):
+    def __init__(self, base_url, path_wiki_db, path_or_url_flair_ner_model="ner-fast",):
         self.wiki_db_path = path_wiki_db
         self.entity_utils = WikipediaDescUtils(path_wiki_db)
         self.base_url = base_url
         self.wiki_version = "wiki_2019"
         self.mention_detection = MentionDetection(self.base_url, self.wiki_version)
-        self.tagger_ner = load_flair_ner("ner-fast")
+        self.tagger_ner = load_flair_ner(path_or_url_flair_ner_model)
         self.config = {
             "mode": "eval",
             "model_path": "ed-wiki-2019",

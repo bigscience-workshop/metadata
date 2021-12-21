@@ -3,8 +3,8 @@ from unittest import mock
 
 from datasets import Dataset, Features, Value
 from mocks.mock_dump_db import MockDumpDB
-from bsmetadata.preprocessing_tools.wikipedia_desc_utils import WikipediaDescUtils
 
+from bsmetadata.preprocessing_tools.wikipedia_desc_utils import WikipediaDescUtils
 from bsmetadata.preprocessing_utils import (
     EntityPreprocessor,
     HtmlPreprocessor,

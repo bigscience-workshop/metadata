@@ -65,9 +65,9 @@ class HtmlPreprocessorTester(unittest.TestCase):
         # Define toy data
         my_dict = {
             "doc_html": [
-                "\n    <html>\n    <head>\n    </head>\n    <body>\n    <h1>This is a title</h1>\n    </body>\n    </html>\n",
-                "<html><body><p>this is a simple paragraph</p></body></html>",
-                "<html><body><p id=1>paragraph 1</p><p id=2>paragraph 2</p></body></html>",
+                "\n    <html>\n    <head>\n    </head>\n    <body>\n    <h1>This is a title</h1>\n    this is a simple long enough text with at least 64 characters </body>\n    </html>\n",
+                "<html><body><p>this is a simple long enough paragraph with at least 64 characters</p></body></html>",
+                "<html><body><p id=1>this is a simple long enough paragraph with at least 64 characters</p><p id=2>this is a second simple long enough paragraph with at least 64 characters</p></body></html>",
                 '<html><body><div class="div-level-1">blablabla<div class="div-level-2">tidi tidi</div></div></body></html>',
             ],
             "metadata": [[], [], [], []],
@@ -75,12 +75,11 @@ class HtmlPreprocessorTester(unittest.TestCase):
 
         # Define target values
         target_texts = [
-            "This is a title\n",
-            "this is a simple paragraph\n",
-            "paragraph 1\nparagraph 2\n",
-            "blablabla\ntidi tidi\n",
+            "This is a title\nthis is a simple long enough text with at least 64 characters\n",
+            "this is a simple long enough paragraph with at least 64 characters\n",
+            "this is a simple long enough paragraph with at least 64 characters\nthis is a second simple long enough paragraph with at least 64 characters\n",
+            "",
         ]
-
         target_metadata = [
             [
                 {
@@ -94,7 +93,7 @@ class HtmlPreprocessorTester(unittest.TestCase):
                     "value": "h1",
                 },
                 {
-                    "char_end_idx": 16,
+                    "char_end_idx": 78,
                     "char_start_idx": 0,
                     "html_attrs": {"attrs": [], "values": []},
                     "key": "html",
@@ -106,7 +105,7 @@ class HtmlPreprocessorTester(unittest.TestCase):
             ],
             [
                 {
-                    "char_end_idx": 26,
+                    "char_end_idx": 66,
                     "char_start_idx": 0,
                     "html_attrs": {"attrs": [], "values": []},
                     "key": "html",
@@ -116,7 +115,7 @@ class HtmlPreprocessorTester(unittest.TestCase):
                     "value": "p",
                 },
                 {
-                    "char_end_idx": 27,
+                    "char_end_idx": 67,
                     "char_start_idx": 0,
                     "html_attrs": {"attrs": [], "values": []},
                     "key": "html",
@@ -128,7 +127,7 @@ class HtmlPreprocessorTester(unittest.TestCase):
             ],
             [
                 {
-                    "char_end_idx": 11,
+                    "char_end_idx": 66,
                     "char_start_idx": 0,
                     "html_attrs": {"attrs": ["id"], "values": ["1"]},
                     "key": "html",
@@ -138,8 +137,8 @@ class HtmlPreprocessorTester(unittest.TestCase):
                     "value": "p",
                 },
                 {
-                    "char_end_idx": 23,
-                    "char_start_idx": 12,
+                    "char_end_idx": 140,
+                    "char_start_idx": 67,
                     "html_attrs": {"attrs": ["id"], "values": ["2"]},
                     "key": "html",
                     "relative_end_pos": 0,
@@ -148,7 +147,7 @@ class HtmlPreprocessorTester(unittest.TestCase):
                     "value": "p",
                 },
                 {
-                    "char_end_idx": 24,
+                    "char_end_idx": 141,
                     "char_start_idx": 0,
                     "html_attrs": {"attrs": [], "values": []},
                     "key": "html",
@@ -158,28 +157,7 @@ class HtmlPreprocessorTester(unittest.TestCase):
                     "value": "body",
                 },
             ],
-            [
-                {
-                    "char_end_idx": 20,
-                    "char_start_idx": 0,
-                    "html_attrs": {"attrs": ["class"], "values": ["div-level-1 div-level-2"]},
-                    "key": "html",
-                    "relative_end_pos": 0,
-                    "relative_start_pos": 1,
-                    "type": "local",
-                    "value": "div",
-                },
-                {
-                    "char_end_idx": 20,
-                    "char_start_idx": 0,
-                    "html_attrs": {"attrs": [], "values": []},
-                    "key": "html",
-                    "relative_end_pos": 1,
-                    "relative_start_pos": 0,
-                    "type": "local",
-                    "value": "body",
-                },
-            ],
+            [],
         ]
 
         # Apply function

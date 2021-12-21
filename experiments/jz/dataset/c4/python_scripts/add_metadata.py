@@ -126,7 +126,7 @@ def main(args: PreprocessingConfig) -> None:
         cache_dir=args.cache_dir,
         keep_in_memory=False,
         download_mode="force_redownload",
-        split="file[0:1000]"
+        split="file[0:1000]",
     )
     metrics_logger.log({"load_dataset": 1})
     logger.info(f"Dataset loaded :{raw_datasets}")

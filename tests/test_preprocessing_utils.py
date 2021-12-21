@@ -400,7 +400,6 @@ class PipelinePreprocessorTester(unittest.TestCase):
             {
                 "char_end_idx": 37,
                 "char_start_idx": 32,
-                "ent_desc": "",
                 "key": "entity",
                 "type": "local",
                 "value": "Barack_Obama",

@@ -71,24 +71,35 @@ class MetadataPreprocessor(ABC):
 class TimestampPreprocessor(MetadataPreprocessor):
     """An exemplary metadata preprocessor for adding timestamp information based on URLs."""
 
-    @profile
+    def __init__(self, metadata_col_name="metadata", metadata_col_is_new=False) -> None:
+        self.metadata_col_name = metadata_col_name
+        self.metadata_col_is_new = metadata_col_is_new
+        super().__init__()
+
     def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
+        example_url_list = examples["url"]
 
-        example_metadata_list = examples["metadata"]
+        if self.metadata_col_is_new:
+            example_metadata_list = []
+            # Iterate through the metadata associated with all examples in this batch.
+            for example_metadata, example_url in zip(example_metadata_list, example_url_list):
+                # Try to extract a timestamp from the given URL and add it to the metadata.
+                example_timestamp = self._extract_timestamp_from_url(example_url)
 
-        # Iterate through the metadata associated with all examples in this batch.
-        for example_metadata in example_metadata_list:
-            # Get the URL associated with this example.
-            example_urls = [md["value"] for md in example_metadata if md["key"] == "url"]
+                if example_timestamp:
+                    example_metadata.append([{"key": "timestamp", "type": "global", "value": example_timestamp}])
+                else:
+                    example_metadata.append([])
+            examples[self.metadata_col_name] = example_metadata_list
+        else:
+            example_metadata_list = examples[self.metadata_col_name]
+            # Iterate through the metadata associated with all examples in this batch.
+            for example_metadata, example_url in zip(example_metadata_list, example_url_list):
+                # Try to extract a timestamp from the given URL and add it to the metadata.
+                example_timestamp = self._extract_timestamp_from_url(example_url)
 
-            if not example_urls:
-                continue
-
-            # Try to extract a timestamp from the given URL and add it to the metadata.
-            example_timestamp = self._extract_timestamp_from_url(example_urls[0])
-
-            if example_timestamp:
-                example_metadata.append({"key": "timestamp", "type": "global", "value": example_timestamp})
+                if example_timestamp:
+                    example_metadata.append({"key": "timestamp", "type": "global", "value": example_timestamp})
 
         return examples
 
@@ -107,11 +118,14 @@ class HtmlPreprocessor(MetadataPreprocessor):
     HTML metadata containing the tags, their attributes, their location in the text and their relative location to
     each other."""
 
-    def __init__(self, name_html_column: str = "doc_html") -> None:
+    def __init__(
+        self, name_html_column: str = "doc_html", metadata_col_name="metadata", metadata_col_is_new=False
+    ) -> None:
         self.name_html_column = name_html_column
+        self.metadata_col_name = metadata_col_name
+        self.metadata_col_is_new = metadata_col_is_new
         super().__init__()
 
-    @profile
     def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
         tags_to_remove_with_content = [
             html_parser.objects.TagToRemoveWithContent(tag="script"),
@@ -130,53 +144,86 @@ class HtmlPreprocessor(MetadataPreprocessor):
             html_parser.objects.TagToRemoveWithContent(tag="dl", content_max_char_length=64),
         ]
 
-        new_texts = []
-        new_metadata = []
-        for idx, example_doc_html in enumerate(examples[self.name_html_column]):  # if metadata already exists
+        if self.metadata_col_is_new:
+            new_texts = []
+            new_metadata = []
+            for example_doc_html in examples[self.name_html_column]:
 
-            plain_text, metadata = html_parser.get_clean_text_and_metadata(
-                example_doc_html,
-                tags_to_remove_with_content=tags_to_remove_with_content,
-                consecutive_tags_to_fold=["div"],
-                convert_br_tag_to_breaking_line=True,
-            )
-            if metadata == []:  # to delete
-                print(f"bad url: {examples['url'][idx]}")
-            new_texts.append(plain_text)
-            new_metadata.append(
-                [html_parser.objects.convert_html_metadata_dataclass_to_dict(node) for node in metadata]
-            )
+                plain_text, metadata = html_parser.get_clean_text_and_metadata(
+                    example_doc_html,
+                    tags_to_remove_with_content=tags_to_remove_with_content,
+                    consecutive_tags_to_fold=["div"],
+                    convert_br_tag_to_breaking_line=True,
+                )
+                new_texts.append(plain_text)
+                new_metadata.append(
+                    [html_parser.objects.convert_html_metadata_dataclass_to_dict(node) for node in metadata]
+                )
 
-        examples["text"] = new_texts
-        examples["metadata_html"] = new_metadata
+            examples["text"] = new_texts
+            examples[self.metadata_col_name] = new_metadata
+        else:
+            new_texts = []
+            for example_doc_html, example_metadata in zip(
+                examples[self.name_html_column], examples[self.metadata_col_name]
+            ):
+                plain_text, metadata = html_parser.get_clean_text_and_metadata(
+                    example_doc_html,
+                    tags_to_remove_with_content=tags_to_remove_with_content,
+                    consecutive_tags_to_fold=["div"],
+                    convert_br_tag_to_breaking_line=True,
+                )
+                new_texts.append(plain_text)
+                example_metadata.extend(
+                    [html_parser.objects.convert_html_metadata_dataclass_to_dict(node) for node in metadata]
+                )
+
+            examples["text"] = new_texts
         return examples
 
 
 class WebsiteDescPreprocessor(MetadataPreprocessor):
     """Metadata preprocessor for adding website description based on URLs."""
 
-    def __init__(self, path_wiki_db: str = "../preprocessing_data/wiki_dump/wiki_en_dump_db") -> None:
+    def __init__(
+        self,
+        path_wiki_db: str = "../preprocessing_data/wiki_dump/wiki_en_dump_db",
+        metadata_col_name="metadata",
+        metadata_col_is_new=False,
+    ) -> None:
         self.website_utils = WikipediaDescUtils(path_wiki_db)
+
+        self.metadata_col_name = metadata_col_name
+        self.metadata_col_is_new = metadata_col_is_new
         super().__init__()
 
-    @profile
     def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
+        urls_list = examples["url"]
 
-        metadata_list = examples["metadata"]
+        if self.metadata_col_is_new:
+            metadata_list = []
+            # Iterate through the metadata associated with all examples in this batch.
+            for url in urls_list:
+                # Try to extract a website description from the given URL and add it to the metadata.
+                website_description = self._extract_website_desc_from_url(url)
 
-        # Iterate through the metadata associated with all examples in this batch.
-        for metadata in metadata_list:
-            # Get the URL associated with this example.
-            urls = [md["value"] for md in metadata if md["key"] == "url"]
+                if website_description:
+                    metadata_list.append(
+                        [{"key": "website_description", "type": "global", "value": website_description}]
+                    )
+                else:
+                    metadata_list.append([])
+            examples[self.metadata_col_name] = metadata_list
+        else:
+            metadata_list = examples[self.metadata_col_name]
+            # Iterate through the metadata associated with all examples in this batch.
+            for metadata, url in zip(metadata_list, urls_list):
+                # Try to extract a website description from the given URL and add it to the metadata.
+                website_description = self._extract_website_desc_from_url(url)
 
-            if not urls:
-                continue
+                if website_description:
+                    metadata.append({"key": "website_description", "type": "global", "value": website_description})
 
-            # Try to extract a website description from the given URL and add it to the metadata.
-            website_description = self._extract_website_desc_from_url(urls[0])
-
-            if website_description:
-                metadata.append({"key": "website_description", "type": "global", "value": website_description})
         return examples
 
     def _extract_website_desc_from_url(self, url: str) -> Optional:
@@ -190,7 +237,14 @@ class EntityPreprocessor(
 ):  # Note: To run this pre-processor, make sure that you have a column named "id" in the dataset.
     """Metadata preprocessor for adding entity information."""
 
-    def __init__(self, base_url, path_wiki_db, path_or_url_flair_ner_model="ner-fast"):
+    def __init__(
+        self,
+        base_url,
+        path_wiki_db,
+        path_or_url_flair_ner_model="ner-fast",
+        metadata_col_name="metadata",
+        metadata_col_is_new=False,
+    ):
         self.wiki_db_path = path_wiki_db
         self.entity_utils = WikipediaDescUtils(path_wiki_db)
         self.base_url = base_url
@@ -202,6 +256,9 @@ class EntityPreprocessor(
             "model_path": "ed-wiki-2019",
         }
         self.model = EntityDisambiguation(self.base_url, self.wiki_version, self.config, reset_embeddings=True)
+
+        self.metadata_col_name = metadata_col_name
+        self.metadata_col_is_new = metadata_col_is_new
         super().__init__()
 
     def preprocess_example(self, examples: Dict[str, List]) -> Dict[str, List]:
@@ -230,33 +287,68 @@ class EntityPreprocessor(
         key = key.replace("_", " ")
         return self.entity_utils.fetch_entity_description_from_keyword(key)
 
-    @profile
     def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
         # process all the examples in a particular batch and all the metadata extracted for entities for those examples
 
         res = self.fetch_mention_predictions(examples)
 
-        for example_id, example_metadata in zip(examples["id"], examples["metadata"]):
-            if example_id in res:  # fetch all the elements for which entity tags are present by mapping through "id"
-                r = res[example_id]
-                for i in range(len(r)):
-                    entity = r[i][3]  # element at index = 3 in the result list corresponds to the predicted entity
-                    ent_desc = self._extract_desc_from_entity(entity)
-                    en = {
-                        "key": "entity",
-                        "type": "local",
-                        "char_start_idx": r[i][
-                            0
-                        ],  # element at index = 0 in the result list corresponds to the char start index
-                        "char_end_idx": (
-                            r[i][0] + r[i][1]
-                        ),  # element at index = 1 in the result list corresponds to length of the entity
-                        "value": entity,
-                        "ent_desc": ent_desc,
-                    }
-                    example_metadata.append(en)
-            continue
+        if self.metadata_col_is_new:
+            metadata_list = []
+            for example_id in examples["id"]:
+                metadata_list.append(
+                    self.get_entities_metadata_from_mention_predictions(example_id=example_id, mentions_predicted=res)
+                )
+            examples[self.metadata_col_name] = metadata_list
+
+        else:
+            for example_id, example_metadata in zip(examples["id"], examples[self.metadata_col_name]):
+                if (
+                    example_id in res
+                ):  # fetch all the elements for which entity tags are present by mapping through "id"
+                    r = res[example_id]
+                    for i in range(len(r)):
+                        entity = r[i][3]  # element at index = 3 in the result list corresponds to the predicted entity
+                        ent_desc = self._extract_desc_from_entity(entity)
+                        en = {
+                            "key": "entity",
+                            "type": "local",
+                            "char_start_idx": r[i][
+                                0
+                            ],  # element at index = 0 in the result list corresponds to the char start index
+                            "char_end_idx": (
+                                r[i][0] + r[i][1]
+                            ),  # element at index = 1 in the result list corresponds to length of the entity
+                            "value": entity,
+                            "ent_desc": ent_desc,
+                        }
+                        example_metadata.append(en)
+                continue
+
         return examples
+
+    def get_entities_metadata_from_mention_predictions(self, example_id, mentions_predicted):
+        example_metadata = []
+        if example_id not in mentions_predicted:
+            return example_metadata
+
+        r = mentions_predicted[example_id]
+        for i in range(len(r)):
+            entity = r[i][3]  # element at index = 3 in the result list corresponds to the predicted entity
+            ent_desc = self._extract_desc_from_entity(entity)
+            en = {
+                "key": "entity",
+                "type": "local",
+                "char_start_idx": r[i][
+                    0
+                ],  # element at index = 0 in the result list corresponds to the char start index
+                "char_end_idx": (
+                    r[i][0] + r[i][1]
+                ),  # element at index = 1 in the result list corresponds to length of the entity
+                "value": entity,
+                "ent_desc": ent_desc,
+            }
+            example_metadata.append(en)
+        return example_metadata
 
 
 class ErrorWrapperPreprocessor:
@@ -270,7 +362,6 @@ class ErrorWrapperPreprocessor:
         self.error_column_name = f"{type(metadata_preprocessor).__name__}_error"
         self.error_comment_column_name = f"{type(metadata_preprocessor).__name__}_error_comment"
 
-    @profile
     def preprocess(self, examples: Dict[str, List]) -> Tuple[Dict[str, List], int]:
         """Process a batch of examples and add or extract corresponding metadata."""
         num_errors = 0

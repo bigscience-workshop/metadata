@@ -52,7 +52,7 @@ python bsmetadata/train.py \
     data_config.metadata_config.metadata_list='[entity, timestamp, url, website_description]' \
     data_config.metadata_config.max_seq_len=1024 \
     data_config.dataset_name="${REPO_DIR}" \
-    data_config.preprocessing_num_workers=80 \
+    data_config.preprocessing_num_workers=8 \
     out_dir="${SCRATCH}/metadata_outputs" \
     do_train=False \
     do_eval=False

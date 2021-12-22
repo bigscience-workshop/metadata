@@ -105,7 +105,7 @@ def get_dataloaders(tokenizer, args):
                 split=f"train[{args.validation_split_percentage}%:]",
                 cache_dir=args.cache_dir,
             )
-    logger.info("Dataset loaded")
+    logger.info(f"Dataset loaded: {datasets}")
     # See more about loading any type of standard or custom dataset (from files, python dict, pandas DataFrame, etc) at
     # https://huggingface.co/docs/datasets/loading_datasets.html.
 

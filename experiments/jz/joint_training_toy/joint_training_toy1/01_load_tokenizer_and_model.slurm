@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=modelling-metadata-XX                                # (change me!) job name
+#SBATCH --job-name=modelling-metadata-joint-toy-1                                # (change me!) job name
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1                                             # crucial - only 1 task per dist per node!
 #SBATCH --cpus-per-task=8                                               # (change me! between 0 and 48) number of cores per tasks

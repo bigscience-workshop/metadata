@@ -1,9 +1,10 @@
 #!/bin/bash
-#SBATCH --job-name=modelling-metadata-html-XX                          # (change me!) job name
+#SBATCH --job-name=modelling-metadata-html-joint-toy-1
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1                                            # crucial - only 1 task per dist per node!
 #SBATCH --cpus-per-task=20                                             # (change me! between 0 and 40) number of cores per tasks
 #SBATCH --hint=nomultithread                                           # we get physical cores not logical
+#SBATCH --gres=gpu:0                                                    # (change me! between 0 and 1) number of gpus
 #SBATCH --time 01:00:00                                                # (change me! between 0 and 20h) maximum execution time (HH:MM:SS) 
 #SBATCH --output=/gpfsdswork/projects/rech/six/uue59kq/logs/%x-%j.out  # output file name
 #SBATCH --error=/gpfsdswork/projects/rech/six/uue59kq/logs/%x-%j.err   # error file name
@@ -44,9 +45,11 @@ REPO_DIR="${DATASETS_CUSTOM}/${myarray[-1]}"
 
 # Now we launch the script that will perform the preprocessing of the dataset
 # Feel free to add any arguments you like (change me!)
+REPO_DIR='bs-modeling-metadata/c4-en-reduced-with-metadata'
+out_dir="${SCRATCH}/metadata_outputs"
 python bsmetadata/train.py \
     data_config.experiment="with_metadata" \
-    data_config.metadata_config.metadata_list=["entity", "timestamp", "url", "website_description"] \
+    data_config.metadata_config.metadata_list='[entity, timestamp, url, website_description]' \
     data_config.metadata_config.max_seq_len=1024 \
     data_config.dataset_name="${REPO_DIR}" \
     data_config.preprocessing_num_workers=80 \

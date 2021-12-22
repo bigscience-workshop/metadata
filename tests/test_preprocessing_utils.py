@@ -1,3 +1,5 @@
+from typing import Dict, List
+import itertools
 import unittest
 from unittest import mock
 
@@ -235,6 +237,18 @@ def mock_EntityPreprocessor__init__(
     self.col_text = col_text
 
 
+def concat_columns(columns_names_to_concat: List[str], new_colum_name: str):
+    def concat_columns_(examples: Dict[str, List]):
+        new_column = []
+        extracted_examples = [examples[key] for key in columns_names_to_concat if key in examples]
+        for values_one_item in zip(*extracted_examples):
+            new_column.append(list(itertools.chain.from_iterable(values_one_item)))
+        examples[new_colum_name] = new_column
+        return examples
+
+    return concat_columns_
+
+
 class PipelinePreprocessorTester(unittest.TestCase):
     def setUp(self) -> None:
         self.create_data()
@@ -429,7 +443,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
             [],
         ]
 
-        self.target_metadata_length_sentences = [
+        self.target_metadata_generation_length_sentence = [
             [],
             [{"char_end_idx": 58, "char_start_idx": 0, "key": "length", "type": "local", "value": "58"}],
             [
@@ -438,7 +452,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
             ],
             [],
         ]
-        self.target_metadata_length_text = [
+        self.target_metadata_generation_length_text = [
             [{"key": "length", "type": "global", "value": "16"}],
             [{"key": "length", "type": "global", "value": "60"}],
             [{"key": "length", "type": "global", "value": "38"}],
@@ -515,11 +529,56 @@ class PipelinePreprocessorTester(unittest.TestCase):
         self.assertEqual(ds[:][col_to_store_metadata_timestamp], self.target_metadata_timestamp)
         self.assertEqual(ds[:][col_to_store_metadata_website_desc], self.target_metadata_website_desc)
         self.assertEqual(ds[:][col_to_store_metadata_entities], self.target_metadata_entities)
-        self.assertEqual(ds[:][col_to_store_metadata_generation_length_text], self.target_metadata_length_text)
         self.assertEqual(
-            ds[:][col_to_store_metadata_generation_length_sentence], self.target_metadata_length_sentences
+            ds[:][col_to_store_metadata_generation_length_text], self.target_metadata_generation_length_text
+        )
+        self.assertEqual(
+            ds[:][col_to_store_metadata_generation_length_sentence], self.target_metadata_generation_length_sentence
         )
         self.assertEqual(ds[:][col_to_store_metadata_datasource], self.target_metadata_datasource)
+
+
+        col_to_store_all_metadata = "metadata"
+        columns_names_to_concat = [
+            col_to_store_metadata_html,
+            col_to_store_metadata_url,
+            col_to_store_metadata_timestamp,
+            col_to_store_metadata_website_desc,
+            col_to_store_metadata_entities,
+            col_to_store_metadata_generation_length_text,
+            col_to_store_metadata_generation_length_sentence,
+            col_to_store_metadata_datasource,
+        ]
+        concat_columns_fn = concat_columns(
+            columns_names_to_concat=columns_names_to_concat,
+            new_colum_name=col_to_store_all_metadata,
+        )
+        ds = ds.map(concat_columns_fn, batched=True, batch_size=3, remove_columns=columns_names_to_concat)
+
+        for metadata_type in [
+            self.target_metadata_html,
+            self.target_metadata_url,
+            self.target_metadata_timestamp,
+            self.target_metadata_website_desc,
+            self.target_metadata_entities,
+            self.target_metadata_generation_length_text,
+            self.target_metadata_generation_length_sentence,
+            self.target_metadata_datasource,
+        ]:
+            for id, metadata_example in enumerate(metadata_type):
+                for metadata in metadata_example:
+                    for potential_missing_key in [
+                        "char_end_idx",
+                        "char_start_idx",
+                        "relative_end_pos",
+                        "relative_start_pos",
+                        "html_attrs",
+                        "ent_desc",
+                    ]:
+                        if potential_missing_key in metadata:
+                            continue
+                        metadata[potential_missing_key] = None
+                    self.assertIn(metadata, ds[id][col_to_store_all_metadata])
 
     @mock.patch("bsmetadata.preprocessing_tools.wikipedia_desc_utils.DumpDB")
     @mock.patch("bsmetadata.preprocessing_tools.wikipedia_desc_utils.nltk.sent_tokenize", new=mock_sent_tokenize)
@@ -667,7 +726,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
                 )
                 self.assertIn(metadata, ds[id][col_to_store_metadata_entities])
 
-        for id, metadata_example in enumerate(self.target_metadata_length_sentences):
+        for id, metadata_example in enumerate(self.target_metadata_generation_length_sentence):
             for metadata in metadata_example:
                 metadata.update(
                     {
@@ -679,7 +738,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
                 )
                 self.assertIn(metadata, ds[id][col_to_store_metadata_generation_length_sentence])
 
-        for id, metadata_example in enumerate(self.target_metadata_length_text):
+        for id, metadata_example in enumerate(self.target_metadata_generation_length_text):
             for metadata in metadata_example:
                 metadata.update(
                     {

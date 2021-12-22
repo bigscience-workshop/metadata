@@ -45,8 +45,6 @@ REPO_DIR="${DATASETS_CUSTOM}/${myarray[-1]}"
 
 # Now we launch the script that will perform the preprocessing of the dataset
 # Feel free to add any arguments you like (change me!)
-REPO_DIR='bs-modeling-metadata/c4-en-reduced-with-metadata'
-out_dir="${SCRATCH}/metadata_outputs"
 python bsmetadata/train.py \
     data_config.experiment="with_metadata" \
     data_config.metadata_config.metadata_list='[entity, timestamp, url, website_description]' \

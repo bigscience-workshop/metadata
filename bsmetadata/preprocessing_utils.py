@@ -299,7 +299,6 @@ class EntityPreprocessor(
                 char_end_idx = mention_predicted[0] + mention_predicted[1]
 
                 ent_desc = self._extract_desc_from_entity(entity)
-                print("ent_desc", ent_desc, "entity", entity)
                 en = {
                     "key": "entity",
                     "type": "local",

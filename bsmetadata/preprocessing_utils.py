@@ -397,7 +397,8 @@ class GenerationLengthPreprocessor(MetadataPreprocessor):
 class DatasourcePreprocessor(MetadataPreprocessor):
     """An exemplary metadata preprocessor for adding datasource information based on URLs."""
 
-    def __init__(self, col_to_store_metadata="metadata") -> None:
+    def __init__(self, col_to_store_metadata="metadata", col_url="url") -> None:
+        self.col_url = col_url
         super().__init__(col_to_store_metadata=col_to_store_metadata)
 
     def _check_numbers(self, sub_part: List[str]) -> List[str]:
@@ -449,14 +450,19 @@ class DatasourcePreprocessor(MetadataPreprocessor):
         return parts.netloc + " > " + " > ".join(directories_parts)
 
     def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
+        example_metadata_list = (
+            examples[self.col_to_store_metadata]
+            if self.col_to_store_metadata in examples
+            else [[] for _ in range(len(examples[self.col_url]))]
+        )
 
-        for example_url, example_meta in zip(examples["url"], examples[self.col_to_store_metadata]):
+        # Iterate through the metadata associated with all examples in this batch.
+        for example_url, example_metadata in zip(examples[self.col_url], example_metadata_list):
             example_datasource = self._extract_datasource_from_url(example_url)
-            print(example_datasource)
-
             if not example_datasource:
                 continue
 
-            example_meta.append({"key": "datasource", "type": "global", "value": example_datasource})
+            example_metadata.append({"key": "datasource", "type": "global", "value": example_datasource})
 
+        examples[self.col_to_store_metadata] = example_metadata_list
         return examples

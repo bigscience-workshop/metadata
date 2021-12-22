@@ -6,6 +6,7 @@ from mocks.mock_dump_db import MockDumpDB
 
 from bsmetadata.preprocessing_tools.wikipedia_desc_utils import WikipediaDescUtils
 from bsmetadata.preprocessing_utils import (
+    DatasourcePreprocessor,
     EntityPreprocessor,
     GenerationLengthPreprocessor,
     HtmlPreprocessor,
@@ -396,37 +397,66 @@ class PipelinePreprocessorTester(unittest.TestCase):
         ]
 
         self.target_metadata_entities = [
-        [],
-        [
-            {
-                "char_end_idx": 37,
-                "char_start_idx": 32,
-                "key": "entity",
-                "type": "local",
-                "value": "Barack_Obama",
-                "ent_desc": "Barack Hussein Obama II is an American politician.",
-            },
-            {
-                "char_end_idx": 48,
-                "char_start_idx": 42,
-                "ent_desc": "",
-                "key": "entity",
-                "type": "local",
-                "value": "Angela_Merkel",
-            },
-        ],
-        [
-            {
-                "char_end_idx": 36,
-                "char_start_idx": 31,
-                "ent_desc": "",
-                "key": "entity",
-                "type": "local",
-                "value": "Paris",
-            }
-        ],
-        [],
-    ]
+            [],
+            [
+                {
+                    "char_end_idx": 37,
+                    "char_start_idx": 32,
+                    "key": "entity",
+                    "type": "local",
+                    "value": "Barack_Obama",
+                    "ent_desc": "Barack Hussein Obama II is an American politician.",
+                },
+                {
+                    "char_end_idx": 48,
+                    "char_start_idx": 42,
+                    "ent_desc": "",
+                    "key": "entity",
+                    "type": "local",
+                    "value": "Angela_Merkel",
+                },
+            ],
+            [
+                {
+                    "char_end_idx": 36,
+                    "char_start_idx": 31,
+                    "ent_desc": "",
+                    "key": "entity",
+                    "type": "local",
+                    "value": "Paris",
+                }
+            ],
+            [],
+        ]
+
+        self.target_metadata_length_sentences = [
+            [],
+            [{"char_end_idx": 58, "char_start_idx": 0, "key": "length", "type": "local", "value": "58"}],
+            [
+                {"char_end_idx": 11, "char_start_idx": 0, "key": "length", "type": "local", "value": "11"},
+                {"char_end_idx": 36, "char_start_idx": 11, "key": "length", "type": "local", "value": "24"},
+            ],
+            [],
+        ]
+        self.target_metadata_length_text = [
+            [{"key": "length", "type": "global", "value": "16"}],
+            [{"key": "length", "type": "global", "value": "60"}],
+            [{"key": "length", "type": "global", "value": "38"}],
+            [{"key": "length", "type": "global", "value": "20"}],
+        ]
+
+        self.target_metadata_datasource = [
+            [
+                {
+                    "key": "datasource",
+                    "type": "global",
+                    "value": "www.nytimes.com > sports > on pro basketball one last hurrah for the bulls reinsdorf isn t quite saying html",
+                }
+            ],
+            [{"key": "datasource", "type": "global", "value": "www.xyz.com > "}],
+            [{"key": "datasource", "type": "global", "value": "www.test.com > "}],
+            [{"key": "datasource", "type": "global", "value": "notfound.com > "}],
+        ]
 
     @mock.patch("bsmetadata.preprocessing_tools.wikipedia_desc_utils.DumpDB")
     @mock.patch("bsmetadata.preprocessing_tools.wikipedia_desc_utils.nltk.sent_tokenize", new=mock_sent_tokenize)
@@ -441,7 +471,9 @@ class PipelinePreprocessorTester(unittest.TestCase):
         col_to_store_metadata_timestamp = "metadata_timestamp"
         col_to_store_metadata_website_desc = "metadata_website_desc"
         col_to_store_metadata_entities = "metadata_entity"
-        col_to_store_metadata_generation_length = "metadata_generation_length"
+        col_to_store_metadata_generation_length_text = "metadata_generation_length_text"
+        col_to_store_metadata_generation_length_sentence = "metadata_generation_length_sentence"
+        col_to_store_metadata_datasource = "metadata_generation_datasource"
 
         html_processor = HtmlPreprocessor(
             col_to_store_metadata=col_to_store_metadata_html, col_to_store_text=col_to_store_text
@@ -456,8 +488,14 @@ class PipelinePreprocessorTester(unittest.TestCase):
         entity_processor = EntityPreprocessor(
             base_url="", path_wiki_db="", col_to_store_metadata=col_to_store_metadata_entities
         )
-        generation_length_preprocessor = GenerationLengthPreprocessor(
-            mode="sentence", col_to_store_metadata=col_to_store_metadata_generation_length
+        generation_length_preprocessor_text = GenerationLengthPreprocessor(
+            mode="text", col_to_store_metadata=col_to_store_metadata_generation_length_text
+        )
+        generation_length_preprocessor_sentence = GenerationLengthPreprocessor(
+            mode="sentence", col_to_store_metadata=col_to_store_metadata_generation_length_sentence
+        )
+        datasource_preprocessor = DatasourcePreprocessor(
+            col_to_store_metadata=col_to_store_metadata_datasource, col_url="url"
         )
 
         # Apply function
@@ -467,19 +505,21 @@ class PipelinePreprocessorTester(unittest.TestCase):
         ds = ds.map(lambda ex: timestamp_processor.preprocess(ex), batched=True, batch_size=3)
         ds = ds.map(lambda ex: website_processor.preprocess(ex), batched=True, batch_size=3)
         ds = ds.map(lambda ex: entity_processor.preprocess(ex), batched=True, batch_size=3)
-        ds = ds.map(lambda ex: generation_length_preprocessor.preprocess(ex), batched=True, batch_size=3)
-        self.maxDiff = None
+        ds = ds.map(lambda ex: generation_length_preprocessor_text.preprocess(ex), batched=True, batch_size=3)
+        ds = ds.map(lambda ex: generation_length_preprocessor_sentence.preprocess(ex), batched=True, batch_size=3)
+        ds = ds.map(lambda ex: datasource_preprocessor.preprocess(ex), batched=True, batch_size=3)
+
         self.assertEqual(ds[:][col_to_store_text], self.target_texts)
         self.assertEqual(ds[:][col_to_store_metadata_html], self.target_metadata_html)
         self.assertEqual(ds[:][col_to_store_metadata_url], self.target_metadata_url)
         self.assertEqual(ds[:][col_to_store_metadata_timestamp], self.target_metadata_timestamp)
         self.assertEqual(ds[:][col_to_store_metadata_website_desc], self.target_metadata_website_desc)
         self.assertEqual(ds[:][col_to_store_metadata_entities], self.target_metadata_entities)
-
-        print(ds[:][col_to_store_metadata_generation_length])
-
-        ds.set_format("pandas")
-        print(ds[:])
+        self.assertEqual(ds[:][col_to_store_metadata_generation_length_text], self.target_metadata_length_text)
+        self.assertEqual(
+            ds[:][col_to_store_metadata_generation_length_sentence], self.target_metadata_length_sentences
+        )
+        self.assertEqual(ds[:][col_to_store_metadata_datasource], self.target_metadata_datasource)
 
     @mock.patch("bsmetadata.preprocessing_tools.wikipedia_desc_utils.DumpDB")
     @mock.patch("bsmetadata.preprocessing_tools.wikipedia_desc_utils.nltk.sent_tokenize", new=mock_sent_tokenize)
@@ -494,6 +534,9 @@ class PipelinePreprocessorTester(unittest.TestCase):
         col_to_store_metadata_timestamp = "metadata"
         col_to_store_metadata_website_desc = "metadata"
         col_to_store_metadata_entities = "metadata"
+        col_to_store_metadata_generation_length_text = "metadata"
+        col_to_store_metadata_generation_length_sentence = "metadata"
+        col_to_store_metadata_datasource = "metadata"
 
         html_processor = HtmlPreprocessor(
             col_to_store_metadata=col_to_store_metadata_html, col_to_store_text=col_to_store_text
@@ -507,6 +550,15 @@ class PipelinePreprocessorTester(unittest.TestCase):
         )
         entity_processor = EntityPreprocessor(
             base_url="", path_wiki_db="", col_to_store_metadata=col_to_store_metadata_entities
+        )
+        generation_length_preprocessor_text = GenerationLengthPreprocessor(
+            mode="text", col_to_store_metadata=col_to_store_metadata_generation_length_text
+        )
+        generation_length_preprocessor_sentence = GenerationLengthPreprocessor(
+            mode="sentence", col_to_store_metadata=col_to_store_metadata_generation_length_sentence
+        )
+        datasource_preprocessor = DatasourcePreprocessor(
+            col_to_store_metadata=col_to_store_metadata_datasource, col_url="url"
         )
 
         features = Features(
@@ -537,6 +589,9 @@ class PipelinePreprocessorTester(unittest.TestCase):
         ds = ds.map(lambda ex: timestamp_processor.preprocess(ex), batched=True, batch_size=3, features=features)
         ds = ds.map(lambda ex: website_processor.preprocess(ex), batched=True, batch_size=3, features=features)
         ds = ds.map(lambda ex: entity_processor.preprocess(ex), batched=True, batch_size=3, features=features)
+        ds = ds.map(lambda ex: generation_length_preprocessor_text.preprocess(ex), batched=True, batch_size=3, features=features)
+        ds = ds.map(lambda ex: generation_length_preprocessor_sentence.preprocess(ex), batched=True, batch_size=3, features=features)
+        ds = ds.map(lambda ex: datasource_preprocessor.preprocess(ex), batched=True, batch_size=3, features=features)
 
         self.assertEqual(ds[:][col_to_store_text], self.target_texts)
 
@@ -602,8 +657,45 @@ class PipelinePreprocessorTester(unittest.TestCase):
                 )
                 self.assertIn(metadata, ds[id][col_to_store_metadata_entities])
 
-        ds.set_format("pandas")
-        print(ds[:])
+        for id, metadata_example in enumerate(self.target_metadata_length_sentences):
+            for metadata in metadata_example:
+                metadata.update(
+                    {
+                        "relative_end_pos": None,
+                        "relative_start_pos": None,
+                        "html_attrs": None,
+                        "ent_desc": None,
+                    }
+                )
+                self.assertIn(metadata, ds[id][col_to_store_metadata_generation_length_sentence])
+                
+        for id, metadata_example in enumerate(self.target_metadata_length_text):
+            for metadata in metadata_example:
+                metadata.update(
+                    {
+                        "char_end_idx": None,
+                        "char_start_idx": None,
+                        "relative_end_pos": None,
+                        "relative_start_pos": None,
+                        "html_attrs": None,
+                        "ent_desc": None,
+                    }
+                )
+                self.assertIn(metadata, ds[id][col_to_store_metadata_generation_length_text])
+
+        for id, metadata_example in enumerate(self.target_metadata_datasource):
+            for metadata in metadata_example:
+                metadata.update(
+                    {
+                        "char_end_idx": None,
+                        "char_start_idx": None,
+                        "relative_end_pos": None,
+                        "relative_start_pos": None,
+                        "html_attrs": None,
+                        "ent_desc": None,
+                    }
+                )
+                self.assertIn(metadata, ds[id][col_to_store_metadata_datasource])
 
 
 if __name__ == "__main__":

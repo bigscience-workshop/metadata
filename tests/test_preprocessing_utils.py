@@ -1,6 +1,6 @@
-from typing import Dict, List
 import itertools
 import unittest
+from typing import Dict, List
 from unittest import mock
 
 from datasets import Dataset, Features, Value

@@ -18,6 +18,8 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import unquote_plus
 
+from dateutil.parser import parse
+
 
 @dataclass
 class MetadataConfig:
@@ -131,7 +133,7 @@ class TimestampProcessor(MetadataProcessor):
     def process_global(self, metadata_attrs: Dict[str, Any]) -> Optional[str]:
         # We represent a timestamp using only the year and month.
         # Example: "Year: 2020 | Month: September".
-        formatted_datetime = datetime.datetime.strptime(metadata_attrs["value"], "%Y-%m-%dT%H:%M:%S.%fZ")
+        formatted_datetime = parse(metadata_attrs["value"])
         year_str = f"Year: {formatted_datetime.year}"
         month_str = f"Month: {formatted_datetime.strftime('%B')}"
         return self.cfg.metadata_sep.join((year_str, month_str))

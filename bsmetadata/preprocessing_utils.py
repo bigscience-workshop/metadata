@@ -316,18 +316,32 @@ class EntityPreprocessor(
 class GenerationLengthPreprocessor(MetadataPreprocessor):
     """An exemplary metadata preprocessor for adding generation length information based on text."""
 
-    def __init__(self, mode, col_to_store_metadata="metadata") -> None:
+    def __init__(
+        self,
+        mode,
+        col_to_store_metadata="metadata",
+        col_text="text",
+    ) -> None:
         # The length can be calculated for the whole text or for each sentence of a text individually.
         # We can specify a global length of a TEXT or a local length for each SENTENCE of a text.
         # Therefore, we provide two different modes: text (global) or sentence (local).
         self.mode = mode  # {text, sentence}
+
+        self.col_text = col_text
         super().__init__(col_to_store_metadata=col_to_store_metadata)
 
     def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
         """
         Iterate through all the examples retrieve the length meta information.
         """
-        for example_text, example_metadata in zip(examples["text"], examples[self.col_to_store_metadata]):
+
+        example_metadata_list = (
+            examples[self.col_to_store_metadata]
+            if self.col_to_store_metadata in examples
+            else [[] for _ in range(len(examples[self.col_text]))]
+        )
+
+        for example_text, example_metadata in zip(examples[self.col_text], example_metadata_list):
             if self.mode == "text":
                 text_length = self._extract_length_from_text(example_text)
                 example_length = {"key": "length", "type": "global", "value": text_length}
@@ -340,12 +354,13 @@ class GenerationLengthPreprocessor(MetadataPreprocessor):
                 continue
 
             example_metadata.append(example_length)
-        examples[self.col_to_store_metadata] = (
-            [m[0] for m in examples[self.col_to_store_metadata]]
+        example_metadata_list = (
+            [m[0] for m in example_metadata_list]
             if self.mode == "sentence"
-            else examples[self.col_to_store_metadata]
+            else example_metadata_list
         )  # reformatting of nested lists
 
+        examples[self.col_to_store_metadata] = example_metadata_list
         return examples
 
     def _extract_length_from_text(self, text: str) -> Optional[str]:

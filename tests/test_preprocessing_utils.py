@@ -7,6 +7,7 @@ from mocks.mock_dump_db import MockDumpDB
 from bsmetadata.preprocessing_tools.wikipedia_desc_utils import WikipediaDescUtils
 from bsmetadata.preprocessing_utils import (
     EntityPreprocessor,
+    GenerationLengthPreprocessor,
     HtmlPreprocessor,
     TimestampPreprocessor,
     UrlPreprocessor,
@@ -394,7 +395,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
             ],
         ]
 
-    target_metadata_entities = [
+        self.target_metadata_entities = [
         [],
         [
             {
@@ -440,6 +441,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
         col_to_store_metadata_timestamp = "metadata_timestamp"
         col_to_store_metadata_website_desc = "metadata_website_desc"
         col_to_store_metadata_entities = "metadata_entity"
+        col_to_store_metadata_generation_length = "metadata_generation_length"
 
         html_processor = HtmlPreprocessor(
             col_to_store_metadata=col_to_store_metadata_html, col_to_store_text=col_to_store_text
@@ -454,6 +456,9 @@ class PipelinePreprocessorTester(unittest.TestCase):
         entity_processor = EntityPreprocessor(
             base_url="", path_wiki_db="", col_to_store_metadata=col_to_store_metadata_entities
         )
+        generation_length_preprocessor = GenerationLengthPreprocessor(
+            mode="sentence", col_to_store_metadata=col_to_store_metadata_generation_length
+        )
 
         # Apply function
         ds = Dataset.from_dict(self.init_dict)
@@ -462,6 +467,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
         ds = ds.map(lambda ex: timestamp_processor.preprocess(ex), batched=True, batch_size=3)
         ds = ds.map(lambda ex: website_processor.preprocess(ex), batched=True, batch_size=3)
         ds = ds.map(lambda ex: entity_processor.preprocess(ex), batched=True, batch_size=3)
+        ds = ds.map(lambda ex: generation_length_preprocessor.preprocess(ex), batched=True, batch_size=3)
 
         self.assertEqual(ds[:][col_to_store_text], self.target_texts)
         self.assertEqual(ds[:][col_to_store_metadata_html], self.target_metadata_html)
@@ -469,6 +475,8 @@ class PipelinePreprocessorTester(unittest.TestCase):
         self.assertEqual(ds[:][col_to_store_metadata_timestamp], self.target_metadata_timestamp)
         self.assertEqual(ds[:][col_to_store_metadata_website_desc], self.target_metadata_website_desc)
         self.assertEqual(ds[:][col_to_store_metadata_entities], self.target_metadata_entities)
+
+        print(ds[:][col_to_store_metadata_generation_length])
 
         ds.set_format("pandas")
         print(ds[:])

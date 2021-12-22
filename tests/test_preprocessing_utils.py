@@ -243,8 +243,8 @@ class PipelinePreprocessorTester(unittest.TestCase):
         self.init_dict = {
             "doc_html": [
                 "\n    <html>\n    <head>\n    </head>\n    <body>\n    <h1>This is a title</h1>\n    </body>\n    </html>\n",
-                "<html><body><p>this is a simple paragraph with Obama and Merkel mentioned </p></body></html>",
-                "<html><body><p id=1>paragraph 1</p><p id=2>paragraph 2 is in Paris</p></body></html>",
+                "<html><body><p>this is a simple paragraph with Obama and Merkel mentioned.</p></body></html>",
+                "<html><body><p id=1>paragraph 1.</p><p id=2>paragraph 2 is in Paris.</p></body></html>",
                 '<html><body><div class="div-level-1">blablabla<div class="div-level-2">tidi tidi</div></div></body></html>',
             ],
             "url": [
@@ -258,8 +258,8 @@ class PipelinePreprocessorTester(unittest.TestCase):
         # Define target values
         self.target_texts = [
             "This is a title\n",
-            "this is a simple paragraph with Obama and Merkel mentioned\n",
-            "paragraph 1\nparagraph 2 is in Paris\n",
+            "this is a simple paragraph with Obama and Merkel mentioned.\n",
+            "paragraph 1.\nparagraph 2 is in Paris.\n",
             "blablabla\ntidi tidi\n",
         ]
 
@@ -329,11 +329,11 @@ class PipelinePreprocessorTester(unittest.TestCase):
                     "value": "p",
                 },
                 {
-                    "char_end_idx": 59,
+                    "char_end_idx": 60,
                     "char_start_idx": 0,
                     "html_attrs": {"attrs": [], "values": []},
                     "key": "html",
-                    "relative_end_pos": 1,
+                    "relative_end_pos": 0,
                     "relative_start_pos": 0,
                     "type": "local",
                     "value": "body",
@@ -341,7 +341,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
             ],
             [
                 {
-                    "char_end_idx": 11,
+                    "char_end_idx": 12,
                     "char_start_idx": 0,
                     "html_attrs": {"attrs": ["id"], "values": ["1"]},
                     "key": "html",
@@ -351,8 +351,8 @@ class PipelinePreprocessorTester(unittest.TestCase):
                     "value": "p",
                 },
                 {
-                    "char_end_idx": 35,
-                    "char_start_idx": 12,
+                    "char_end_idx": 37,
+                    "char_start_idx": 13,
                     "html_attrs": {"attrs": ["id"], "values": ["2"]},
                     "key": "html",
                     "relative_end_pos": 0,
@@ -361,7 +361,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
                     "value": "p",
                 },
                 {
-                    "char_end_idx": 36,
+                    "char_end_idx": 38,
                     "char_start_idx": 0,
                     "html_attrs": {"attrs": [], "values": []},
                     "key": "html",
@@ -417,8 +417,8 @@ class PipelinePreprocessorTester(unittest.TestCase):
         ],
         [
             {
-                "char_end_idx": 35,
-                "char_start_idx": 30,
+                "char_end_idx": 36,
+                "char_start_idx": 31,
                 "ent_desc": "",
                 "key": "entity",
                 "type": "local",
@@ -468,7 +468,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
         ds = ds.map(lambda ex: website_processor.preprocess(ex), batched=True, batch_size=3)
         ds = ds.map(lambda ex: entity_processor.preprocess(ex), batched=True, batch_size=3)
         ds = ds.map(lambda ex: generation_length_preprocessor.preprocess(ex), batched=True, batch_size=3)
-
+        self.maxDiff = None
         self.assertEqual(ds[:][col_to_store_text], self.target_texts)
         self.assertEqual(ds[:][col_to_store_metadata_html], self.target_metadata_html)
         self.assertEqual(ds[:][col_to_store_metadata_url], self.target_metadata_url)

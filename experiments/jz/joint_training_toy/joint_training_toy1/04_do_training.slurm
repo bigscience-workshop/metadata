@@ -57,7 +57,7 @@ python bsmetadata/train.py \
     do_train=True \
     do_eval=True \
     evaluation_strategy=STEPS \
-    eval_steps=10 \
+    eval_steps=50 \
     save_strategy=STEPS \
-    save_steps=10 \
+    save_steps=50 \
     gradient_accumulation_steps=2

@@ -589,8 +589,18 @@ class PipelinePreprocessorTester(unittest.TestCase):
         ds = ds.map(lambda ex: timestamp_processor.preprocess(ex), batched=True, batch_size=3, features=features)
         ds = ds.map(lambda ex: website_processor.preprocess(ex), batched=True, batch_size=3, features=features)
         ds = ds.map(lambda ex: entity_processor.preprocess(ex), batched=True, batch_size=3, features=features)
-        ds = ds.map(lambda ex: generation_length_preprocessor_text.preprocess(ex), batched=True, batch_size=3, features=features)
-        ds = ds.map(lambda ex: generation_length_preprocessor_sentence.preprocess(ex), batched=True, batch_size=3, features=features)
+        ds = ds.map(
+            lambda ex: generation_length_preprocessor_text.preprocess(ex),
+            batched=True,
+            batch_size=3,
+            features=features,
+        )
+        ds = ds.map(
+            lambda ex: generation_length_preprocessor_sentence.preprocess(ex),
+            batched=True,
+            batch_size=3,
+            features=features,
+        )
         ds = ds.map(lambda ex: datasource_preprocessor.preprocess(ex), batched=True, batch_size=3, features=features)
 
         self.assertEqual(ds[:][col_to_store_text], self.target_texts)
@@ -668,7 +678,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
                     }
                 )
                 self.assertIn(metadata, ds[id][col_to_store_metadata_generation_length_sentence])
-                
+
         for id, metadata_example in enumerate(self.target_metadata_length_text):
             for metadata in metadata_example:
                 metadata.update(

@@ -345,20 +345,14 @@ class GenerationLengthPreprocessor(MetadataPreprocessor):
             if self.mode == "text":
                 text_length = self._extract_length_from_text(example_text)
                 example_length = {"key": "length", "type": "global", "value": text_length}
+                if not example_length:
+                    continue
+                example_metadata.append(example_length)
             elif self.mode == "sentence":
                 example_length = self._extract_length_from_sentences(example_text)
+                example_metadata.extend(example_length)
             else:
                 print("Please select a valid length type [text or sentence].")
-
-            if not example_length:
-                continue
-
-            example_metadata.append(example_length)
-        example_metadata_list = (
-            [m[0] for m in example_metadata_list]
-            if self.mode == "sentence"
-            else example_metadata_list
-        )  # reformatting of nested lists
 
         examples[self.col_to_store_metadata] = example_metadata_list
         return examples

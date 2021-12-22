@@ -537,7 +537,6 @@ class PipelinePreprocessorTester(unittest.TestCase):
         )
         self.assertEqual(ds[:][col_to_store_metadata_datasource], self.target_metadata_datasource)
 
-
         col_to_store_all_metadata = "metadata"
         columns_names_to_concat = [
             col_to_store_metadata_html,

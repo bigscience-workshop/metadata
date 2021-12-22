@@ -69,29 +69,6 @@ class MetadataPreprocessor(ABC):
         pass
 
 
-class UrlPreprocessor(MetadataPreprocessor):
-    """An exemplary metadata preprocessor for adding timestamp information based on URLs."""
-
-    def __init__(self, col_to_store_metadata="metadata", col_url="url") -> None:
-        self.col_url = col_url
-        super().__init__(col_to_store_metadata=col_to_store_metadata)
-
-    def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
-        example_metadata_list = (
-            examples[self.col_to_store_metadata]
-            if self.col_to_store_metadata in examples
-            else [[] for _ in range(len(examples[self.col_url]))]
-        )
-
-        # Iterate through the metadata associated with all examples in this batch.
-        for example_url, example_metadata in zip(examples[self.col_url], example_metadata_list):
-            if example_url:
-                example_metadata.append({"key": "url", "type": "global", "value": example_url})
-
-        examples[self.col_to_store_metadata] = example_metadata_list
-        return examples
-
-
 class TimestampPreprocessor(MetadataPreprocessor):
     """An exemplary metadata preprocessor for adding timestamp information based on URLs."""
 
@@ -463,6 +440,29 @@ class DatasourcePreprocessor(MetadataPreprocessor):
                 continue
 
             example_metadata.append({"key": "datasource", "type": "global", "value": example_datasource})
+
+        examples[self.col_to_store_metadata] = example_metadata_list
+        return examples
+
+
+class UrlPreprocessor(MetadataPreprocessor):
+    """An exemplary metadata preprocessor for adding timestamp information based on URLs."""
+
+    def __init__(self, col_to_store_metadata="metadata", col_url="url") -> None:
+        self.col_url = col_url
+        super().__init__(col_to_store_metadata=col_to_store_metadata)
+
+    def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
+        example_metadata_list = (
+            examples[self.col_to_store_metadata]
+            if self.col_to_store_metadata in examples
+            else [[] for _ in range(len(examples[self.col_url]))]
+        )
+
+        # Iterate through the metadata associated with all examples in this batch.
+        for example_url, example_metadata in zip(examples[self.col_url], example_metadata_list):
+            if example_url:
+                example_metadata.append({"key": "url", "type": "global", "value": example_url})
 
         examples[self.col_to_store_metadata] = example_metadata_list
         return examples

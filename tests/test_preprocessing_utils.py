@@ -512,11 +512,6 @@ class PipelinePreprocessorTester(unittest.TestCase):
             col_to_store_metadata=col_to_store_metadata_datasource, col_url="url"
         )
 
-        features_dict = {
-            "doc_html": Value("string"),
-            "url": Value("string"),
-        }
-
         # Apply function
         ds = Dataset.from_dict(self.init_dict)
         features_dict = dict(ds.features)

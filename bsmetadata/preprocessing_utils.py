@@ -27,6 +27,11 @@ from REL.utils import process_results
 
 from bsmetadata.preprocessing_tools import html_parser
 from bsmetadata.preprocessing_tools.wikipedia_desc_utils import WikipediaDescUtils
+from bsmetadata.utils import _datasets_available
+
+
+if _datasets_available:
+    from datasets import Value
 
 
 def get_path_from_url(url):
@@ -466,3 +471,73 @@ class UrlPreprocessor(MetadataPreprocessor):
 
         examples[self.col_to_store_metadata] = example_metadata_list
         return examples
+
+
+if _datasets_available:
+    # minimal format for each type of metadata
+    features_metadata_html = [
+        {
+            "char_end_idx": Value("int64"),
+            "char_start_idx": Value("int64"),
+            "html_attrs": {"attrs": [Value("string")], "values": [Value("string")]},
+            "key": Value("string"),
+            "relative_end_pos": Value("int64"),
+            "relative_start_pos": Value("int64"),
+            "type": Value("string"),
+            "value": Value("string"),
+        }
+    ]
+    features_metadata_url = [
+        {
+            "key": Value("string"),
+            "type": Value("string"),
+            "value": Value("string"),
+        }
+    ]
+    features_metadata_timestamp = [
+        {
+            "key": Value("string"),
+            "type": Value("string"),
+            "value": Value("string"),
+        }
+    ]
+    features_metadata_website_desc = [
+        {
+            "key": Value("string"),
+            "type": Value("string"),
+            "value": Value("string"),
+        }
+    ]
+    features_metadata_entities = [
+        {
+            "char_end_idx": Value("int64"),
+            "char_start_idx": Value("int64"),
+            "key": Value("string"),
+            "type": Value("string"),
+            "value": Value("string"),
+            "ent_desc": Value("string"),
+        }
+    ]
+    features_metadata_generation_length_text = [
+        {
+            "key": Value("string"),
+            "type": Value("string"),
+            "value": Value("string"),
+        }
+    ]
+    features_metadata_generation_length_sentence = [
+        {
+            "char_end_idx": Value("int64"),
+            "char_start_idx": Value("int64"),
+            "key": Value("string"),
+            "type": Value("string"),
+            "value": Value("string"),
+        }
+    ]
+    features_metadata_datasource = [
+        {
+            "key": Value("string"),
+            "type": Value("string"),
+            "value": Value("string"),
+        }
+    ]

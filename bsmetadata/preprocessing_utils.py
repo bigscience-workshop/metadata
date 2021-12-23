@@ -59,6 +59,10 @@ def remove_improbable_date(x):
 class MetadataPreprocessor(ABC):
     """A metadata processor can be used for preprocessing text and adding or extracting metadata information."""
 
+    def __init__(self, col_to_store_metadata: str) -> None:
+        self.col_to_store_metadata = col_to_store_metadata
+        super().__init__()
+
     @abstractmethod
     def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
         """Process a batch of examples and add or extract corresponding metadata."""
@@ -68,14 +72,21 @@ class MetadataPreprocessor(ABC):
 class TimestampPreprocessor(MetadataPreprocessor):
     """An exemplary metadata preprocessor for adding timestamp information based on URLs."""
 
-    def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
+    def __init__(self, col_to_store_metadata="metadata", col_metadata_url="metadata") -> None:
+        self.col_metadata_url = col_metadata_url
+        super().__init__(col_to_store_metadata=col_to_store_metadata)
 
-        example_metadata_list = examples["metadata"]
+    def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
+        example_metadata_list = (
+            examples[self.col_to_store_metadata]
+            if self.col_to_store_metadata in examples
+            else [[] for _ in range(len(examples[self.col_metadata_url]))]
+        )
 
         # Iterate through the metadata associated with all examples in this batch.
-        for example_metadata in example_metadata_list:
+        for example_metadata_url, example_metadata in zip(examples[self.col_metadata_url], example_metadata_list):
             # Get the URL associated with this example.
-            example_urls = [md["value"] for md in example_metadata if md["key"] == "url"]
+            example_urls = [md["value"] for md in example_metadata_url if md["key"] == "url"]
 
             if not example_urls:
                 continue
@@ -86,6 +97,7 @@ class TimestampPreprocessor(MetadataPreprocessor):
             if example_timestamp:
                 example_metadata.append({"key": "timestamp", "type": "global", "value": example_timestamp})
 
+        examples[self.col_to_store_metadata] = example_metadata_list
         return examples
 
     def _extract_timestamp_from_url(self, url: str) -> Optional[str]:
@@ -103,9 +115,12 @@ class HtmlPreprocessor(MetadataPreprocessor):
     HTML metadata containing the tags, their attributes, their location in the text and their relative location to
     each other."""
 
-    def __init__(self, name_html_column: str = "doc_html") -> None:
+    def __init__(
+        self, name_html_column: str = "doc_html", col_to_store_metadata="metadata", col_to_store_text="text"
+    ) -> None:
         self.name_html_column = name_html_column
-        super().__init__()
+        self.col_to_store_text = col_to_store_text
+        super().__init__(col_to_store_metadata=col_to_store_metadata)
 
     def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
         tags_to_remove_with_content = [
@@ -118,8 +133,13 @@ class HtmlPreprocessor(MetadataPreprocessor):
         ]
 
         new_texts = []
+        new_metadata = (
+            examples[self.col_to_store_metadata]
+            if self.col_to_store_metadata in examples
+            else [[] for _ in range(len(examples[self.name_html_column]))]
+        )
         for example_doc_html, example_metadata in zip(
-            examples[self.name_html_column], examples["metadata"]
+            examples[self.name_html_column], new_metadata
         ):  # if metadata already exists
 
             plain_text, metadata = html_parser.get_clean_text_and_metadata(
@@ -133,25 +153,37 @@ class HtmlPreprocessor(MetadataPreprocessor):
                 [html_parser.objects.convert_html_metadata_dataclass_to_dict(node) for node in metadata]
             )
 
-        examples["texts"] = new_texts
+        examples[self.col_to_store_text] = new_texts
+        examples[self.col_to_store_metadata] = new_metadata
         return examples
 
 
 class WebsiteDescPreprocessor(MetadataPreprocessor):
     """Metadata preprocessor for adding website description based on URLs."""
 
-    def __init__(self, path_wiki_db: str = "../preprocessing_data/wiki_dump/wiki_en_dump_db") -> None:
+    def __init__(
+        self,
+        path_wiki_db: str = "../preprocessing_data/wiki_dump/wiki_en_dump_db",
+        col_to_store_metadata="metadata",
+        col_metadata_url="metadata",
+    ) -> None:
         self.website_utils = WikipediaDescUtils(path_wiki_db)
-        super().__init__()
+
+        self.col_metadata_url = col_metadata_url
+        super().__init__(col_to_store_metadata=col_to_store_metadata)
 
     def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
 
-        metadata_list = examples["metadata"]
+        example_metadata_list = (
+            examples[self.col_to_store_metadata]
+            if self.col_to_store_metadata in examples
+            else [[] for _ in range(len(examples[self.col_metadata_url]))]
+        )
 
         # Iterate through the metadata associated with all examples in this batch.
-        for metadata in metadata_list:
+        for example_metadata_url, example_metadata in zip(examples[self.col_metadata_url], example_metadata_list):
             # Get the URL associated with this example.
-            urls = [md["value"] for md in metadata if md["key"] == "url"]
+            urls = [md["value"] for md in example_metadata_url if md["key"] == "url"]
 
             if not urls:
                 continue
@@ -160,7 +192,9 @@ class WebsiteDescPreprocessor(MetadataPreprocessor):
             website_description = self._extract_website_desc_from_url(urls[0])
 
             if website_description:
-                metadata.append({"key": "website_description", "type": "global", "value": website_description})
+                example_metadata.append({"key": "website_description", "type": "global", "value": website_description})
+
+        examples[self.col_to_store_metadata] = example_metadata_list
         return examples
 
     def _extract_website_desc_from_url(self, url: str) -> Optional:
@@ -179,6 +213,8 @@ class EntityPreprocessor(
         base_url,
         path_wiki_db,
         path_or_url_flair_ner_model="ner-fast",
+        col_to_store_metadata="metadata",
+        col_text="text",
     ):
         self.wiki_db_path = path_wiki_db
         self.entity_utils = WikipediaDescUtils(path_wiki_db)
@@ -191,11 +227,13 @@ class EntityPreprocessor(
             "model_path": "ed-wiki-2019",
         }
         self.model = EntityDisambiguation(self.base_url, self.wiki_version, self.config, reset_embeddings=True)
-        super().__init__()
+
+        self.col_text = col_text
+        super().__init__(col_to_store_metadata=col_to_store_metadata)
 
     def preprocess_example(self, examples: Dict[str, List]) -> Dict[str, List]:
         # preprocess all the examples in a particular batch in the required format
-        processed = {ex_id: [ex_text, []] for ex_id, ex_text in enumerate(examples["text"])}
+        processed = {ex_id: [ex_text, []] for ex_id, ex_text in enumerate(examples[self.col_text])}
         return processed
 
     def fetch_mention_predictions(self, examples: Dict[str, List]) -> Dict[str, List]:
@@ -217,7 +255,13 @@ class EntityPreprocessor(
         # process all the examples in a particular batch and all the metadata extracted for entities for those examples
         mentions_predicted = self.fetch_mention_predictions(examples)
 
-        for example_id, example_metadata in enumerate(examples["metadata"]):
+        example_metadata_list = (
+            examples[self.col_to_store_metadata]
+            if self.col_to_store_metadata in examples
+            else [[] for _ in range(len(examples[self.col_text]))]
+        )
+
+        for example_id, example_metadata in enumerate(example_metadata_list):
             if example_id not in mentions_predicted:
                 continue
 
@@ -241,39 +285,53 @@ class EntityPreprocessor(
                     "ent_desc": ent_desc,
                 }
                 example_metadata.append(en)
+
+        examples[self.col_to_store_metadata] = example_metadata_list
         return examples
 
 
 class GenerationLengthPreprocessor(MetadataPreprocessor):
     """An exemplary metadata preprocessor for adding generation length information based on text."""
 
-    def __init__(self, mode):
+    def __init__(
+        self,
+        mode,
+        col_to_store_metadata="metadata",
+        col_text="text",
+    ) -> None:
         # The length can be calculated for the whole text or for each sentence of a text individually.
         # We can specify a global length of a TEXT or a local length for each SENTENCE of a text.
         # Therefore, we provide two different modes: text (global) or sentence (local).
         self.mode = mode  # {text, sentence}
 
+        self.col_text = col_text
+        super().__init__(col_to_store_metadata=col_to_store_metadata)
+
     def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
         """
         Iterate through all the examples retrieve the length meta information.
         """
-        for example_text, example_metadata in zip(examples["text"], examples["metadata"]):
+
+        example_metadata_list = (
+            examples[self.col_to_store_metadata]
+            if self.col_to_store_metadata in examples
+            else [[] for _ in range(len(examples[self.col_text]))]
+        )
+
+        for example_text, example_metadata in zip(examples[self.col_text], example_metadata_list):
             if self.mode == "text":
                 text_length = self._extract_length_from_text(example_text)
                 example_length = {"key": "length", "type": "global", "value": text_length}
+                if not example_length:
+                    continue
+                example_metadata.append(example_length)
             elif self.mode == "sentence":
                 example_length = self._extract_length_from_sentences(example_text)
+                example_metadata.extend(example_length)
             else:
                 print("Please select a valid length type [text or sentence].")
 
-            if not example_length:
-                continue
-
-            example_metadata.append(example_length)
-        examples["metadata"] = (
-            [m[0] for m in examples["metadata"]] if self.mode == "sentence" else examples["metadata"]
-        )  # reformatting of nested lists
-
+        examples[self.col_to_store_metadata] = example_metadata_list
         return examples
 
     def _extract_length_from_text(self, text: str) -> Optional[str]:
@@ -315,6 +373,10 @@ class GenerationLengthPreprocessor(MetadataPreprocessor):
 
 class DatasourcePreprocessor(MetadataPreprocessor):
     """An exemplary metadata preprocessor for adding datasource information based on URLs."""
+
+    def __init__(self, col_to_store_metadata="metadata", col_url="url") -> None:
+        self.col_url = col_url
+        super().__init__(col_to_store_metadata=col_to_store_metadata)
 
     def _check_numbers(self, sub_part: List[str]) -> List[str]:
         """Check for insignificant numbers (i.e. we delete all numbers at the end or beginning of a given URL part (w/o domain))"""
@@ -365,14 +427,42 @@ class DatasourcePreprocessor(MetadataPreprocessor):
         return parts.netloc + " > " + " > ".join(directories_parts)
 
     def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
+        example_metadata_list = (
+            examples[self.col_to_store_metadata]
+            if self.col_to_store_metadata in examples
+            else [[] for _ in range(len(examples[self.col_url]))]
+        )
 
-        for example_url, example_meta in zip(examples["url"], examples["metadata"]):
+        # Iterate through the metadata associated with all examples in this batch.
+        for example_url, example_metadata in zip(examples[self.col_url], example_metadata_list):
             example_datasource = self._extract_datasource_from_url(example_url)
-            print(example_datasource)
-
             if not example_datasource:
                 continue
 
-            example_meta.append({"key": "datasource", "type": "global", "value": example_datasource})
+            example_metadata.append({"key": "datasource", "type": "global", "value": example_datasource})
 
+        examples[self.col_to_store_metadata] = example_metadata_list
+        return examples
+
+
+class UrlPreprocessor(MetadataPreprocessor):
+    """An exemplary metadata preprocessor for adding timestamp information based on URLs."""
+
+    def __init__(self, col_to_store_metadata="metadata", col_url="url") -> None:
+        self.col_url = col_url
+        super().__init__(col_to_store_metadata=col_to_store_metadata)
+
+    def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
+        example_metadata_list = (
+            examples[self.col_to_store_metadata]
+            if self.col_to_store_metadata in examples
+            else [[] for _ in range(len(examples[self.col_url]))]
+        )
+
+        # Iterate through the metadata associated with all examples in this batch.
+        for example_url, example_metadata in zip(examples[self.col_url], example_metadata_list):
+            if example_url:
+                example_metadata.append({"key": "url", "type": "global", "value": example_url})
+
+        examples[self.col_to_store_metadata] = example_metadata_list
         return examples

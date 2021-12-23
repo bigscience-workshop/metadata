@@ -196,7 +196,9 @@ def main(args: PreprocessingConfig) -> None:
 
     if "website_description" in args.metadata_to_include:
         website_processor = WebsiteDescPreprocessor(
-            col_to_store_metadata=col_to_store_metadata_website_desc, col_metadata_url=col_to_store_metadata_url
+            col_to_store_metadata=col_to_store_metadata_website_desc,
+            col_metadata_url=col_to_store_metadata_url,
+            path_wiki_db=args.path_wiki_db,
         )
         ds = apply_processor(ds=ds, processor=website_processor)
 

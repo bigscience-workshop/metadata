@@ -102,6 +102,7 @@ def add_url_as_metadata(examples: Dict[str, List], column_name_url: str = "url")
     examples["id"] = example_urls  # to change
     return examples
 
+
 col_html = "html"
 col_url = "url"
 col_to_store_text = "text"
@@ -131,8 +132,8 @@ def main(args: PreprocessingConfig) -> None:
     )
 
     config_dict = OmegaConf.to_container(args)
-    config_dict["file_name"]=file_name
-    config_dict["out_file_name"]=out_file_name
+    config_dict["file_name"] = file_name
+    config_dict["out_file_name"] = out_file_name
     metrics_logger = Logger(project=args.project_name, config=config_dict)
 
     logger.info(config.HF_DATASETS_CACHE)
@@ -165,7 +166,7 @@ def main(args: PreprocessingConfig) -> None:
 
         logger.info(f"Start {extraction_name}")
         metrics_logger.log({extraction_name: 0})
-        ds.map(
+        ds = ds.map(
             processor.preprocess,
             batched=True,
             batch_size=args.map_batch_size,
@@ -217,7 +218,7 @@ def main(args: PreprocessingConfig) -> None:
             mode="text", col_to_store_metadata=col_to_store_metadata_generation_length_text
         )
         ds = apply_processor(ds=ds, processor=generation_length_preprocessor_text)
-    
+
     if "generation_length_sentence" in args.metadata_to_include:
         generation_length_preprocessor_sentence = GenerationLengthPreprocessor(
             mode="sentence", col_to_store_metadata=col_to_store_metadata_generation_length_sentence
@@ -235,12 +236,11 @@ def main(args: PreprocessingConfig) -> None:
     ds.to_json(saving_path)
     metrics_logger.close()
 
-
-    with open(saving_path, 'rb') as f_in:
-        with gzip.open(f"{saving_path}.gz", 'wb') as f_out:
+    with open(saving_path, "rb") as f_in:
+        with gzip.open(f"{saving_path}.gz", "wb") as f_out:
             shutil.copyfileobj(f_in, f_out)
 
-    os.remove(saving_path) 
+    os.remove(saving_path)
 
 
 if __name__ == "__main__":

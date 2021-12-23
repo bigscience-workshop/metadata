@@ -20,6 +20,7 @@ from typing import Any, Dict, List, Optional
 from urllib.parse import unquote, urlparse, urlsplit
 
 from bs_dateutil.parser import ParserError, parse
+from datasets import Value
 from REL.entity_disambiguation import EntityDisambiguation
 from REL.mention_detection import MentionDetection
 from REL.ner import load_flair_ner
@@ -28,10 +29,6 @@ from REL.utils import process_results
 from bsmetadata.preprocessing_tools import html_parser
 from bsmetadata.preprocessing_tools.wikipedia_desc_utils import WikipediaDescUtils
 from bsmetadata.utils import _datasets_available
-
-
-if _datasets_available:
-    from datasets import Value
 
 
 def get_path_from_url(url):
@@ -69,16 +66,8 @@ class MetadataPreprocessor(ABC):
         super().__init__()
 
     @property
-    def new_columns_minimal_features(self) -> Dict[str, Any]:
-        """Returns a dictionary whose key corresponds to the name of a new column / a column modified by this processor
-        and whose value corresponds to the minimal format of this column"""
-        if not _datasets_available:
-            raise ValueError("this property need to have datasets installed")
-        return self._new_columns_minimal_features
-
-    @property
     @abstractmethod
-    def _new_columns_minimal_features(self) -> Dict[str, Any]:
+    def new_columns_minimal_features(self) -> Dict[str, Any]:
         """Returns a dictionary whose key corresponds to the name of a new column / a column modified by this processor
         and whose value corresponds to the minimal format of this column"""
         pass
@@ -97,7 +86,7 @@ class TimestampPreprocessor(MetadataPreprocessor):
         super().__init__(col_to_store_metadata=col_to_store_metadata)
 
     @property
-    def _new_columns_minimal_features(self) -> Dict[str, Any]:
+    def new_columns_minimal_features(self) -> Dict[str, Any]:
         features = {
             self.col_to_store_metadata: [
                 {
@@ -156,7 +145,7 @@ class HtmlPreprocessor(MetadataPreprocessor):
         super().__init__(col_to_store_metadata=col_to_store_metadata)
 
     @property
-    def _new_columns_minimal_features(self) -> Dict[str, Any]:
+    def new_columns_minimal_features(self) -> Dict[str, Any]:
         features = {
             self.col_to_store_metadata: [
                 {
@@ -225,7 +214,7 @@ class WebsiteDescPreprocessor(MetadataPreprocessor):
         super().__init__(col_to_store_metadata=col_to_store_metadata)
 
     @property
-    def _new_columns_minimal_features(self) -> Dict[str, Any]:
+    def new_columns_minimal_features(self) -> Dict[str, Any]:
         features = {
             self.col_to_store_metadata: [
                 {
@@ -297,7 +286,7 @@ class EntityPreprocessor(
         super().__init__(col_to_store_metadata=col_to_store_metadata)
 
     @property
-    def _new_columns_minimal_features(self) -> Dict[str, Any]:
+    def new_columns_minimal_features(self) -> Dict[str, Any]:
         features = {
             self.col_to_store_metadata: [
                 {
@@ -389,7 +378,7 @@ class GenerationLengthPreprocessor(MetadataPreprocessor):
         super().__init__(col_to_store_metadata=col_to_store_metadata)
 
     @property
-    def _new_columns_minimal_features(self) -> Dict[str, Any]:
+    def new_columns_minimal_features(self) -> Dict[str, Any]:
 
         if self.mode == "text":
             features = {
@@ -490,7 +479,7 @@ class DatasourcePreprocessor(MetadataPreprocessor):
         super().__init__(col_to_store_metadata=col_to_store_metadata)
 
     @property
-    def _new_columns_minimal_features(self) -> Dict[str, Any]:
+    def new_columns_minimal_features(self) -> Dict[str, Any]:
         features = {
             self.col_to_store_metadata: [
                 {
@@ -577,7 +566,7 @@ class UrlPreprocessor(MetadataPreprocessor):
         super().__init__(col_to_store_metadata=col_to_store_metadata)
 
     @property
-    def _new_columns_minimal_features(self) -> Dict[str, Any]:
+    def new_columns_minimal_features(self) -> Dict[str, Any]:
         features = {
             self.col_to_store_metadata: [
                 {

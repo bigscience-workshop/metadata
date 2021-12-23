@@ -4,7 +4,8 @@ import sys
 from dataclasses import dataclass, field
 from functools import partial
 from typing import Dict, List, Optional, Tuple
-
+import gzip
+import shutil
 from datasets import Dataset, Features, Value
 import wandb
 import hydra
@@ -13,9 +14,13 @@ from hydra.core.config_store import ConfigStore
 from omegaconf import OmegaConf
 
 from bsmetadata.preprocessing_utils import (
+    DatasourcePreprocessor,
     EntityPreprocessor,
+    GenerationLengthPreprocessor,
+    HtmlPreprocessor,
     MetadataPreprocessor,
     TimestampPreprocessor,
+    UrlPreprocessor,
     WebsiteDescPreprocessor,
 )
 from bsmetadata.train import show_help
@@ -26,8 +31,8 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class PreprocessingConfig:
-    file_name: str = field(metadata={"help": "The input file name(a jsonl file, eventually compressed)."})
-    out_file_name: str = field(metadata={"help": "The output file name(a jsonl file)."})
+    task_id: int = field(metadata={"help": "The id of the task"})
+    data_dir: str = field(metadata={"help": "path to the folder storing the dataset"})
     out_dir: str = field(metadata={"help": "where to save the resulting dataset."})
     path_wiki_db: str = field(
         metadata={"help": "The path to the wikipedia database file necessary for the website descriptions"}
@@ -113,7 +118,11 @@ col_to_store_metadata_datasource = "metadata_generation_datasource"
 
 @hydra.main(config_name="preprocessing_config")
 def main(args: PreprocessingConfig) -> None:
-    data_files = {"file": args.file_name}
+    poss_files = sorted(os.listdir(args.data_dir))
+    file_name = poss_files[args.task_id]
+    out_file_name = file_name if not file_name.endswith(".gz") else file_name[:-3]
+
+    data_files = {"file": file_name}
 
     # Setup logging
     logging.basicConfig(
@@ -123,6 +132,8 @@ def main(args: PreprocessingConfig) -> None:
     )
 
     config_dict = OmegaConf.to_container(args)
+    config_dict["file_name"]=file_name
+    config_dict["out_file_name"]=out_file_name
     metrics_logger = Logger(project=args.project_name, config=config_dict)
 
     logger.info(config.HF_DATASETS_CACHE)
@@ -217,10 +228,17 @@ def main(args: PreprocessingConfig) -> None:
         )
         ds = apply_processor(ds=ds, processor=datasource_preprocessor)
 
-    saving_path = os.path.join(args.out_dir, args.out_file_name)
+    saving_path = os.path.join(args.out_dir, out_file_name)
     logger.info(f"Save resulting dataset at {saving_path}")
     ds.to_json(saving_path)
     metrics_logger.close()
+
+
+    with open(saving_path, 'rb') as f_in:
+        with gzip.open(f"{saving_path}.gz", 'wb') as f_out:
+            shutil.copyfileobj(f_in, f_out)
+
+    os.remove(saving_path) 
 
 
 if __name__ == "__main__":

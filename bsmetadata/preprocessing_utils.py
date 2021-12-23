@@ -132,14 +132,14 @@ class TimestampPreprocessor(MetadataPreprocessor):
 class HtmlPreprocessor(MetadataPreprocessor):
     """Metadata preprocessor for extracting metadata from html text.
 
-    Specifically, it separates the html text contained in the `name_html_column`` column into a text and a list of
+    Specifically, it separates the html text contained in the `col_html`` column into a text and a list of
     HTML metadata containing the tags, their attributes, their location in the text and their relative location to
     each other."""
 
     def __init__(
-        self, name_html_column: str = "doc_html", col_to_store_metadata="metadata", col_to_store_text="text"
+        self, col_html: str = "doc_html", col_to_store_metadata="metadata", col_to_store_text="text"
     ) -> None:
-        self.name_html_column = name_html_column
+        self.col_html = col_html
         self.col_to_store_text = col_to_store_text
         super().__init__(col_to_store_metadata=col_to_store_metadata)
 
@@ -176,10 +176,10 @@ class HtmlPreprocessor(MetadataPreprocessor):
         new_metadata = (
             examples[self.col_to_store_metadata]
             if self.col_to_store_metadata in examples
-            else [[] for _ in range(len(examples[self.name_html_column]))]
+            else [[] for _ in range(len(examples[self.col_html]))]
         )
         for example_doc_html, example_metadata in zip(
-            examples[self.name_html_column], new_metadata
+            examples[self.col_html], new_metadata
         ):  # if metadata already exists
 
             plain_text, metadata = html_parser.get_clean_text_and_metadata(

@@ -32,7 +32,6 @@ logger = logging.getLogger(__name__)
 @dataclass
 class PreprocessingConfig:
     task_id: int = field(metadata={"help": "The id of the task"})
-    data_dir: str = field(metadata={"help": "path to the folder storing the dataset"})
     out_dir: str = field(metadata={"help": "where to save the resulting dataset."})
     path_wiki_db: str = field(
         metadata={"help": "The path to the wikipedia database file necessary for the website descriptions"}
@@ -103,7 +102,7 @@ def add_url_as_metadata(examples: Dict[str, List], column_name_url: str = "url")
     examples["id"] = example_urls  # to change
     return examples
 
-
+col_html = "html"
 col_url = "url"
 col_to_store_text = "text"
 col_to_store_metadata_html = "metadata_html"
@@ -118,7 +117,7 @@ col_to_store_metadata_datasource = "metadata_generation_datasource"
 
 @hydra.main(config_name="preprocessing_config")
 def main(args: PreprocessingConfig) -> None:
-    poss_files = sorted(os.listdir(args.data_dir))
+    poss_files = sorted(os.listdir(args.dataset_name))
     file_name = poss_files[args.task_id]
     out_file_name = file_name if not file_name.endswith(".gz") else file_name[:-3]
 
@@ -156,6 +155,7 @@ def main(args: PreprocessingConfig) -> None:
     metrics_logger.log({"load_dataset": 1})
 
     features_dict = dict(ds.features)
+    logger.info(f"the initial features of the dataset are: {features_dict}")
 
     def apply_processor(ds: Dataset, processor: MetadataPreprocessor) -> Dataset:
         for col_name, feature_type in processor.new_columns_minimal_features.items():
@@ -180,7 +180,7 @@ def main(args: PreprocessingConfig) -> None:
 
     if "html" in args.metadata_to_include:
         html_processor = HtmlPreprocessor(
-            col_to_store_metadata=col_to_store_metadata_html, col_to_store_text=col_to_store_text
+            col_to_store_metadata=col_to_store_metadata_html, col_to_store_text=col_to_store_text, col_html=col_html
         )
         ds = apply_processor(ds=ds, processor=html_processor)
 

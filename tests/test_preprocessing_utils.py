@@ -12,6 +12,7 @@ from bsmetadata.preprocessing_utils import (
     EntityPreprocessor,
     GenerationLengthPreprocessor,
     HtmlPreprocessor,
+    MetadataPreprocessor,
     TimestampPreprocessor,
     UrlPreprocessor,
     WebsiteDescPreprocessor,
@@ -203,7 +204,6 @@ def mock_fetch_mention_predictions(self, examples):
         result[idx] = []
         for keyword, entity_value in hardcoded_dict.items():
             index = example_text.find(keyword)
-            print(index)
             if index == -1:
                 continue
             result[idx].append(
@@ -512,16 +512,35 @@ class PipelinePreprocessorTester(unittest.TestCase):
             col_to_store_metadata=col_to_store_metadata_datasource, col_url="url"
         )
 
+        features_dict = {
+            "doc_html": Value("string"),
+            "url": Value("string"),
+        }
+
         # Apply function
         ds = Dataset.from_dict(self.init_dict)
-        ds = ds.map(lambda ex: html_processor.preprocess(ex), batched=True, batch_size=3)
-        ds = ds.map(lambda ex: url_processor.preprocess(ex), batched=True, batch_size=3)
-        ds = ds.map(lambda ex: timestamp_processor.preprocess(ex), batched=True, batch_size=3)
-        ds = ds.map(lambda ex: website_processor.preprocess(ex), batched=True, batch_size=3)
-        ds = ds.map(lambda ex: entity_processor.preprocess(ex), batched=True, batch_size=3)
-        ds = ds.map(lambda ex: generation_length_preprocessor_text.preprocess(ex), batched=True, batch_size=3)
-        ds = ds.map(lambda ex: generation_length_preprocessor_sentence.preprocess(ex), batched=True, batch_size=3)
-        ds = ds.map(lambda ex: datasource_preprocessor.preprocess(ex), batched=True, batch_size=3)
+        features_dict = dict(ds.features)
+
+        def apply_processor(ds: Dataset, processor: MetadataPreprocessor):
+            for col_name, feature_type in processor.new_columns_minimal_features.items():
+                assert col_name not in features_dict
+                features_dict[col_name] = feature_type
+            return ds.map(
+                processor.preprocess,
+                batched=True,
+                batch_size=2,
+                num_proc=2,
+                features=Features(features_dict),
+            )
+
+        ds = apply_processor(ds=ds, processor=html_processor)
+        ds = apply_processor(ds=ds, processor=url_processor)
+        ds = apply_processor(ds=ds, processor=timestamp_processor)
+        ds = apply_processor(ds=ds, processor=website_processor)
+        ds = apply_processor(ds=ds, processor=entity_processor)
+        ds = apply_processor(ds=ds, processor=generation_length_preprocessor_text)
+        ds = apply_processor(ds=ds, processor=generation_length_preprocessor_sentence)
+        ds = apply_processor(ds=ds, processor=datasource_preprocessor)
 
         self.assertEqual(ds[:][col_to_store_text], self.target_texts)
         self.assertEqual(ds[:][col_to_store_metadata_html], self.target_metadata_html)
@@ -552,7 +571,35 @@ class PipelinePreprocessorTester(unittest.TestCase):
             columns_names_to_concat=columns_names_to_concat,
             new_colum_name=col_to_store_all_metadata,
         )
-        ds = ds.map(concat_columns_fn, batched=True, batch_size=3, remove_columns=columns_names_to_concat)
+        features = Features(
+            {
+                "doc_html": Value("string"),
+                "metadata": [
+                    {
+                        "char_end_idx": Value("int64"),
+                        "char_start_idx": Value("int64"),
+                        "html_attrs": {"attrs": [Value("string")], "values": [Value("string")]},
+                        "key": Value("string"),
+                        "relative_end_pos": Value("int64"),
+                        "relative_start_pos": Value("int64"),
+                        "type": Value("string"),
+                        "value": Value("string"),
+                        "ent_desc": Value("string"),
+                    }
+                ],
+                "text": Value("string"),
+                "url": Value("string"),
+            }
+        )
+
+        ds = ds.map(
+            concat_columns_fn,
+            batched=True,
+            batch_size=2,
+            num_proc=2,
+            remove_columns=columns_names_to_concat,
+            features=features,
+        )
 
         for metadata_type in [
             self.target_metadata_html,

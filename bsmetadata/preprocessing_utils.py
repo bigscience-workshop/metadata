@@ -16,10 +16,11 @@ This script provides functions for adding different kinds of metadata to a pretr
 
 import re
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 from urllib.parse import unquote, urlparse, urlsplit
 
 from bs_dateutil.parser import ParserError, parse
+from datasets import Value
 from REL.entity_disambiguation import EntityDisambiguation
 from REL.mention_detection import MentionDetection
 from REL.ner import load_flair_ner
@@ -63,6 +64,13 @@ class MetadataPreprocessor(ABC):
         self.col_to_store_metadata = col_to_store_metadata
         super().__init__()
 
+    @property
+    @abstractmethod
+    def new_columns_minimal_features(self) -> Dict[str, Any]:
+        """Returns a dictionary whose key corresponds to the name of a new column / a column modified by this processor
+        and whose value corresponds to the minimal format of this column"""
+        pass
+
     @abstractmethod
     def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
         """Process a batch of examples and add or extract corresponding metadata."""
@@ -75,6 +83,19 @@ class TimestampPreprocessor(MetadataPreprocessor):
     def __init__(self, col_to_store_metadata="metadata", col_metadata_url="metadata") -> None:
         self.col_metadata_url = col_metadata_url
         super().__init__(col_to_store_metadata=col_to_store_metadata)
+
+    @property
+    def new_columns_minimal_features(self) -> Dict[str, Any]:
+        features = {
+            self.col_to_store_metadata: [
+                {
+                    "key": Value("string"),
+                    "type": Value("string"),
+                    "value": Value("string"),
+                }
+            ]
+        }
+        return features
 
     def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
         example_metadata_list = (
@@ -121,6 +142,25 @@ class HtmlPreprocessor(MetadataPreprocessor):
         self.name_html_column = name_html_column
         self.col_to_store_text = col_to_store_text
         super().__init__(col_to_store_metadata=col_to_store_metadata)
+
+    @property
+    def new_columns_minimal_features(self) -> Dict[str, Any]:
+        features = {
+            self.col_to_store_metadata: [
+                {
+                    "char_end_idx": Value("int64"),
+                    "char_start_idx": Value("int64"),
+                    "html_attrs": {"attrs": [Value("string")], "values": [Value("string")]},
+                    "key": Value("string"),
+                    "relative_end_pos": Value("int64"),
+                    "relative_start_pos": Value("int64"),
+                    "type": Value("string"),
+                    "value": Value("string"),
+                }
+            ],
+            self.col_to_store_text: Value("string"),
+        }
+        return features
 
     def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
         tags_to_remove_with_content = [
@@ -171,6 +211,19 @@ class WebsiteDescPreprocessor(MetadataPreprocessor):
 
         self.col_metadata_url = col_metadata_url
         super().__init__(col_to_store_metadata=col_to_store_metadata)
+
+    @property
+    def new_columns_minimal_features(self) -> Dict[str, Any]:
+        features = {
+            self.col_to_store_metadata: [
+                {
+                    "key": Value("string"),
+                    "type": Value("string"),
+                    "value": Value("string"),
+                }
+            ]
+        }
+        return features
 
     def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
 
@@ -230,6 +283,22 @@ class EntityPreprocessor(
 
         self.col_text = col_text
         super().__init__(col_to_store_metadata=col_to_store_metadata)
+
+    @property
+    def new_columns_minimal_features(self) -> Dict[str, Any]:
+        features = {
+            self.col_to_store_metadata: [
+                {
+                    "char_end_idx": Value("int64"),
+                    "char_start_idx": Value("int64"),
+                    "key": Value("string"),
+                    "type": Value("string"),
+                    "value": Value("string"),
+                    "ent_desc": Value("string"),
+                }
+            ]
+        }
+        return features
 
     def preprocess_example(self, examples: Dict[str, List]) -> Dict[str, List]:
         # preprocess all the examples in a particular batch in the required format
@@ -307,6 +376,36 @@ class GenerationLengthPreprocessor(MetadataPreprocessor):
         self.col_text = col_text
         super().__init__(col_to_store_metadata=col_to_store_metadata)
 
+    @property
+    def new_columns_minimal_features(self) -> Dict[str, Any]:
+
+        if self.mode == "text":
+            features = {
+                self.col_to_store_metadata: [
+                    {
+                        "key": Value("string"),
+                        "type": Value("string"),
+                        "value": Value("string"),
+                    }
+                ]
+            }
+        elif self.mode == "sentence":
+            features = {
+                self.col_to_store_metadata: [
+                    {
+                        "char_end_idx": Value("int64"),
+                        "char_start_idx": Value("int64"),
+                        "key": Value("string"),
+                        "type": Value("string"),
+                        "value": Value("string"),
+                    }
+                ]
+            }
+        else:
+            raise ValueError("Please select a valid length type [text or sentence].")
+
+        return features
+
     def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
         """
         Iterate through all the examples retrieve the length meta information.
@@ -377,6 +476,19 @@ class DatasourcePreprocessor(MetadataPreprocessor):
     def __init__(self, col_to_store_metadata="metadata", col_url="url") -> None:
         self.col_url = col_url
         super().__init__(col_to_store_metadata=col_to_store_metadata)
+
+    @property
+    def new_columns_minimal_features(self) -> Dict[str, Any]:
+        features = {
+            self.col_to_store_metadata: [
+                {
+                    "key": Value("string"),
+                    "type": Value("string"),
+                    "value": Value("string"),
+                }
+            ]
+        }
+        return features
 
     def _check_numbers(self, sub_part: List[str]) -> List[str]:
         """Check for insignificant numbers (i.e. we delete all numbers at the end or beginning of a given URL part (w/o domain))"""
@@ -451,6 +563,19 @@ class UrlPreprocessor(MetadataPreprocessor):
     def __init__(self, col_to_store_metadata="metadata", col_url="url") -> None:
         self.col_url = col_url
         super().__init__(col_to_store_metadata=col_to_store_metadata)
+
+    @property
+    def new_columns_minimal_features(self) -> Dict[str, Any]:
+        features = {
+            self.col_to_store_metadata: [
+                {
+                    "key": Value("string"),
+                    "type": Value("string"),
+                    "value": Value("string"),
+                }
+            ]
+        }
+        return features
 
     def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
         example_metadata_list = (

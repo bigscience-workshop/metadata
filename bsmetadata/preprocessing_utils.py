@@ -28,7 +28,6 @@ from REL.utils import process_results
 
 from bsmetadata.preprocessing_tools import html_parser
 from bsmetadata.preprocessing_tools.wikipedia_desc_utils import WikipediaDescUtils
-from bsmetadata.utils import _datasets_available
 
 
 def get_path_from_url(url):

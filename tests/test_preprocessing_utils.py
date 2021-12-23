@@ -12,17 +12,10 @@ from bsmetadata.preprocessing_utils import (
     EntityPreprocessor,
     GenerationLengthPreprocessor,
     HtmlPreprocessor,
+    MetadataPreprocessor,
     TimestampPreprocessor,
     UrlPreprocessor,
     WebsiteDescPreprocessor,
-    features_metadata_datasource,
-    features_metadata_entities,
-    features_metadata_generation_length_sentence,
-    features_metadata_generation_length_text,
-    features_metadata_html,
-    features_metadata_timestamp,
-    features_metadata_url,
-    features_metadata_website_desc,
 )
 
 
@@ -526,79 +519,28 @@ class PipelinePreprocessorTester(unittest.TestCase):
 
         # Apply function
         ds = Dataset.from_dict(self.init_dict)
+        features_dict = dict(ds.features)
 
-        features_dict[col_to_store_metadata_html] = features_metadata_html
-        features_dict[col_to_store_text] = Value("string")
-        ds = ds.map(
-            lambda ex: html_processor.preprocess(ex),
-            batched=True,
-            batch_size=2,
-            num_proc=2,
-            features=Features(features_dict),
-        )
+        def apply_processor(ds: Dataset, processor: MetadataPreprocessor):
+            for col_name, feature_type in processor.new_columns_minimal_features.items():
+                assert col_name not in features_dict
+                features_dict[col_name] = feature_type
+            return ds.map(
+                processor.preprocess,
+                batched=True,
+                batch_size=2,
+                num_proc=2,
+                features=Features(features_dict),
+            )
 
-        features_dict[col_to_store_metadata_url] = features_metadata_url
-        ds = ds.map(
-            lambda ex: url_processor.preprocess(ex),
-            batched=True,
-            batch_size=2,
-            num_proc=2,
-            features=Features(features_dict),
-        )
-
-        features_dict[col_to_store_metadata_timestamp] = features_metadata_timestamp
-        ds = ds.map(
-            lambda ex: timestamp_processor.preprocess(ex),
-            batched=True,
-            batch_size=2,
-            num_proc=2,
-            features=Features(features_dict),
-        )
-
-        features_dict[col_to_store_metadata_website_desc] = features_metadata_website_desc
-        ds = ds.map(
-            lambda ex: website_processor.preprocess(ex),
-            batched=True,
-            batch_size=2,
-            num_proc=2,
-            features=Features(features_dict),
-        )
-
-        features_dict[col_to_store_metadata_entities] = features_metadata_entities
-        ds = ds.map(
-            lambda ex: entity_processor.preprocess(ex),
-            batched=True,
-            batch_size=2,
-            num_proc=2,
-            features=Features(features_dict),
-        )
-
-        features_dict[col_to_store_metadata_generation_length_text] = features_metadata_generation_length_text
-        ds = ds.map(
-            lambda ex: generation_length_preprocessor_text.preprocess(ex),
-            batched=True,
-            batch_size=2,
-            num_proc=2,
-            features=Features(features_dict),
-        )
-
-        features_dict[col_to_store_metadata_generation_length_sentence] = features_metadata_generation_length_sentence
-        ds = ds.map(
-            lambda ex: generation_length_preprocessor_sentence.preprocess(ex),
-            batched=True,
-            batch_size=2,
-            num_proc=2,
-            features=Features(features_dict),
-        )
-
-        features_dict[col_to_store_metadata_datasource] = features_metadata_datasource
-        ds = ds.map(
-            lambda ex: datasource_preprocessor.preprocess(ex),
-            batched=True,
-            batch_size=2,
-            num_proc=2,
-            features=Features(features_dict),
-        )
+        ds = apply_processor(ds=ds, processor=html_processor)
+        ds = apply_processor(ds=ds, processor=url_processor)
+        ds = apply_processor(ds=ds, processor=timestamp_processor)
+        ds = apply_processor(ds=ds, processor=website_processor)
+        ds = apply_processor(ds=ds, processor=entity_processor)
+        ds = apply_processor(ds=ds, processor=generation_length_preprocessor_text)
+        ds = apply_processor(ds=ds, processor=generation_length_preprocessor_sentence)
+        ds = apply_processor(ds=ds, processor=datasource_preprocessor)
 
         self.assertEqual(ds[:][col_to_store_text], self.target_texts)
         self.assertEqual(ds[:][col_to_store_metadata_html], self.target_metadata_html)

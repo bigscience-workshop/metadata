@@ -170,6 +170,14 @@ class HtmlPreprocessor(MetadataPreprocessor):
             html_parser.objects.TagToRemoveWithContent(tag="iframe"),
             html_parser.objects.TagToRemoveWithContent(tag="footer"),  # copyright in footer
             html_parser.objects.TagToRemoveWithContent(tag="form"),
+            html_parser.objects.TagToRemoveWithContent(tag="body", content_max_char_length=64),
+            html_parser.objects.TagToRemoveWithContent(tag="div", content_max_char_length=64),
+            html_parser.objects.TagToRemoveWithContent(tag="p", content_max_char_length=64),
+            html_parser.objects.TagToRemoveWithContent(tag="section", content_max_char_length=64),
+            html_parser.objects.TagToRemoveWithContent(tag="table", content_max_char_length=64),
+            html_parser.objects.TagToRemoveWithContent(tag="ul", content_max_char_length=64),
+            html_parser.objects.TagToRemoveWithContent(tag="ol", content_max_char_length=64),
+            html_parser.objects.TagToRemoveWithContent(tag="dl", content_max_char_length=64),
         ]
 
         new_texts = []

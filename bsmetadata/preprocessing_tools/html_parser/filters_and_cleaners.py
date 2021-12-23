@@ -1,3 +1,4 @@
+import logging
 from typing import DefaultDict, List, Optional, Tuple
 
 import htmlmin
@@ -17,6 +18,7 @@ from bsmetadata.preprocessing_tools.html_parser.variables import (
 )
 
 
+logger = logging.getLogger(__name__)
 class AttributeCleaner:
     def __init__(self, attrs_to_keep: Optional[List[str]]):
         self.attrs_to_keep = attrs_to_keep
@@ -295,13 +297,14 @@ class TextAndMetadataCleaner:
         if self.start_parsing_at_tag is not None:
             root = fromstring(html_str)
             find = etree.XPath(f"//{self.start_parsing_at_tag}")
-            try:
-                new_etree = find(root)[0]
-            except IndexError:
-                raise ValueError(
+            matches = find(root)
+            if len(matches) == 0:
+                logger.warning(
                     f"You have asked to start parsing at the {self.start_parsing_at_tag} tag but the current example "
                     "does not contain this tag"
                 )
+                return "", []
+            new_etree = matches[0]
             html_str = etree.tostring(new_etree, method="html", encoding="UTF-8", pretty_print=False).decode("UTF-8")
             if not html_str.startswith("<html>"):
                 self.tag_filter.tags_to_remove_alone.update({"html": TagToRemove("html")})

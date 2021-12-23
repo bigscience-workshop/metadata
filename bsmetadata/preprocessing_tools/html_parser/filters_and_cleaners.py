@@ -295,7 +295,12 @@ class TextAndMetadataCleaner:
         html_str = self.html_str
         # Traitement n°1: start the parsing at a special tags (mostly tested with <body>)
         if self.start_parsing_at_tag is not None:
-            root = fromstring(html_str)
+            try:
+                root = fromstring(html_str)
+            except ValueError:
+                # this is not a valid HTML (begin probably with <?xml version="1.0")
+                logger.warning(f"This example wasn't parsed: invalid HTML")
+                return "", []
             find = etree.XPath(f"//{self.start_parsing_at_tag}")
             matches = find(root)
             if len(matches) == 0:

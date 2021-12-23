@@ -17,7 +17,7 @@ from bsmetadata.metadata_utils import (
     add_local_metadata_to_text,
     add_metadata_and_chunk_examples,
     chunks,
-    create_global_metadata_prefix,
+    create_metadata_prefix,
 )
 
 
@@ -305,27 +305,30 @@ class MetadataUtilsTester(unittest.TestCase):
         self.assertEqual(list([x for x, _ in chunks(3, list1, list2)]), [["a", "b", "c"], ["d", "e", "f"], ["g"]])
         self.assertEqual(list([x for _, x in chunks(3, list1, list2)]), [[0, 1, 2], [3, 4, 5], [6]])
 
-    def test_create_global_metadata_prefix(self):
+    def test_create_metadata_prefix_with_only_global_metadata(self):
         cfg = MetadataConfig()
         cfg.metadata_key_value_sep = ": "
         cfg.metadata_sep = " | "
-        cfg.global_metadata_sep = " |||"
+        cfg.metadata_prefix_sep = " |||"
         cfg.metadata_list = ["url", "timestamp", "website_description"]
         PROCESSORS["timestamp"] = MetadataProcessor
 
+        global_metadata_prefix_1 = create_metadata_prefix(self.examples[0], cfg)
+        global_metadata_prefix_2 = create_metadata_prefix(self.examples[1], cfg)
+        global_metadata_prefix_3 = create_metadata_prefix(self.examples[2], cfg)
+        global_metadata_prefix_4 = create_metadata_prefix(self.examples[3], cfg)
+
         self.assertEqual(
-            create_global_metadata_prefix(self.examples[0], cfg),
+            global_metadata_prefix_1,
             "url: https://www.bbc.com/sport/live/olympics/50974152 | timestamp: 2018-12-10T13:45:00.000Z |||",
         )
+
+        self.assertEqual(global_metadata_prefix_2, "url: https://en.wikipedia.org/wiki/Apple |||")
+
+        self.assertEqual(global_metadata_prefix_3, "url: callto:RickAndMorty/Year 2021/ |||")
+
         self.assertEqual(
-            create_global_metadata_prefix(self.examples[1], cfg), "url: https://en.wikipedia.org/wiki/Apple |||"
-        )
-        self.assertEqual(
-            create_global_metadata_prefix(self.examples[2], cfg), "url: callto:RickAndMorty/Year 2021/ |||"
-        )
-        cfg.metadata_list = ["website_description"]
-        self.assertEqual(
-            create_global_metadata_prefix(self.examples[3], cfg),
+            global_metadata_prefix_4,
             "Website Description: Amazon.com, Inc. ( AM-ə-zon) is an American multinational conglomerate which focuses on e-commerce, cloud computing, digital streaming, and artificial intelligence. |||",
         )
 
@@ -392,7 +395,10 @@ class MetadataUtilsTester(unittest.TestCase):
         cfg.max_seq_len = 64
         cfg.metadata_probability = 0
 
-        ds_dict = {key: [self.examples[0][key], self.examples[1][key]] for key in self.examples[0].keys()}
+        ds_dict = {
+            key: [self.examples[0][key], self.examples[1][key], self.examples[2][key], self.examples[3][key]]
+            for key in self.examples[0].keys()
+        }
         ds = Dataset.from_dict(ds_dict)
 
         mapped_ds = ds.map(
@@ -416,7 +422,7 @@ class MetadataUtilsTester(unittest.TestCase):
             key: [self.examples[0][key], self.examples[1][key], self.examples[3][key]]
             for key in self.examples[0].keys()
         }
-        print(ds_dict)
+
         ds = Dataset.from_dict(ds_dict)
 
         mapped_ds = ds.map(
@@ -1713,6 +1719,236 @@ class MetadataUtilsTester(unittest.TestCase):
             self.tokenizer.decode(mapped_ds[2]["input_ids"]),
             "url: https://en.wikipedia.org/wiki/Apple ||| An <b>apple [[Malus domestica]]</b> is an edible fruit produced by an <a></a><b class:level1><b class:level2><i class:level3><a></a>apple</i> tree</b></b> (Malus domestica).<|endoftext|>",
         )
+
+    def test_add_metadata_and_chunk_examples_with_true_processor_and_metadata_special_tokens(self):
+        cfg = MetadataConfig()
+        cfg.metadata_list = ["url", "timestamp", "html", "entity"]
+        cfg.max_seq_len = 84
+        cfg.metadata_probability = 1
+        cfg.add_local_metadata_special_tokens_in_prefix = True
+        cfg.metadata_prefix_start_seq = " "
+
+        PROCESSORS["url"] = UrlProcessor
+        PROCESSORS["timestamp"] = TimestampProcessor
+        PROCESSORS["html"] = HtmlProcessor
+        PROCESSORS["entity"] = EntityProcessor
+
+        ds_dict = {
+            key: [self.examples[1][key], self.examples[4][key], self.examples[4][key]]
+            for key in self.examples[0].keys()
+        }
+        ds = Dataset.from_dict(ds_dict)
+
+        mapped_ds = ds.map(
+            functools.partial(add_metadata_and_chunk_examples, tokenizer=self.tokenizer, cfg=cfg),
+            batched=True,
+            remove_columns=ds.column_names,
+            load_from_cache_file=False,
+        )
+
+        self.maxDiff = None
+
+        self.assertEqual(
+            self.tokenizer.decode(mapped_ds[0]["input_ids"]),
+            f" url: https://en.wikipedia.org/wiki/Apple | html | entity ||| An <b>apple [[Malus domestica]]</b> is an edible fruit produced by an <b class:level1><i class:level2>apple</i> tree</b> (Malus domestica).{'<|endoftext|>'*17}",
+        )
+        self.assertEqual(
+            self.tokenizer.decode(mapped_ds[1]["input_ids"]),
+            " url: https://en.wikipedia.org/wiki/Apple | html | entity ||| An <b>apple [[Malus domestica]]</b> is an edible fruit produced by an <a></a><b class:level1><b class:level2><i class:level3><a></a>apple</i> tree</b></b> (Malus domestica).<|endoftext|>",
+        )
+        self.assertEqual(
+            self.tokenizer.decode(mapped_ds[2]["input_ids"]),
+            " url: https://en.wikipedia.org/wiki/Apple | html | entity ||| An <b>apple [[Malus domestica]]</b> is an edible fruit produced by an <a></a><b class:level1><b class:level2><i class:level3><a></a>apple</i> tree</b></b> (Malus domestica).<|endoftext|>",
+        )
+
+        # fmt: off
+        self.assertEqual(self.tokenizer.convert_ids_to_tokens(mapped_ds[0]["input_ids"]), ['Ġurl', ':', 'Ġhttps', '://', 'en', '.', 'wikipedia', '.', 'org', '/', 'wiki', '/', 'Apple', 'Ġ|', 'Ġhtml', 'Ġ|', 'Ġentity', 'Ġ||', '|', 'ĠAn', 'Ġ<', 'b', '>', 'apple', 'Ġ[[', 'Mal', 'us', 'Ġdomest', 'ica', ']]', '</', 'b', '>', 'Ġis', 'Ġan', 'Ġedible', 'Ġfruit', 'Ġproduced', 'Ġby', 'Ġan', 'Ġ<', 'b', 'Ġclass', ':', 'level', '1', '><', 'i', 'Ġclass', ':', 'level', '2', '>', 'apple', '</', 'i', '>', 'Ġtree', '</', 'b', '>', 'Ġ(', 'Mal', 'us', 'Ġdomest', 'ica', ').', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>'])
+        self.assertEqual(self.tokenizer.convert_ids_to_tokens(mapped_ds[1]["input_ids"]), ['Ġurl', ':', 'Ġhttps', '://', 'en', '.', 'wikipedia', '.', 'org', '/', 'wiki', '/', 'Apple', 'Ġ|', 'Ġhtml', 'Ġ|', 'Ġentity', 'Ġ||', '|', 'ĠAn', 'Ġ<', 'b', '>', 'apple', 'Ġ[[', 'Mal', 'us', 'Ġdomest', 'ica', ']]', '</', 'b', '>', 'Ġis', 'Ġan', 'Ġedible', 'Ġfruit', 'Ġproduced', 'Ġby', 'Ġan', 'Ġ<', 'a', '></', 'a', '><', 'b', 'Ġclass', ':', 'level', '1', '><', 'b', 'Ġclass', ':', 'level', '2', '><', 'i', 'Ġclass', ':', 'level', '3', '><', 'a', '></', 'a', '>', 'apple', '</', 'i', '>', 'Ġtree', '</', 'b', '></', 'b', '>', 'Ġ(', 'Mal', 'us', 'Ġdomest', 'ica', ').', '<|endoftext|>'])
+        self.assertEqual(self.tokenizer.convert_ids_to_tokens(mapped_ds[2]["input_ids"]), ['Ġurl', ':', 'Ġhttps', '://', 'en', '.', 'wikipedia', '.', 'org', '/', 'wiki', '/', 'Apple', 'Ġ|', 'Ġhtml', 'Ġ|', 'Ġentity', 'Ġ||', '|', 'ĠAn', 'Ġ<', 'b', '>', 'apple', 'Ġ[[', 'Mal', 'us', 'Ġdomest', 'ica', ']]', '</', 'b', '>', 'Ġis', 'Ġan', 'Ġedible', 'Ġfruit', 'Ġproduced', 'Ġby', 'Ġan', 'Ġ<', 'a', '></', 'a', '><', 'b', 'Ġclass', ':', 'level', '1', '><', 'b', 'Ġclass', ':', 'level', '2', '><', 'i', 'Ġclass', ':', 'level', '3', '><', 'a', '></', 'a', '>', 'apple', '</', 'i', '>', 'Ġtree', '</', 'b', '></', 'b', '>', 'Ġ(', 'Mal', 'us', 'Ġdomest', 'ica', ').', '<|endoftext|>'])
+        # fmt: on
+
+    def test_add_metadata_and_chunk_examples_with_true_processor_and_metadata_special_tokens_without_global(self):
+        cfg = MetadataConfig()
+        cfg.metadata_list = ["html", "entity"]
+        cfg.max_seq_len = 69
+        cfg.metadata_probability = 1
+        cfg.add_local_metadata_special_tokens_in_prefix = True
+        cfg.metadata_prefix_start_seq = " "
+
+        PROCESSORS["url"] = UrlProcessor
+        PROCESSORS["timestamp"] = TimestampProcessor
+        PROCESSORS["html"] = HtmlProcessor
+        PROCESSORS["entity"] = EntityProcessor
+
+        ds_dict = {
+            key: [self.examples[1][key], self.examples[4][key], self.examples[4][key]]
+            for key in self.examples[0].keys()
+        }
+        ds = Dataset.from_dict(ds_dict)
+
+        mapped_ds = ds.map(
+            functools.partial(add_metadata_and_chunk_examples, tokenizer=self.tokenizer, cfg=cfg),
+            batched=True,
+            remove_columns=ds.column_names,
+            load_from_cache_file=False,
+        )
+
+        self.maxDiff = None
+
+        self.assertEqual(
+            self.tokenizer.decode(mapped_ds[0]["input_ids"]),
+            " html | entity ||| An <b>apple [[Malus domestica]]</b> is an edible fruit produced by an <b class:level1><i class:level2>apple</i> tree</b> (Malus domestica).<|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|>",
+        )
+        self.assertEqual(
+            self.tokenizer.decode(mapped_ds[1]["input_ids"]),
+            " html | entity ||| An <b>apple [[Malus domestica]]</b> is an edible fruit produced by an <a></a><b class:level1><b class:level2><i class:level3><a></a>apple</i> tree</b></b> (Malus domestica).",
+        )
+        self.assertEqual(
+            self.tokenizer.decode(mapped_ds[2]["input_ids"]),
+            " html | entity ||| An <b>apple [[Malus domestica]]</b> is an edible fruit produced by an <a></a><b class:level1><b class:level2><i class:level3><a></a>apple</i> tree</b></b> (Malus domestica).",
+        )
+
+        # fmt: off
+        self.assertEqual(self.tokenizer.convert_ids_to_tokens(mapped_ds[0]["input_ids"]), ['Ġhtml', 'Ġ|', 'Ġentity', 'Ġ||', '|', 'ĠAn', 'Ġ<', 'b', '>', 'apple', 'Ġ[[', 'Mal', 'us', 'Ġdomest', 'ica', ']]', '</', 'b', '>', 'Ġis', 'Ġan', 'Ġedible', 'Ġfruit', 'Ġproduced', 'Ġby', 'Ġan', 'Ġ<', 'b', 'Ġclass', ':', 'level', '1', '><', 'i', 'Ġclass', ':', 'level', '2', '>', 'apple', '</', 'i', '>', 'Ġtree', '</', 'b', '>', 'Ġ(', 'Mal', 'us', 'Ġdomest', 'ica', ').', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>'],)
+        self.assertEqual(self.tokenizer.convert_ids_to_tokens(mapped_ds[1]["input_ids"]), ['Ġhtml', 'Ġ|', 'Ġentity', 'Ġ||', '|', 'ĠAn', 'Ġ<', 'b', '>', 'apple', 'Ġ[[', 'Mal', 'us', 'Ġdomest', 'ica', ']]', '</', 'b', '>', 'Ġis', 'Ġan', 'Ġedible', 'Ġfruit', 'Ġproduced', 'Ġby', 'Ġan', 'Ġ<', 'a', '></', 'a', '><', 'b', 'Ġclass', ':', 'level', '1', '><', 'b', 'Ġclass', ':', 'level', '2', '><', 'i', 'Ġclass', ':', 'level', '3', '><', 'a', '></', 'a', '>', 'apple', '</', 'i', '>', 'Ġtree', '</', 'b', '></', 'b', '>', 'Ġ(', 'Mal', 'us', 'Ġdomest', 'ica', ').'],)
+        self.assertEqual(self.tokenizer.convert_ids_to_tokens(mapped_ds[2]["input_ids"]), ['Ġhtml', 'Ġ|', 'Ġentity', 'Ġ||', '|', 'ĠAn', 'Ġ<', 'b', '>', 'apple', 'Ġ[[', 'Mal', 'us', 'Ġdomest', 'ica', ']]', '</', 'b', '>', 'Ġis', 'Ġan', 'Ġedible', 'Ġfruit', 'Ġproduced', 'Ġby', 'Ġan', 'Ġ<', 'a', '></', 'a', '><', 'b', 'Ġclass', ':', 'level', '1', '><', 'b', 'Ġclass', ':', 'level', '2', '><', 'i', 'Ġclass', ':', 'level', '3', '><', 'a', '></', 'a', '>', 'apple', '</', 'i', '>', 'Ġtree', '</', 'b', '></', 'b', '>', 'Ġ(', 'Mal', 'us', 'Ġdomest', 'ica', ').'],)
+        # fmt: on
+
+    def test_add_metadata_and_chunk_examples_with_true_processor_and_metadata_special_tokens_specifying_special_token(
+        self,
+    ):
+        from transformers import AddedToken
+
+        cfg = MetadataConfig()
+        cfg.metadata_list = ["url", "timestamp", "html", "entity"]
+        cfg.max_seq_len = 84
+        cfg.metadata_probability = 1
+        cfg.add_local_metadata_special_tokens_in_prefix = True
+        cfg.metadata_prefix_start_seq = " "
+        cfg.local_metadata_special_tokens = {
+            "html": "HtmlOn",
+            "entity": "EntityOn",
+        }
+
+        tokenizer = GPT2TokenizerFast.from_pretrained("gpt2-xl")
+        tokenizer.add_tokens(
+            [AddedToken(special_token, lstrip=True) for special_token in cfg.local_metadata_special_tokens.values()]
+        )
+
+        PROCESSORS["url"] = UrlProcessor
+        PROCESSORS["timestamp"] = TimestampProcessor
+        PROCESSORS["html"] = HtmlProcessor
+        PROCESSORS["entity"] = EntityProcessor
+
+        ds_dict = {
+            key: [self.examples[1][key], self.examples[4][key], self.examples[4][key]]
+            for key in self.examples[0].keys()
+        }
+        ds = Dataset.from_dict(ds_dict)
+
+        mapped_ds = ds.map(
+            functools.partial(add_metadata_and_chunk_examples, tokenizer=tokenizer, cfg=cfg),
+            batched=True,
+            remove_columns=ds.column_names,
+            load_from_cache_file=False,
+        )
+
+        self.maxDiff = None
+
+        self.assertEqual(
+            tokenizer.decode(mapped_ds[0]["input_ids"]),
+            " url: https://en.wikipedia.org/wiki/Apple |HtmlOn |EntityOn ||| An <b>apple [[Malus domestica]]</b> is an edible fruit produced by an <b class:level1><i class:level2>apple</i> tree</b> (Malus domestica).<|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|>",
+        )
+        self.assertEqual(
+            tokenizer.decode(mapped_ds[1]["input_ids"]),
+            " url: https://en.wikipedia.org/wiki/Apple |HtmlOn |EntityOn ||| An <b>apple [[Malus domestica]]</b> is an edible fruit produced by an <a></a><b class:level1><b class:level2><i class:level3><a></a>apple</i> tree</b></b> (Malus domestica).<|endoftext|>",
+        )
+        self.assertEqual(
+            tokenizer.decode(mapped_ds[2]["input_ids"]),
+            " url: https://en.wikipedia.org/wiki/Apple |HtmlOn |EntityOn ||| An <b>apple [[Malus domestica]]</b> is an edible fruit produced by an <a></a><b class:level1><b class:level2><i class:level3><a></a>apple</i> tree</b></b> (Malus domestica).<|endoftext|>",
+        )
+
+        # fmt: off
+        self.assertEqual(mapped_ds[0]["input_ids"], tokenizer.encode(" url: https://en.wikipedia.org/wiki/Apple | HtmlOn | EntityOn ||| An <b>apple [[Malus domestica]]</b> is an edible fruit produced by an <b class:level1><i class:level2>apple</i> tree</b> (Malus domestica).<|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|>"),)
+        self.assertEqual(mapped_ds[1]["input_ids"], tokenizer.encode(" url: https://en.wikipedia.org/wiki/Apple | HtmlOn | EntityOn ||| An <b>apple [[Malus domestica]]</b> is an edible fruit produced by an <a></a><b class:level1><b class:level2><i class:level3><a></a>apple</i> tree</b></b> (Malus domestica).<|endoftext|>"),)
+        self.assertEqual(mapped_ds[2]["input_ids"], tokenizer.encode(" url: https://en.wikipedia.org/wiki/Apple | HtmlOn | EntityOn ||| An <b>apple [[Malus domestica]]</b> is an edible fruit produced by an <a></a><b class:level1><b class:level2><i class:level3><a></a>apple</i> tree</b></b> (Malus domestica).<|endoftext|>"),)
+        # fmt: on
+
+        # fmt: off
+        self.assertEqual(tokenizer.convert_ids_to_tokens(mapped_ds[0]["input_ids"]), ['Ġurl', ':', 'Ġhttps', '://', 'en', '.', 'wikipedia', '.', 'org', '/', 'wiki', '/', 'Apple', 'Ġ|', 'HtmlOn', 'Ġ|', 'EntityOn', 'Ġ||', '|', 'ĠAn', 'Ġ<', 'b', '>', 'apple', 'Ġ[[', 'Mal', 'us', 'Ġdomest', 'ica', ']]', '</', 'b', '>', 'Ġis', 'Ġan', 'Ġedible', 'Ġfruit', 'Ġproduced', 'Ġby', 'Ġan', 'Ġ<', 'b', 'Ġclass', ':', 'level', '1', '><', 'i', 'Ġclass', ':', 'level', '2', '>', 'apple', '</', 'i', '>', 'Ġtree', '</', 'b', '>', 'Ġ(', 'Mal', 'us', 'Ġdomest', 'ica', ').', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>'])
+        self.assertEqual(tokenizer.convert_ids_to_tokens(mapped_ds[1]["input_ids"]), ['Ġurl', ':', 'Ġhttps', '://', 'en', '.', 'wikipedia', '.', 'org', '/', 'wiki', '/', 'Apple', 'Ġ|', 'HtmlOn', 'Ġ|', 'EntityOn', 'Ġ||', '|', 'ĠAn', 'Ġ<', 'b', '>', 'apple', 'Ġ[[', 'Mal', 'us', 'Ġdomest', 'ica', ']]', '</', 'b', '>', 'Ġis', 'Ġan', 'Ġedible', 'Ġfruit', 'Ġproduced', 'Ġby', 'Ġan', 'Ġ<', 'a', '></', 'a', '><', 'b', 'Ġclass', ':', 'level', '1', '><', 'b', 'Ġclass', ':', 'level', '2', '><', 'i', 'Ġclass', ':', 'level', '3', '><', 'a', '></', 'a', '>', 'apple', '</', 'i', '>', 'Ġtree', '</', 'b', '></', 'b', '>', 'Ġ(', 'Mal', 'us', 'Ġdomest', 'ica', ').', '<|endoftext|>'])
+        self.assertEqual(tokenizer.convert_ids_to_tokens(mapped_ds[2]["input_ids"]), ['Ġurl', ':', 'Ġhttps', '://', 'en', '.', 'wikipedia', '.', 'org', '/', 'wiki', '/', 'Apple', 'Ġ|', 'HtmlOn', 'Ġ|', 'EntityOn', 'Ġ||', '|', 'ĠAn', 'Ġ<', 'b', '>', 'apple', 'Ġ[[', 'Mal', 'us', 'Ġdomest', 'ica', ']]', '</', 'b', '>', 'Ġis', 'Ġan', 'Ġedible', 'Ġfruit', 'Ġproduced', 'Ġby', 'Ġan', 'Ġ<', 'a', '></', 'a', '><', 'b', 'Ġclass', ':', 'level', '1', '><', 'b', 'Ġclass', ':', 'level', '2', '><', 'i', 'Ġclass', ':', 'level', '3', '><', 'a', '></', 'a', '>', 'apple', '</', 'i', '>', 'Ġtree', '</', 'b', '></', 'b', '>', 'Ġ(', 'Mal', 'us', 'Ġdomest', 'ica', ').', '<|endoftext|>'])
+
+        self.assertEqual(mapped_ds[0]["metadata_mask"], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+        self.assertEqual(mapped_ds[1]["metadata_mask"], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0])
+        self.assertEqual(mapped_ds[2]["metadata_mask"], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0])
+        # fmt: on
+
+    def test_add_metadata_and_chunk_examples_treat_local_metadata_as_regular_text(self):
+        from transformers import AddedToken
+
+        cfg = MetadataConfig()
+        cfg.metadata_list = ["url", "timestamp", "html", "entity"]
+        cfg.max_seq_len = 84
+        cfg.metadata_probability = 1
+        cfg.add_local_metadata_special_tokens_in_prefix = True
+        cfg.metadata_prefix_start_seq = " "
+        cfg.local_metadata_special_tokens = {
+            "html": "HtmlOn",
+            "entity": "EntityOn",
+        }
+        cfg.treat_local_metadata_as_regular_text = True
+
+        tokenizer = GPT2TokenizerFast.from_pretrained("gpt2-xl")
+        tokenizer.add_tokens(
+            [AddedToken(special_token, lstrip=True) for special_token in cfg.local_metadata_special_tokens.values()]
+        )
+
+        PROCESSORS["url"] = UrlProcessor
+        PROCESSORS["timestamp"] = TimestampProcessor
+        PROCESSORS["html"] = HtmlProcessor
+        PROCESSORS["entity"] = EntityProcessor
+
+        ds_dict = {
+            key: [self.examples[1][key], self.examples[4][key], self.examples[4][key]]
+            for key in self.examples[0].keys()
+        }
+        ds = Dataset.from_dict(ds_dict)
+
+        mapped_ds = ds.map(
+            functools.partial(add_metadata_and_chunk_examples, tokenizer=tokenizer, cfg=cfg),
+            batched=True,
+            remove_columns=ds.column_names,
+            load_from_cache_file=False,
+        )
+
+        self.maxDiff = None
+
+        self.assertEqual(
+            tokenizer.decode(mapped_ds[0]["input_ids"]),
+            " url: https://en.wikipedia.org/wiki/Apple |HtmlOn |EntityOn ||| An <b>apple [[Malus domestica]]</b> is an edible fruit produced by an <b class:level1><i class:level2>apple</i> tree</b> (Malus domestica).<|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|>",
+        )
+        self.assertEqual(
+            tokenizer.decode(mapped_ds[1]["input_ids"]),
+            " url: https://en.wikipedia.org/wiki/Apple |HtmlOn |EntityOn ||| An <b>apple [[Malus domestica]]</b> is an edible fruit produced by an <a></a><b class:level1><b class:level2><i class:level3><a></a>apple</i> tree</b></b> (Malus domestica).<|endoftext|>",
+        )
+        self.assertEqual(
+            tokenizer.decode(mapped_ds[2]["input_ids"]),
+            " url: https://en.wikipedia.org/wiki/Apple |HtmlOn |EntityOn ||| An <b>apple [[Malus domestica]]</b> is an edible fruit produced by an <a></a><b class:level1><b class:level2><i class:level3><a></a>apple</i> tree</b></b> (Malus domestica).<|endoftext|>",
+        )
+        # fmt: off
+        self.assertEqual(tokenizer.convert_ids_to_tokens(mapped_ds[0]["input_ids"]), ['Ġurl', ':', 'Ġhttps', '://', 'en', '.', 'wikipedia', '.', 'org', '/', 'wiki', '/', 'Apple', 'Ġ|', 'HtmlOn', 'Ġ|', 'EntityOn', 'Ġ||', '|', 'ĠAn', 'Ġ<', 'b', '>', 'apple', 'Ġ[[', 'Mal', 'us', 'Ġdomest', 'ica', ']]', '</', 'b', '>', 'Ġis', 'Ġan', 'Ġedible', 'Ġfruit', 'Ġproduced', 'Ġby', 'Ġan', 'Ġ<', 'b', 'Ġclass', ':', 'level', '1', '><', 'i', 'Ġclass', ':', 'level', '2', '>', 'apple', '</', 'i', '>', 'Ġtree', '</', 'b', '>', 'Ġ(', 'Mal', 'us', 'Ġdomest', 'ica', ').', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>'])
+        self.assertEqual(tokenizer.convert_ids_to_tokens(mapped_ds[1]["input_ids"]), ['Ġurl', ':', 'Ġhttps', '://', 'en', '.', 'wikipedia', '.', 'org', '/', 'wiki', '/', 'Apple', 'Ġ|', 'HtmlOn', 'Ġ|', 'EntityOn', 'Ġ||', '|', 'ĠAn', 'Ġ<', 'b', '>', 'apple', 'Ġ[[', 'Mal', 'us', 'Ġdomest', 'ica', ']]', '</', 'b', '>', 'Ġis', 'Ġan', 'Ġedible', 'Ġfruit', 'Ġproduced', 'Ġby', 'Ġan', 'Ġ<', 'a', '></', 'a', '><', 'b', 'Ġclass', ':', 'level', '1', '><', 'b', 'Ġclass', ':', 'level', '2', '><', 'i', 'Ġclass', ':', 'level', '3', '><', 'a', '></', 'a', '>', 'apple', '</', 'i', '>', 'Ġtree', '</', 'b', '></', 'b', '>', 'Ġ(', 'Mal', 'us', 'Ġdomest', 'ica', ').', '<|endoftext|>'])
+        self.assertEqual(tokenizer.convert_ids_to_tokens(mapped_ds[2]["input_ids"]), ['Ġurl', ':', 'Ġhttps', '://', 'en', '.', 'wikipedia', '.', 'org', '/', 'wiki', '/', 'Apple', 'Ġ|', 'HtmlOn', 'Ġ|', 'EntityOn', 'Ġ||', '|', 'ĠAn', 'Ġ<', 'b', '>', 'apple', 'Ġ[[', 'Mal', 'us', 'Ġdomest', 'ica', ']]', '</', 'b', '>', 'Ġis', 'Ġan', 'Ġedible', 'Ġfruit', 'Ġproduced', 'Ġby', 'Ġan', 'Ġ<', 'a', '></', 'a', '><', 'b', 'Ġclass', ':', 'level', '1', '><', 'b', 'Ġclass', ':', 'level', '2', '><', 'i', 'Ġclass', ':', 'level', '3', '><', 'a', '></', 'a', '>', 'apple', '</', 'i', '>', 'Ġtree', '</', 'b', '></', 'b', '>', 'Ġ(', 'Mal', 'us', 'Ġdomest', 'ica', ').', '<|endoftext|>'])
+
+        self.assertEqual(mapped_ds[0]["input_ids"], tokenizer.encode(" url: https://en.wikipedia.org/wiki/Apple | HtmlOn | EntityOn ||| An <b>apple [[Malus domestica]]</b> is an edible fruit produced by an <b class:level1><i class:level2>apple</i> tree</b> (Malus domestica).<|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|>"),)
+        self.assertEqual(mapped_ds[1]["input_ids"], tokenizer.encode(" url: https://en.wikipedia.org/wiki/Apple | HtmlOn | EntityOn ||| An <b>apple [[Malus domestica]]</b> is an edible fruit produced by an <a></a><b class:level1><b class:level2><i class:level3><a></a>apple</i> tree</b></b> (Malus domestica).<|endoftext|>"),)
+        self.assertEqual(mapped_ds[2]["input_ids"], tokenizer.encode(" url: https://en.wikipedia.org/wiki/Apple | HtmlOn | EntityOn ||| An <b>apple [[Malus domestica]]</b> is an edible fruit produced by an <a></a><b class:level1><b class:level2><i class:level3><a></a>apple</i> tree</b></b> (Malus domestica).<|endoftext|>"),)
+
+        self.assertEqual(mapped_ds[0]["metadata_mask"], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+        self.assertEqual(mapped_ds[1]["metadata_mask"], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+        self.assertEqual(mapped_ds[2]["metadata_mask"], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+        # fmt: on
 
 
 if __name__ == "__main__":

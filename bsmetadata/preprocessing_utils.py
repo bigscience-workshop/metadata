@@ -14,12 +14,12 @@
 This script provides functions for adding different kinds of metadata to a pretraining corpus.
 """
 
+import copy
+import logging
 import re
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import unquote, urlparse, urlsplit
-import copy
-import logging
 
 from bs_dateutil.parser import ParserError, parse
 from datasets import Value
@@ -30,6 +30,7 @@ from REL.utils import process_results
 
 from bsmetadata.preprocessing_tools import html_parser
 from bsmetadata.preprocessing_tools.wikipedia_desc_utils import WikipediaDescUtils
+
 
 logger = logging.getLogger(__name__)
 

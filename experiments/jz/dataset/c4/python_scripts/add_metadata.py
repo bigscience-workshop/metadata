@@ -1,16 +1,16 @@
+import gzip
 import logging
 import os
+import shutil
 import sys
 from dataclasses import dataclass, field
 from functools import partial
 from typing import Dict, List, Optional, Tuple
-import gzip
-import shutil
-from datasets import Dataset, Features, Value
+
 import datasets
-import wandb
 import hydra
-from datasets import config, load_dataset
+import wandb
+from datasets import Dataset, Features, Value, config, load_dataset
 from hydra.core.config_store import ConfigStore
 from omegaconf import OmegaConf
 
@@ -235,7 +235,7 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
 
         features_dict = dict(ds.features)
         logger.info(f"the initial features of the dataset are: {features_dict}")
-        features_dict.pop(col_html)
+        features_dict.pop(col_html, None)
 
         def apply_processor(ds: Dataset, processor: MetadataPreprocessor, remove_columns=None) -> Dataset:
             for col_name, feature_type in processor.new_columns_minimal_features.items():

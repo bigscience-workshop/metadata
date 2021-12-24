@@ -113,6 +113,8 @@ def add_url_as_metadata(examples: Dict[str, List], column_name_url: str = "url")
 col_html = "html"
 col_url = "url"
 col_to_store_text = "text"
+col_to_store_head = "html_head"
+col_to_store_footer = "html_footer"
 col_to_store_metadata_html = "metadata_html"
 col_to_store_metadata_url = "metadata_url"
 col_to_store_metadata_timestamp = "metadata_timestamp"
@@ -138,13 +140,19 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
     if "html" in args.metadata_to_include:
         logger.info("   Html...")
         _html_processor = HtmlPreprocessor(
-            col_to_store_metadata=col_to_store_metadata_html, col_to_store_text=col_to_store_text, col_html=col_html
+            col_to_store_metadata=col_to_store_metadata_html,
+            col_to_store_text=col_to_store_text,
+            col_html=col_html,
+            col_to_store_footer=col_to_store_footer,
+            col_to_store_head=col_to_store_head,
         )
         html_processor = ErrorWrapperPreprocessor(
             metadata_preprocessor=_html_processor,
             output_keys={
                 col_to_store_metadata_html: [],
                 col_to_store_text: "",
+                col_to_store_footer: [],
+                col_to_store_head: [],
             },
         )
 
@@ -197,11 +205,13 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
 
     poss_files = sorted(os.listdir(args.dataset_name))
     poss_files = [
-        file_name for file_name in poss_files if file_name.endswith("jsonl.gz") and file_name.startswith("c4-en-html")
+        file_name
+        for file_name in poss_files
+        if (file_name.endswith("jsonl.gz") or file_name.endswith("jsonl")) and file_name.startswith("c4-en-html")
     ]
 
     def process_file(file_name: str):
-        out_file_name = file_name if file_name.endswith(".gz") else f"{file_name}.gz"
+        out_file_name = file_name if not file_name.endswith(".gz") else file_name[: -len(".gz")]
         data_files = {"file": file_name}
 
         logger.info(config.HF_DATASETS_CACHE)
@@ -225,8 +235,9 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
 
         features_dict = dict(ds.features)
         logger.info(f"the initial features of the dataset are: {features_dict}")
+        features_dict.pop(col_html)
 
-        def apply_processor(ds: Dataset, processor: MetadataPreprocessor) -> Dataset:
+        def apply_processor(ds: Dataset, processor: MetadataPreprocessor, remove_columns=None) -> Dataset:
             for col_name, feature_type in processor.new_columns_minimal_features.items():
                 assert col_name not in features_dict
                 features_dict[col_name] = feature_type
@@ -242,13 +253,14 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
                 load_from_cache_file=not args.overwrite_cache,
                 desc=f"Running {extraction_name} on dataset",
                 features=Features(features_dict),
+                remove_columns=remove_columns,
             )
             metrics_logger.log({extraction_name: 1})
             logger.info(f"End {extraction_name}")
             return ds
 
         if "html" in args.metadata_to_include:
-            ds = apply_processor(ds=ds, processor=html_processor)
+            ds = apply_processor(ds=ds, processor=html_processor, remove_columns=[col_html])
 
         if "url" in args.metadata_to_include:
             ds = apply_processor(ds=ds, processor=url_processor)
@@ -276,6 +288,9 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
         ds.to_json(
             saving_path, batch_size=args.save_batch_size, num_proc=args.preprocessing_num_workers, compression="gzip"
         )
+        # ds.save_to_disk(
+        # saving_path,
+        # )
 
         # with open(saving_path, "rb") as f_in:
         #     with gzip.open(f"{saving_path}.gz", "wb") as f_out:

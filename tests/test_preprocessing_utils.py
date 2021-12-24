@@ -258,7 +258,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
         # Define toy data
         self.init_dict = {
             "doc_html": [
-                "\n    <html>\n    <head>\n    </head>\n    <body>\n    <h1>This is a title</h1>\n   with some additional text to reach 64 characters tidi tadada tidi tadada tidi tadada </body>\n    </html>\n",
+                '\n    <html>\n    <head><meta charset="utf-8"><title>My test page</title><head>\n    <body>\n    <h1>This is a title</h1>\n   with some additional text to reach 64 characters tidi tadada tidi tadada tidi tadada </body> <footer><p>Author: Hege Refsnes</p><p><a href="mailto:hege@example.com">hege@example.com</a></p></footer><footer><p>Author: Anonymouss</p></footer></html>\n',
                 "<html><body><p>this is a simple paragraph with Obama and Merkel mentioned. tidi tadada tidi tadada tidi tadada tidi tadada tidi tadada</p></body></html>",
                 "<html><body><p id=1>paragraph 1 tidi tadada tidi tadada tidi tadada tidi tadada tidi tadada.</p><p id=2>paragraph 2 is in Paris tidi tadada tidi tadada tidi tadada tidi tadada.</p></body></html>",
                 '<html><body><div class="div-level-1">blablabla blablabla blablabla blablabla blablabla blablabla<div class="div-level-2">tidi tidi tidi tidi</div></div></body></html>',
@@ -474,6 +474,17 @@ class PipelinePreprocessorTester(unittest.TestCase):
             [{"key": "datasource", "type": "global", "value": "notfound.com > "}],
         ]
 
+        self.target_head = [['<head><meta charset="utf-8"/><title>My test page</title>\n    </head>'], [], [], []]
+        self.target_footer = [
+            [
+                '<footer><p>Author: Hege Refsnes</p><p><a href="mailto:hege@example.com">hege@example.com</a></p></footer>',
+                "<footer><p>Author: Anonymouss</p></footer>",
+            ],
+            [],
+            [],
+            [],
+        ]
+
     @mock.patch("bsmetadata.preprocessing_tools.wikipedia_desc_utils.DumpDB")
     @mock.patch("bsmetadata.preprocessing_tools.wikipedia_desc_utils.nltk.sent_tokenize", new=mock_sent_tokenize)
     @mock.patch.object(EntityPreprocessor, "fetch_mention_predictions", new=mock_fetch_mention_predictions)
@@ -482,6 +493,8 @@ class PipelinePreprocessorTester(unittest.TestCase):
         mock_db.return_value = MockDumpDB("some/path")
         # Define preprocessors
         col_to_store_text = "text"
+        col_to_store_head = "html_head"
+        col_to_store_footer = "html_footer"
         col_to_store_metadata_html = "metadata_html"
         col_to_store_metadata_url = "metadata_url"
         col_to_store_metadata_timestamp = "metadata_timestamp"
@@ -492,7 +505,10 @@ class PipelinePreprocessorTester(unittest.TestCase):
         col_to_store_metadata_datasource = "metadata_generation_datasource"
 
         html_processor = HtmlPreprocessor(
-            col_to_store_metadata=col_to_store_metadata_html, col_to_store_text=col_to_store_text
+            col_to_store_metadata=col_to_store_metadata_html,
+            col_to_store_text=col_to_store_text,
+            col_to_store_footer=col_to_store_footer,
+            col_to_store_head=col_to_store_head,
         )
         url_processor = UrlPreprocessor(col_to_store_metadata=col_to_store_metadata_url, col_url="url")
         timestamp_processor = TimestampPreprocessor(
@@ -539,21 +555,9 @@ class PipelinePreprocessorTester(unittest.TestCase):
         ds = apply_processor(ds=ds, processor=generation_length_preprocessor_sentence)
         ds = apply_processor(ds=ds, processor=datasource_preprocessor)
 
-        print("\n", col_to_store_text, ds[:][col_to_store_text])
-        print("\n", col_to_store_metadata_html, ds[:][col_to_store_metadata_html])
-        print("\n", col_to_store_metadata_url, ds[:][col_to_store_metadata_url])
-        print("\n", col_to_store_metadata_timestamp, ds[:][col_to_store_metadata_timestamp])
-        print("\n", col_to_store_metadata_website_desc, ds[:][col_to_store_metadata_website_desc])
-        print("\n", col_to_store_metadata_entities, ds[:][col_to_store_metadata_entities])
-        print("\n", col_to_store_metadata_generation_length_text, ds[:][col_to_store_metadata_generation_length_text])
-        print(
-            "\n",
-            col_to_store_metadata_generation_length_sentence,
-            ds[:][col_to_store_metadata_generation_length_sentence],
-        )
-        print("\n", col_to_store_metadata_datasource, ds[:][col_to_store_metadata_datasource])
-
         self.assertEqual(ds[:][col_to_store_text], self.target_texts)
+        self.assertEqual(ds[:][col_to_store_head], self.target_head)
+        self.assertEqual(ds[:][col_to_store_footer], self.target_footer)
         self.assertEqual(ds[:][col_to_store_metadata_html], self.target_metadata_html)
         self.assertEqual(ds[:][col_to_store_metadata_url], self.target_metadata_url)
         self.assertEqual(ds[:][col_to_store_metadata_timestamp], self.target_metadata_timestamp)
@@ -600,6 +604,8 @@ class PipelinePreprocessorTester(unittest.TestCase):
                 ],
                 "text": Value("string"),
                 "url": Value("string"),
+                "html_footer": [Value("string")],
+                "html_head": [Value("string")],
             }
         )
 
@@ -611,6 +617,10 @@ class PipelinePreprocessorTester(unittest.TestCase):
             remove_columns=columns_names_to_concat,
             features=features,
         )
+
+        self.assertEqual(ds[:][col_to_store_text], self.target_texts)
+        self.assertEqual(ds[:][col_to_store_head], self.target_head)
+        self.assertEqual(ds[:][col_to_store_footer], self.target_footer)
 
         for metadata_type in [
             self.target_metadata_html,
@@ -645,6 +655,8 @@ class PipelinePreprocessorTester(unittest.TestCase):
         mock_db.return_value = MockDumpDB("some/path")
         # Define preprocessors
         col_to_store_text = "text"
+        col_to_store_head = "html_head"
+        col_to_store_footer = "html_footer"
         col_to_store_metadata_html = "metadata"
         col_to_store_metadata_url = "metadata"
         col_to_store_metadata_timestamp = "metadata"
@@ -655,7 +667,10 @@ class PipelinePreprocessorTester(unittest.TestCase):
         col_to_store_metadata_datasource = "metadata"
 
         html_processor = HtmlPreprocessor(
-            col_to_store_metadata=col_to_store_metadata_html, col_to_store_text=col_to_store_text
+            col_to_store_metadata=col_to_store_metadata_html,
+            col_to_store_text=col_to_store_text,
+            col_to_store_footer=col_to_store_footer,
+            col_to_store_head=col_to_store_head,
         )
         url_processor = UrlPreprocessor(col_to_store_metadata=col_to_store_metadata_url, col_url="url")
         timestamp_processor = TimestampPreprocessor(
@@ -695,6 +710,8 @@ class PipelinePreprocessorTester(unittest.TestCase):
                 ],
                 "text": Value("string"),
                 "url": Value("string"),
+                "html_footer": [Value("string")],
+                "html_head": [Value("string")],
             }
         )
 
@@ -720,6 +737,8 @@ class PipelinePreprocessorTester(unittest.TestCase):
         ds = ds.map(lambda ex: datasource_preprocessor.preprocess(ex), batched=True, batch_size=3, features=features)
 
         self.assertEqual(ds[:][col_to_store_text], self.target_texts)
+        self.assertEqual(ds[:][col_to_store_head], self.target_head)
+        self.assertEqual(ds[:][col_to_store_footer], self.target_footer)
 
         for id, metadata_example in enumerate(self.target_metadata_html):
             for metadata in metadata_example:

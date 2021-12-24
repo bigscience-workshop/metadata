@@ -4,11 +4,12 @@
 #SBATCH --ntasks-per-node=1                                             # crucial - only 1 task per dist per node!
 #SBATCH --cpus-per-task=4                                               # (change me! between 0 and 48) number of cores per tasks
 #SBATCH --hint=nomultithread                                            # we get physical cores not logical
-#SBATCH --time 02:00:00                                                 # (change me! between 0 and 20h) maximum execution time (HH:MM:SS)
+#SBATCH --time 08:00:00                                                 # (change me! between 0 and 20h) maximum execution time (HH:MM:SS)
 #SBATCH --output=/gpfsdswork/projects/rech/six/uue59kq/logs/create-dataset-c4-toy/%j-%x.out   # output file name
 #SBATCH --error=/gpfsdswork/projects/rech/six/uue59kq/logs/create-dataset-c4-toy/%j-%x.err    # error file name
 #SBATCH --account=six@cpu                                               # account
 #SBATCH --array=0%1
+#SBATCH --partition=cpu_p1
 
 set -x -e
 
@@ -29,15 +30,19 @@ export HF_DATASETS_OFFLINE=1
 export WANDB_MODE=offline
 export WANDB_DIR=$SCRATCH
 
-METADATA_TO_INCLUDE='["url","html","timestamp","website_description"]'
+METADATA_TO_INCLUDE='["url","html","timestamp", "datasource","generation_length_sentence", "generation_length_text"]'
 
 DATASET_FILES_DIR=$SCRATCH/new_dataset/c4-mike-en-tmp/openwebtext-html-cc/c4-en-html
 
-PROCESS_DIR=$SCRATCH/new_dataset/c4-mike-en-test-1
-OUT_DIR=$PROCESS_DIR/c4-en-reduced-with-metadata-url-html-timestamp-website_description
+PROCESS_DIR=$SCRATCH/new_dataset/c4-mike-en-test-4
+OUT_DIR=$PROCESS_DIR/c4-en-reduced-with-metadata-url-html-timestamp
+
+mkdir -p $OUT_DIR
 
 MAP_BATCH_SIZE=1
-PREPROCESSING_NUM_WORKERS=16
+PREPROCESSING_NUM_WORKERS=8
+NUM_FILES_TO_PROCESS=1
+SAVE_BATCH_SIZE=1000
 
 PATH_OR_URL_FLAIR_NER_MODEL=$SCRATCH/cache_dir/flair/ner-fast/en-ner-fast-conll03-v0.4.pt
 
@@ -59,5 +64,7 @@ python experiments/jz/dataset/c4/python_scripts/add_metadata.py \
     metadata_to_include="$METADATA_TO_INCLUDE" \
     path_or_url_flair_ner_model=$PATH_OR_URL_FLAIR_NER_MODEL \
     map_batch_size=$MAP_BATCH_SIZE \
-    preprocessing_num_workers=$PREPROCESSING_NUM_WORKERS
+    preprocessing_num_workers=$PREPROCESSING_NUM_WORKERS\
+    num_files_to_process=$NUM_FILES_TO_PROCESS\
+    save_batch_size=$SAVE_BATCH_SIZE\
 

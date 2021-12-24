@@ -19,6 +19,8 @@ from bsmetadata.preprocessing_tools.html_parser.variables import (
 
 
 logger = logging.getLogger(__name__)
+
+
 class AttributeCleaner:
     def __init__(self, attrs_to_keep: Optional[List[str]]):
         self.attrs_to_keep = attrs_to_keep

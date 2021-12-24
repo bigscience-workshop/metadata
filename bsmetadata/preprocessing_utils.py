@@ -140,9 +140,18 @@ class HtmlPreprocessor(MetadataPreprocessor):
     HTML metadata containing the tags, their attributes, their location in the text and their relative location to
     each other."""
 
-    def __init__(self, col_html: str = "doc_html", col_to_store_metadata="metadata", col_to_store_text="text") -> None:
+    def __init__(
+        self,
+        col_html: str = "doc_html",
+        col_to_store_metadata="metadata",
+        col_to_store_text="text",
+        col_to_store_head="html_head",
+        col_to_store_footer="html_footer",
+    ) -> None:
         self.col_html = col_html
         self.col_to_store_text = col_to_store_text
+        self.col_to_store_footer = col_to_store_footer
+        self.col_to_store_head = col_to_store_head
         super().__init__(col_to_store_metadata=col_to_store_metadata)
 
     @property
@@ -161,6 +170,8 @@ class HtmlPreprocessor(MetadataPreprocessor):
                 }
             ],
             self.col_to_store_text: Value("string"),
+            self.col_to_store_footer: [Value("string")],
+            self.col_to_store_head: [Value("string")],
         }
         return features
 
@@ -181,8 +192,12 @@ class HtmlPreprocessor(MetadataPreprocessor):
             html_parser.objects.TagToRemoveWithContent(tag="ol", content_max_char_length=64),
             html_parser.objects.TagToRemoveWithContent(tag="dl", content_max_char_length=64),
         ]
+        head_tag = "head"
+        footer_tag = "footer"
 
         new_texts = []
+        new_head = []
+        new_footer = []
         new_metadata = (
             examples[self.col_to_store_metadata]
             if self.col_to_store_metadata in examples
@@ -192,19 +207,24 @@ class HtmlPreprocessor(MetadataPreprocessor):
             examples[self.col_html], new_metadata
         ):  # if metadata already exists
 
-            plain_text, metadata = html_parser.get_clean_text_and_metadata(
+            plain_text, metadata, additional_columns = html_parser.get_clean_text_and_metadata(
                 example_doc_html,
                 tags_to_remove_with_content=tags_to_remove_with_content,
                 consecutive_tags_to_fold=["div"],
                 convert_br_tag_to_breaking_line=True,
+                tags_sub_tree_to_isolate=[head_tag, footer_tag],
             )
             new_texts.append(plain_text)
+            new_head.append(additional_columns[head_tag])
+            new_footer.append(additional_columns[footer_tag])
             example_metadata.extend(
                 [html_parser.objects.convert_html_metadata_dataclass_to_dict(node) for node in metadata]
             )
 
         examples[self.col_to_store_text] = new_texts
         examples[self.col_to_store_metadata] = new_metadata
+        examples[self.col_to_store_head] = new_head
+        examples[self.col_to_store_footer] = new_footer
         return examples
 
 

@@ -665,7 +665,7 @@ class ErrorWrapperPreprocessor:
 
             if self.error_comment_column_name not in processed_examples:
                 processed_examples[self.error_comment_column_name] = ["" for _ in range(num_examples)]
-        except:
+        except: #noqa
             # we try the example one by one to find the culprit(s) and strore the error
             processed_examples = {
                 key: []

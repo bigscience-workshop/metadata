@@ -8,7 +8,7 @@
 #SBATCH --output=/gpfsdswork/projects/rech/six/uue59kq/logs/create-dataset-c4-toy/%j-%x.out   # output file name
 #SBATCH --error=/gpfsdswork/projects/rech/six/uue59kq/logs/create-dataset-c4-toy/%j-%x.err    # error file name
 #SBATCH --account=six@cpu                                               # account
-#SBATCH --array=0%1
+#SBATCH --array=0-5
 #SBATCH --partition=cpu_p1
 
 set -x -e
@@ -34,7 +34,7 @@ METADATA_TO_INCLUDE='["url","html","timestamp", "datasource","generation_length_
 
 DATASET_FILES_DIR=$SCRATCH/new_dataset/c4-mike-en-tmp/openwebtext-html-cc/c4-en-html
 
-PROCESS_DIR=$SCRATCH/new_dataset/c4-mike-en-test-4
+PROCESS_DIR=$SCRATCH/new_dataset/c4-mike-en-test-7
 OUT_DIR=$PROCESS_DIR/c4-en-reduced-with-metadata-url-html-timestamp
 
 mkdir -p $OUT_DIR

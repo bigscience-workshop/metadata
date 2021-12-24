@@ -215,8 +215,8 @@ class HtmlPreprocessor(MetadataPreprocessor):
                 tags_sub_tree_to_isolate=[head_tag, footer_tag],
             )
             new_texts.append(plain_text)
-            new_head.append(additional_columns[head_tag])
-            new_footer.append(additional_columns[footer_tag])
+            new_head.append(additional_columns.get(head_tag, []))
+            new_footer.append(additional_columns.get(footer_tag, []))
             example_metadata.extend(
                 [html_parser.objects.convert_html_metadata_dataclass_to_dict(node) for node in metadata]
             )
@@ -699,6 +699,7 @@ class ErrorWrapperPreprocessor:
 
                     processed_examples[self.error_column_name].append(1)
                     processed_examples[self.error_comment_column_name].append(str(e))
+                    logger.info(f"An error occurred with the message: {str(e)}")
                     num_errors += 1
         if self.verbose and num_errors != 0:
             logger.warning(f"{num_errors} errors occurred during the preprocessing")

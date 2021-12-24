@@ -7,6 +7,7 @@ from typing import Dict, List, Optional, Tuple
 import gzip
 import shutil
 from datasets import Dataset, Features, Value
+import datasets
 import wandb
 import hydra
 from datasets import config, load_dataset
@@ -16,6 +17,7 @@ from omegaconf import OmegaConf
 from bsmetadata.preprocessing_utils import (
     DatasourcePreprocessor,
     EntityPreprocessor,
+    ErrorWrapperPreprocessor,
     GenerationLengthPreprocessor,
     HtmlPreprocessor,
     MetadataPreprocessor,
@@ -33,6 +35,7 @@ logger = logging.getLogger(__name__)
 class PreprocessingConfig:
     task_id: int = field(metadata={"help": "The id of the task"})
     out_dir: str = field(metadata={"help": "where to save the resulting dataset."})
+    num_files_to_process: int = field(metadata={"help": "the number of files to process"})
     path_wiki_db: str = field(
         metadata={"help": "The path to the wikipedia database file necessary for the website descriptions"}
     )
@@ -71,6 +74,10 @@ class PreprocessingConfig:
         },
     )
     project_name: str = field(default="metadata_lm_exploration", metadata={"help": "The project name."})
+    save_batch_size: int = field(
+        default=datasets.config.DEFAULT_MAX_BATCH_SIZE,
+        metadata={"help": " Size of the batch to load in memory and write at once."},
+    )
 
 
 class Logger:
@@ -117,14 +124,7 @@ col_to_store_metadata_datasource = "metadata_generation_datasource"
 
 
 @hydra.main(config_name="preprocessing_config")
-def main(args: PreprocessingConfig) -> None:
-    poss_files = sorted(os.listdir(args.dataset_name))
-    file_name = poss_files[args.task_id]
-    out_file_name = file_name if not file_name.endswith(".gz") else file_name[:-3]
-
-    data_files = {"file": file_name}
-
-    # Setup logging
+def main(args: PreprocessingConfig) -> None:  # Setup logging
     logging.basicConfig(
         format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
         datefmt="%m/%d/%Y %H:%M:%S",
@@ -132,78 +132,42 @@ def main(args: PreprocessingConfig) -> None:
     )
 
     config_dict = OmegaConf.to_container(args)
-    config_dict["file_name"] = file_name
-    config_dict["out_file_name"] = out_file_name
     metrics_logger = Logger(project=args.project_name, config=config_dict)
 
-    logger.info(config.HF_DATASETS_CACHE)
-    logger.info(
-        "Downloading and loading a dataset from the hub"
-        f"{args.dataset_name}, {args.dataset_config_name}, data_files={data_files}, cache_dir={args.cache_dir},"
-    )
-    # Downloading and loading a dataset from the hub.
-
-    metrics_logger.log({"load_dataset": 0})
-    ds = load_dataset(
-        args.dataset_name,
-        args.dataset_config_name,
-        data_files=data_files,
-        cache_dir=args.cache_dir,
-        keep_in_memory=False,
-        download_mode="force_redownload",
-    )["file"]
-
-    metrics_logger.log({"load_dataset": 1})
-
-    features_dict = dict(ds.features)
-    logger.info(f"the initial features of the dataset are: {features_dict}")
-
-    def apply_processor(ds: Dataset, processor: MetadataPreprocessor) -> Dataset:
-        for col_name, feature_type in processor.new_columns_minimal_features.items():
-            assert col_name not in features_dict
-            features_dict[col_name] = feature_type
-        extraction_name = processor.__class__.__name__
-
-        logger.info(f"Start {extraction_name}")
-        metrics_logger.log({extraction_name: 0})
-        ds = ds.map(
-            processor.preprocess,
-            batched=True,
-            batch_size=args.map_batch_size,
-            num_proc=args.preprocessing_num_workers,
-            load_from_cache_file=not args.overwrite_cache,
-            desc=f"Running {extraction_name} on dataset",
-            features=Features(features_dict),
-        )
-        metrics_logger.log({extraction_name: 1})
-        logger.info(f"End {extraction_name}")
-        return ds
-
+    logger.info("Initialize the preprocessors:")
     if "html" in args.metadata_to_include:
-        html_processor = HtmlPreprocessor(
+        logger.info("   Html...")
+        _html_processor = HtmlPreprocessor(
             col_to_store_metadata=col_to_store_metadata_html, col_to_store_text=col_to_store_text, col_html=col_html
         )
-        ds = apply_processor(ds=ds, processor=html_processor)
+        html_processor = ErrorWrapperPreprocessor(
+            metadata_preprocessor=_html_processor,
+            output_keys={
+                col_to_store_metadata_html: [],
+                col_to_store_text: "",
+            },
+        )
 
     if "url" in args.metadata_to_include:
+        logger.info("   Url...")
         url_processor = UrlPreprocessor(col_to_store_metadata=col_to_store_metadata_url, col_url=col_url)
-        ds = apply_processor(ds=ds, processor=url_processor)
 
     if "timestamp" in args.metadata_to_include:
+        logger.info("   Timestamp...")
         timestamp_processor = TimestampPreprocessor(
             col_to_store_metadata=col_to_store_metadata_timestamp, col_metadata_url=col_to_store_metadata_url
         )
-        ds = apply_processor(ds=ds, processor=timestamp_processor)
 
     if "website_description" in args.metadata_to_include:
+        logger.info("   Website description...")
         website_processor = WebsiteDescPreprocessor(
             col_to_store_metadata=col_to_store_metadata_website_desc,
             col_metadata_url=col_to_store_metadata_url,
             path_wiki_db=args.path_wiki_db,
         )
-        ds = apply_processor(ds=ds, processor=website_processor)
 
     if "entity" in args.metadata_to_include:
+        logger.info("   Entity...")
         entity_processor = EntityPreprocessor(
             base_url=args.entity_path_data_dir,
             path_wiki_db=args.path_wiki_db,
@@ -211,36 +175,121 @@ def main(args: PreprocessingConfig) -> None:
             col_to_store_metadata=col_to_store_metadata_entities,
             col_text=col_to_store_text,
         )
-        ds = apply_processor(ds=ds, processor=entity_processor)
 
     if "generation_length_text" in args.metadata_to_include:
+        logger.info("   Generation length text...")
         generation_length_preprocessor_text = GenerationLengthPreprocessor(
             mode="text", col_to_store_metadata=col_to_store_metadata_generation_length_text
         )
-        ds = apply_processor(ds=ds, processor=generation_length_preprocessor_text)
 
     if "generation_length_sentence" in args.metadata_to_include:
+        logger.info("   Generation length sentence...")
         generation_length_preprocessor_sentence = GenerationLengthPreprocessor(
             mode="sentence", col_to_store_metadata=col_to_store_metadata_generation_length_sentence
         )
-        ds = apply_processor(ds=ds, processor=generation_length_preprocessor_sentence)
 
     if "datasource" in args.metadata_to_include:
+        logger.info("   Datasource...")
         datasource_preprocessor = DatasourcePreprocessor(
             col_to_store_metadata=col_to_store_metadata_datasource, col_url="url"
         )
-        ds = apply_processor(ds=ds, processor=datasource_preprocessor)
+    logger.info("Processors initialization finished")
 
-    saving_path = os.path.join(args.out_dir, out_file_name)
-    logger.info(f"Save resulting dataset at {saving_path}")
-    ds.to_json(saving_path)
+    poss_files = sorted(os.listdir(args.dataset_name))
+    poss_files = [
+        file_name for file_name in poss_files if file_name.endswith("jsonl.gz") and file_name.startswith("c4-en-html")
+    ]
+
+    def process_file(file_name: str):
+        out_file_name = file_name if file_name.endswith(".gz") else f"{file_name}.gz"
+        data_files = {"file": file_name}
+
+        logger.info(config.HF_DATASETS_CACHE)
+        logger.info(
+            "Downloading and loading a dataset from the hub"
+            f"{args.dataset_name}, {args.dataset_config_name}, data_files={data_files}, cache_dir={args.cache_dir},"
+        )
+        # Downloading and loading a dataset from the hub.
+
+        metrics_logger.log({"load_dataset": 0})
+        ds = load_dataset(
+            args.dataset_name,
+            args.dataset_config_name,
+            data_files=data_files,
+            cache_dir=args.cache_dir,
+            keep_in_memory=False,
+            download_mode="force_redownload",
+        )["file"]
+
+        metrics_logger.log({"load_dataset": 1})
+
+        features_dict = dict(ds.features)
+        logger.info(f"the initial features of the dataset are: {features_dict}")
+
+        def apply_processor(ds: Dataset, processor: MetadataPreprocessor) -> Dataset:
+            for col_name, feature_type in processor.new_columns_minimal_features.items():
+                assert col_name not in features_dict
+                features_dict[col_name] = feature_type
+            extraction_name = processor.__class__.__name__
+
+            logger.info(f"Start {extraction_name}")
+            metrics_logger.log({extraction_name: 0})
+            ds = ds.map(
+                processor.preprocess,
+                batched=True,
+                batch_size=args.map_batch_size,
+                num_proc=args.preprocessing_num_workers,
+                load_from_cache_file=not args.overwrite_cache,
+                desc=f"Running {extraction_name} on dataset",
+                features=Features(features_dict),
+            )
+            metrics_logger.log({extraction_name: 1})
+            logger.info(f"End {extraction_name}")
+            return ds
+
+        if "html" in args.metadata_to_include:
+            ds = apply_processor(ds=ds, processor=html_processor)
+
+        if "url" in args.metadata_to_include:
+            ds = apply_processor(ds=ds, processor=url_processor)
+
+        if "timestamp" in args.metadata_to_include:
+            ds = apply_processor(ds=ds, processor=timestamp_processor)
+
+        if "website_description" in args.metadata_to_include:
+            ds = apply_processor(ds=ds, processor=website_processor)
+
+        if "entity" in args.metadata_to_include:
+            ds = apply_processor(ds=ds, processor=entity_processor)
+
+        if "generation_length_text" in args.metadata_to_include:
+            ds = apply_processor(ds=ds, processor=generation_length_preprocessor_text)
+
+        if "generation_length_sentence" in args.metadata_to_include:
+            ds = apply_processor(ds=ds, processor=generation_length_preprocessor_sentence)
+
+        if "datasource" in args.metadata_to_include:
+            ds = apply_processor(ds=ds, processor=datasource_preprocessor)
+
+        saving_path = os.path.join(args.out_dir, out_file_name)
+        logger.info(f"Save resulting dataset at {saving_path}")
+        ds.to_json(
+            saving_path, batch_size=args.save_batch_size, num_proc=args.preprocessing_num_workers, compression="gzip"
+        )
+
+        # with open(saving_path, "rb") as f_in:
+        #     with gzip.open(f"{saving_path}.gz", "wb") as f_out:
+        #         shutil.copyfileobj(f_in, f_out)
+
+        # os.remove(saving_path)
+
+    for file_name in poss_files[
+        args.task_id * args.num_files_to_process : args.task_id * args.num_files_to_process + args.num_files_to_process
+    ]:
+        logger.info(f"Start to process {file_name}")
+        process_file(file_name=file_name)
+
     metrics_logger.close()
-
-    with open(saving_path, "rb") as f_in:
-        with gzip.open(f"{saving_path}.gz", "wb") as f_out:
-            shutil.copyfileobj(f_in, f_out)
-
-    os.remove(saving_path)
 
 
 if __name__ == "__main__":

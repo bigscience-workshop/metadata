@@ -16,8 +16,10 @@ This script provides functions for adding different kinds of metadata to a pretr
 
 import re
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import unquote, urlparse, urlsplit
+import copy
+import logging
 
 from bs_dateutil.parser import ParserError, parse
 from datasets import Value
@@ -28,6 +30,8 @@ from REL.utils import process_results
 
 from bsmetadata.preprocessing_tools import html_parser
 from bsmetadata.preprocessing_tools.wikipedia_desc_utils import WikipediaDescUtils
+
+logger = logging.getLogger(__name__)
 
 
 def get_path_from_url(url):
@@ -136,9 +140,7 @@ class HtmlPreprocessor(MetadataPreprocessor):
     HTML metadata containing the tags, their attributes, their location in the text and their relative location to
     each other."""
 
-    def __init__(
-        self, col_html: str = "doc_html", col_to_store_metadata="metadata", col_to_store_text="text"
-    ) -> None:
+    def __init__(self, col_html: str = "doc_html", col_to_store_metadata="metadata", col_to_store_text="text") -> None:
         self.col_html = col_html
         self.col_to_store_text = col_to_store_text
         super().__init__(col_to_store_metadata=col_to_store_metadata)
@@ -599,3 +601,85 @@ class UrlPreprocessor(MetadataPreprocessor):
 
         examples[self.col_to_store_metadata] = example_metadata_list
         return examples
+
+
+class ErrorWrapperPreprocessor:
+    def __init__(
+        self, metadata_preprocessor: MetadataPreprocessor, output_keys: Dict[str, Any], verbose: bool = True
+    ) -> None:
+        self.metadata_preprocessor = metadata_preprocessor
+        self.output_keys = output_keys
+        self.verbose = verbose
+
+        self.error_column_name = f"{type(metadata_preprocessor).__name__}_error"
+        self.error_comment_column_name = f"{type(metadata_preprocessor).__name__}_error_comment"
+
+    @property
+    def new_columns_minimal_features(self) -> Dict[str, Any]:
+        features = self.metadata_preprocessor.new_columns_minimal_features
+        features.update(
+            {
+                self.error_column_name: Value("int64"),
+                self.error_comment_column_name: Value("string"),
+            }
+        )
+        return features
+
+    def preprocess(self, examples: Dict[str, List]) -> Tuple[Dict[str, List], int]:
+        """Process a batch of examples and add or extract corresponding metadata."""
+        num_errors = 0
+
+        metadata_list_backup = {
+            col_name: copy.deepcopy(examples[col_name])
+            for col_name in self.metadata_preprocessor.new_columns_minimal_features.keys()
+            if col_name in examples
+        }
+        try:
+            processed_examples = self.metadata_preprocessor.preprocess(examples=examples)
+
+            random_key = list(processed_examples)[0]
+            num_examples = len(processed_examples[random_key])
+            if self.error_column_name not in processed_examples:
+                processed_examples[self.error_column_name] = [0 for _ in range(num_examples)]
+
+            if self.error_comment_column_name not in processed_examples:
+                processed_examples[self.error_comment_column_name] = ["" for _ in range(num_examples)]
+        except:
+            # we try the example one by one to find the culprit(s) and strore the error
+            processed_examples = {
+                key: []
+                for key in list(self.output_keys.keys()) + [self.error_column_name, self.error_comment_column_name]
+            }
+
+            for key, values in metadata_list_backup.items():
+                examples[key] = copy.deepcopy(values)
+
+            random_key = list(examples)[0]
+            for idx in range(len(examples[random_key])):
+                example = {key: [values[idx]] for key, values in examples.items()}
+                try:
+                    processed_example = self.metadata_preprocessor.preprocess(examples=example)
+
+                    for key, value in processed_example.items():
+                        processed_examples[key].append(value[0])
+
+                    processed_examples[self.error_column_name].append(0)
+                    processed_examples[self.error_comment_column_name].append("")
+                except Exception as e:
+                    for output_key in self.output_keys.keys():
+                        if output_key in metadata_list_backup:
+                            # We keep the initial value
+                            processed_examples[output_key].append(metadata_list_backup[output_key][idx])
+                        elif output_key in example:
+                            # We keep the initial value
+                            processed_examples[output_key].append(example[output_key][0])
+                        else:
+                            # We use the default value
+                            processed_examples[output_key].append(self.output_keys[output_key])
+
+                    processed_examples[self.error_column_name].append(1)
+                    processed_examples[self.error_comment_column_name].append(str(e))
+                    num_errors += 1
+        if self.verbose and num_errors != 0:
+            logger.warning(f"{num_errors} errors occurred during the preprocessing")
+        return processed_examples

@@ -307,7 +307,7 @@ class TextAndMetadataCleaner:
                 root = fromstring(html_str)
             except ValueError:
                 # this is not a valid HTML (begin probably with <?xml version="1.0")
-                logger.warning(f"This example wasn't parsed: invalid HTML")
+                logger.warning("This example wasn't parsed: invalid HTML")
                 return "", [], {}
             for tag in self.tags_sub_tree_to_isolate:
                 find = etree.XPath(f"//{tag}")
@@ -323,7 +323,7 @@ class TextAndMetadataCleaner:
                 root = fromstring(html_str)
             except ValueError:
                 # this is not a valid HTML (begin probably with <?xml version="1.0")
-                logger.warning(f"This example wasn't parsed: invalid HTML")
+                logger.warning("This example wasn't parsed: invalid HTML")
                 return "", [], {}
             find = etree.XPath(f"//{self.start_parsing_at_tag}")
             matches = find(root)

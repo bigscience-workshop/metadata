@@ -148,11 +148,13 @@ class HtmlPreprocessor(MetadataPreprocessor):
         col_to_store_text="text",
         col_to_store_head="html_head",
         col_to_store_footer="html_footer",
+        col_to_store_title="html_title"
     ) -> None:
         self.col_html = col_html
         self.col_to_store_text = col_to_store_text
         self.col_to_store_footer = col_to_store_footer
         self.col_to_store_head = col_to_store_head
+        self.col_to_store_title = col_to_store_title
         super().__init__(col_to_store_metadata=col_to_store_metadata)
 
     @property
@@ -173,6 +175,7 @@ class HtmlPreprocessor(MetadataPreprocessor):
             self.col_to_store_text: Value("string"),
             self.col_to_store_footer: [Value("string")],
             self.col_to_store_head: [Value("string")],
+            self.col_to_store_title: [Value("string")],
         }
         return features
 
@@ -195,10 +198,12 @@ class HtmlPreprocessor(MetadataPreprocessor):
         ]
         head_tag = "head"
         footer_tag = "footer"
+        title_tag = "title"
 
         new_texts = []
         new_head = []
         new_footer = []
+        new_title = []
         new_metadata = (
             examples[self.col_to_store_metadata]
             if self.col_to_store_metadata in examples
@@ -213,11 +218,12 @@ class HtmlPreprocessor(MetadataPreprocessor):
                 tags_to_remove_with_content=tags_to_remove_with_content,
                 consecutive_tags_to_fold=["div"],
                 convert_br_tag_to_breaking_line=True,
-                tags_sub_tree_to_isolate=[head_tag, footer_tag],
+                tags_sub_tree_to_isolate=[head_tag, footer_tag, title_tag],
             )
             new_texts.append(plain_text)
             new_head.append(additional_columns.get(head_tag, []))
             new_footer.append(additional_columns.get(footer_tag, []))
+            new_title.append(additional_columns.get(title_tag, []))
             example_metadata.extend(
                 [html_parser.objects.convert_html_metadata_dataclass_to_dict(node) for node in metadata]
             )
@@ -226,6 +232,7 @@ class HtmlPreprocessor(MetadataPreprocessor):
         examples[self.col_to_store_metadata] = new_metadata
         examples[self.col_to_store_head] = new_head
         examples[self.col_to_store_footer] = new_footer
+        examples[self.col_to_store_title] = new_title
         return examples
 
 

@@ -148,7 +148,7 @@ class HtmlPreprocessor(MetadataPreprocessor):
         col_to_store_text="text",
         col_to_store_head="html_head",
         col_to_store_footer="html_footer",
-        col_to_store_title="html_title"
+        col_to_store_title="html_title",
     ) -> None:
         self.col_html = col_html
         self.col_to_store_text = col_to_store_text

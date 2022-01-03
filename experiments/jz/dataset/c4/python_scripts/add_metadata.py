@@ -92,21 +92,6 @@ cs = ConfigStore.instance()
 cs.store(name="preprocessing_config", node=PreprocessingConfig)
 
 
-def add_url_as_metadata(examples: Dict[str, List], column_name_url: str = "url") -> Dict[str, List]:
-
-    example_url_list = examples[column_name_url]
-    example_metadata = []
-    example_urls = []
-
-    for example_url in example_url_list:
-        example_metadata.append([{"key": "url", "type": "global", "value": example_url}])
-        example_urls.append(example_url)
-
-    examples["metadata"] = example_metadata
-    examples["id"] = example_urls  # to change
-    return examples
-
-
 col_html = "html"
 col_url = "url"
 col_to_store_text = "text"

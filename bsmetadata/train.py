@@ -226,7 +226,7 @@ def main(args: CFG) -> None:
         model.train()
         return {"perplexity": perplexity}
 
-    if not args.do_train or not args.do_eval:
+    if not args.do_train and not args.do_eval:
         return
 
     progress_bar = tqdm(range(args.max_train_steps), desc="training")

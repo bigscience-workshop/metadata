@@ -8,13 +8,13 @@
 #SBATCH --output=/gpfsdswork/projects/rech/six/uue59kq/logs/create-dataset-c4-toy/%j-%x.out   # output file name
 #SBATCH --error=/gpfsdswork/projects/rech/six/uue59kq/logs/create-dataset-c4-toy/%j-%x.err    # error file name
 #SBATCH --account=six@cpu                                               # account
-#SBATCH --array=0%1
+#SBATCH --array=0
 #SBATCH --partition=cpu_p1
 
 set -x -e
 
-PROCESS_DIR=$SCRATCH/new_dataset/c4-mike-en-test-5
-OUT_DIR=$PROCESS_DIR/c4-en-reduced-with-metadata-url-html-timestamp
+PROCESS_DIR=$SCRATCH/new_dataset/c4-mike-en-test-7
+OUT_DIR=$PROCESS_DIR/c4-en-reduced-with-metadata-url-html-timestamp-website-desc
 cd $OUT_DIR
 
 gzip c4-*${SLURM_ARRAY_TASK_ID}-*.jsonl

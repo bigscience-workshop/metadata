@@ -34,7 +34,7 @@ METADATA_TO_INCLUDE='["url","html","timestamp", "datasource","generation_length_
 
 DATASET_FILES_DIR=$SCRATCH/new_dataset/c4-mike-en-tmp/openwebtext-html-cc/c4-en-html
 
-PROCESS_DIR=$SCRATCH/new_dataset/c4-mike-en-test-7
+PROCESS_DIR=$SCRATCH/new_dataset/c4-mike-en-test-8
 OUT_DIR=$PROCESS_DIR/c4-en-reduced-with-metadata-url-html-timestamp
 
 mkdir -p $OUT_DIR

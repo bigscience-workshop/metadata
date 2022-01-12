@@ -97,6 +97,7 @@ col_url = "url"
 col_to_store_text = "text"
 col_to_store_head = "html_head"
 col_to_store_footer = "html_footer"
+col_to_store_title="html_title"
 col_to_store_metadata_html = "metadata_html"
 col_to_store_metadata_url = "metadata_url"
 col_to_store_metadata_timestamp = "metadata_timestamp"
@@ -127,6 +128,7 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
             col_html=col_html,
             col_to_store_footer=col_to_store_footer,
             col_to_store_head=col_to_store_head,
+            col_to_store_title=col_to_store_title,
         )
         html_processor = ErrorWrapperPreprocessor(
             metadata_preprocessor=_html_processor,
@@ -135,6 +137,7 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
                 col_to_store_text: "",
                 col_to_store_footer: [],
                 col_to_store_head: [],
+                col_to_store_title: [],
             },
         )
 
@@ -193,7 +196,7 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
     ]
 
     def process_file(file_name: str):
-        out_file_name = file_name if not file_name.endswith(".gz") else file_name[: -len(".gz")]
+        out_file_name = f"{file_name}.gz" if not file_name.endswith(".gz") else file_name
         data_files = {"file": file_name}
 
         logger.info(config.HF_DATASETS_CACHE)

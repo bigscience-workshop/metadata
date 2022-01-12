@@ -269,7 +269,7 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
             ds = apply_processor(ds=ds, processor=datasource_preprocessor)
 
         saving_path = os.path.join(args.out_dir, out_file_name)
-        logger.info(f"Save resulting dataset at {saving_path}")
+        logger.info(f"Save resulting dataset {ds} at {saving_path}")
         ds.to_json(
             saving_path, batch_size=args.save_batch_size, num_proc=args.preprocessing_num_workers, compression="gzip"
         )

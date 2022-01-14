@@ -8,8 +8,8 @@
 #SBATCH --output=/gpfsdswork/projects/rech/six/uue59kq/logs/create-dataset-c4-en-v3/%j-%x.out   # output file name
 #SBATCH --error=/gpfsdswork/projects/rech/six/uue59kq/logs/create-dataset-c4-en-v3/%j-%x.err    # error file name
 #SBATCH --account=six@cpu                                               # account
-#SBATCH --array=3
-#SBATCH --partition=compil
+#SBATCH --array=0-5
+#SBATCH --partition=cpu_p1
 
 set -x -e
 

@@ -5,8 +5,8 @@
 #SBATCH --cpus-per-task=4                                               # (change me! between 0 and 48) number of cores per tasks
 #SBATCH --hint=nomultithread                                            # we get physical cores not logical
 #SBATCH --time 08:00:00                                                 # (change me! between 0 and 20h) maximum execution time (HH:MM:SS)
-#SBATCH --output=/gpfsdswork/projects/rech/six/uue59kq/logs/create-dataset-c4-toy/%j-%x.out   # output file name
-#SBATCH --error=/gpfsdswork/projects/rech/six/uue59kq/logs/create-dataset-c4-toy/%j-%x.err    # error file name
+#SBATCH --output=/gpfsdswork/projects/rech/six/uue59kq/logs/create-dataset-c4-en-v3/%j-%x.out   # output file name
+#SBATCH --error=/gpfsdswork/projects/rech/six/uue59kq/logs/create-dataset-c4-en-v3/%j-%x.err    # error file name
 #SBATCH --account=six@cpu                                               # account
 #SBATCH --array=0-5
 #SBATCH --partition=cpu_p1
@@ -34,7 +34,7 @@ METADATA_TO_INCLUDE='["url","html","timestamp", "datasource","generation_length_
 
 DATASET_FILES_DIR=$SCRATCH/new_dataset/c4-mike-en-tmp/openwebtext-html-cc/c4-en-html
 
-PROCESS_DIR=$SCRATCH/new_dataset/c4-mike-en-test-8
+PROCESS_DIR=$SCRATCH/new_dataset/c4-mike-en-test-12-vmaster-datasets
 OUT_DIR=$PROCESS_DIR/c4-en-reduced-with-metadata-url-html-timestamp
 
 mkdir -p $OUT_DIR

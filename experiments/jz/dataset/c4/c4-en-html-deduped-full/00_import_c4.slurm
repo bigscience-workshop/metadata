@@ -9,7 +9,7 @@
 #SBATCH --output=/gpfsdswork/projects/rech/six/uue59kq/logs/%x-%j.out   # output file name
 #SBATCH --error=/gpfsdswork/projects/rech/six/uue59kq/logs/%x-%j.err    # error file name
 #SBATCH --account=six@gpu                                               # account
-#SBATCH -p prepost                                                       # partition with internet
+#SBATCH -p compil                                                       # partition with internet
 
 set -x -e
 

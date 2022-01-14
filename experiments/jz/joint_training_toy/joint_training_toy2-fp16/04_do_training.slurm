@@ -46,7 +46,19 @@ while [[ $string ]]; do
 done
 REPO_DIR="${DATASETS_CUSTOM}/${myarray[-1]}"
 
-python bsmetadata/train.py \
+echo "compute_environment: LOCAL_MACHINE
+deepspeed_config: {}
+distributed_type: 'NO'
+fp16: true
+machine_rank: 0
+main_process_ip: null
+main_process_port: null
+main_training_function: main
+num_machines: 1
+num_processes: 1
+" > accelerate_config.yaml
+
+accelerate launch --config_file accelerate_config.yaml bsmetadata/train.py \
     data_config.experiment="with_metadata" \
     data_config.metadata_config.metadata_list='[entity, timestamp, url, website_description]' \
     data_config.metadata_config.max_seq_len=1024 \

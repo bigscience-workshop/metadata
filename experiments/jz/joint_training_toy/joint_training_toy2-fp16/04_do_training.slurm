@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=modelling-metadata-html-joint-toy-1
+#SBATCH --job-name=modelling-metadata-html-joint_training_toy2-fp16
 #SBATCH --ntasks=1                    # number of MP tasks
 #SBATCH --constraint=v100-16g
 #SBATCH --cpus-per-task=8                                              # (change me! between 0 and 40) number of cores per tasks

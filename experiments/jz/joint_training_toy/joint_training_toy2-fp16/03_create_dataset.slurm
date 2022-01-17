@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=modelling-metadata-html-joint-toy-1
+#SBATCH --job-name=modelling-metadata-html-joint_training_toy2-fp16
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1                                            # crucial - only 1 task per dist per node!
 #SBATCH --cpus-per-task=20                                             # (change me! between 0 and 40) number of cores per tasks

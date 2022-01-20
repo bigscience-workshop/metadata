@@ -32,9 +32,9 @@ export WANDB_DIR=$SCRATCH
 
 METADATA_TO_INCLUDE='["url","html","timestamp", "datasource","generation_length_sentence", "generation_length_text"]'
 
-DATASET_FILES_DIR=$SCRATCH/new_dataset/new_dataset/c4-en-html-deduped
+DATASET_FILES_DIR=$SCRATCH/new_dataset/c4-en-html-deduped
 
-PROCESS_DIR=$SCRATCH/new_dataset/new_dataset/c4-en-html-deduped-processed
+PROCESS_DIR=$SCRATCH/new_dataset/c4-en-html-deduped-processed
 OUT_DIR=$PROCESS_DIR/c4-en-reduced-with-metadata-url-html-timestamp-datasource-length_sentence-length_text
 
 mkdir -p $OUT_DIR

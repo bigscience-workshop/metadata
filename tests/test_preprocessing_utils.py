@@ -494,6 +494,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
         col_to_store_text = "text"
         col_to_store_head = "html_head"
         col_to_store_footer = "html_footer"
+        col_to_store_title = "html_title"
         col_to_store_metadata_html = "metadata_html"
         col_to_store_metadata_url = "metadata_url"
         col_to_store_metadata_timestamp = "metadata_timestamp"
@@ -508,6 +509,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
             col_to_store_text=col_to_store_text,
             col_to_store_footer=col_to_store_footer,
             col_to_store_head=col_to_store_head,
+            col_to_store_title=col_to_store_title,
         )
         url_processor = UrlPreprocessor(col_to_store_metadata=col_to_store_metadata_url, col_url="url")
         timestamp_processor = TimestampPreprocessor(
@@ -557,6 +559,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
         self.assertEqual(ds[:][col_to_store_text], self.target_texts)
         self.assertEqual(ds[:][col_to_store_head], self.target_head)
         self.assertEqual(ds[:][col_to_store_footer], self.target_footer)
+        # TODO: add a check of title column
         self.assertEqual(ds[:][col_to_store_metadata_html], self.target_metadata_html)
         self.assertEqual(ds[:][col_to_store_metadata_url], self.target_metadata_url)
         self.assertEqual(ds[:][col_to_store_metadata_timestamp], self.target_metadata_timestamp)
@@ -605,6 +608,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
                 "url": Value("string"),
                 "html_footer": [Value("string")],
                 "html_head": [Value("string")],
+                "html_title": [Value("string")],
             }
         )
 
@@ -620,6 +624,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
         self.assertEqual(ds[:][col_to_store_text], self.target_texts)
         self.assertEqual(ds[:][col_to_store_head], self.target_head)
         self.assertEqual(ds[:][col_to_store_footer], self.target_footer)
+        # TODO: add a check of title column
 
         for metadata_type in [
             self.target_metadata_html,
@@ -656,6 +661,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
         col_to_store_text = "text"
         col_to_store_head = "html_head"
         col_to_store_footer = "html_footer"
+        col_to_store_title = "html_title"
         col_to_store_metadata_html = "metadata"
         col_to_store_metadata_url = "metadata"
         col_to_store_metadata_timestamp = "metadata"
@@ -670,6 +676,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
             col_to_store_text=col_to_store_text,
             col_to_store_footer=col_to_store_footer,
             col_to_store_head=col_to_store_head,
+            col_to_store_title=col_to_store_title,
         )
         url_processor = UrlPreprocessor(col_to_store_metadata=col_to_store_metadata_url, col_url="url")
         timestamp_processor = TimestampPreprocessor(
@@ -711,6 +718,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
                 "url": Value("string"),
                 "html_footer": [Value("string")],
                 "html_head": [Value("string")],
+                "html_title": [Value("string")],
             }
         )
 
@@ -738,6 +746,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
         self.assertEqual(ds[:][col_to_store_text], self.target_texts)
         self.assertEqual(ds[:][col_to_store_head], self.target_head)
         self.assertEqual(ds[:][col_to_store_footer], self.target_footer)
+        # TODO: add a check of title column
 
         for id, metadata_example in enumerate(self.target_metadata_html):
             for metadata in metadata_example:

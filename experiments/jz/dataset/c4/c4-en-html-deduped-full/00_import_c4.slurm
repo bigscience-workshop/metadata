@@ -1,13 +1,13 @@
 #!/bin/bash
-#SBATCH --job-name=modelling-metadata-c4-import-dataset                # (change me!) job name
+#SBATCH --job-name=modelling-metadata-c4-import-dataset-more-time                # (change me!) job name
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1                                             # crucial - only 1 task per dist per node!
 #SBATCH --cpus-per-task=8                                               # (change me! between 0 and 48) number of cores per tasks
 #SBATCH --hint=nomultithread                                            # we get physical cores not logical
-#SBATCH --time 02:00:00                                                 # (change me! between 0 and 20h) maximum execution time (HH:MM:SS)
+#SBATCH --time 10:00:00                                                 # (change me! between 0 and 20h) maximum execution time (HH:MM:SS)
 #SBATCH --gres=gpu:0                                                    # (change me! between 0 and 1) number of gpus
-#SBATCH --output=/gpfsdswork/projects/rech/six/uue59kq/logs/%x-%j.out   # output file name
-#SBATCH --error=/gpfsdswork/projects/rech/six/uue59kq/logs/%x-%j.err    # error file name
+#SBATCH --output=/gpfsdswork/projects/rech/six/uue59kq/logs/c4-en-html-deduped-full/%x-%j.out   # output file name
+#SBATCH --error=/gpfsdswork/projects/rech/six/uue59kq/logs/c4-en-html-deduped-full/%x-%j.err    # error file name
 #SBATCH --account=six@gpu                                               # account
 #SBATCH -p compil                                                       # partition with internet
 
@@ -55,3 +55,6 @@ cd openwebtext-html-cc
 git lfs pull --include "*c4-en-html-deduped/*"
 
 cp $DIR_NAME_TMP/openwebtext-html-cc/c4-en-html-deduped $NEW_DATASET_DIR
+
+GIT_LFS_SKIP_SMUDGE=1 git clone https://huggingface.co/datasets/bs-modeling-metadata/openwebtext-html-cc
+git lfs pull -I  "*c4-en-html/*"

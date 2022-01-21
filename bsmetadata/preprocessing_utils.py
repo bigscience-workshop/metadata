@@ -14,9 +14,11 @@
 This script provides functions for adding different kinds of metadata to a pretraining corpus.
 """
 
+import copy
+import logging
 import re
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import unquote, urlparse, urlsplit
 
 from bs_dateutil.parser import ParserError, parse
@@ -28,6 +30,9 @@ from REL.utils import process_results
 
 from bsmetadata.preprocessing_tools import html_parser
 from bsmetadata.preprocessing_tools.wikipedia_desc_utils import WikipediaDescUtils
+
+
+logger = logging.getLogger(__name__)
 
 
 def get_path_from_url(url):
@@ -132,15 +137,24 @@ class TimestampPreprocessor(MetadataPreprocessor):
 class HtmlPreprocessor(MetadataPreprocessor):
     """Metadata preprocessor for extracting metadata from html text.
 
-    Specifically, it separates the html text contained in the `name_html_column`` column into a text and a list of
+    Specifically, it separates the html text contained in the `col_html`` column into a text and a list of
     HTML metadata containing the tags, their attributes, their location in the text and their relative location to
     each other."""
 
     def __init__(
-        self, name_html_column: str = "doc_html", col_to_store_metadata="metadata", col_to_store_text="text"
+        self,
+        col_html: str = "doc_html",
+        col_to_store_metadata="metadata",
+        col_to_store_text="text",
+        col_to_store_head="html_head",
+        col_to_store_footer="html_footer",
+        col_to_store_title="html_title",
     ) -> None:
-        self.name_html_column = name_html_column
+        self.col_html = col_html
         self.col_to_store_text = col_to_store_text
+        self.col_to_store_footer = col_to_store_footer
+        self.col_to_store_head = col_to_store_head
+        self.col_to_store_title = col_to_store_title
         super().__init__(col_to_store_metadata=col_to_store_metadata)
 
     @property
@@ -159,6 +173,9 @@ class HtmlPreprocessor(MetadataPreprocessor):
                 }
             ],
             self.col_to_store_text: Value("string"),
+            self.col_to_store_footer: [Value("string")],
+            self.col_to_store_head: [Value("string")],
+            self.col_to_store_title: [Value("string")],
         }
         return features
 
@@ -170,31 +187,52 @@ class HtmlPreprocessor(MetadataPreprocessor):
             html_parser.objects.TagToRemoveWithContent(tag="iframe"),
             html_parser.objects.TagToRemoveWithContent(tag="footer"),  # copyright in footer
             html_parser.objects.TagToRemoveWithContent(tag="form"),
+            html_parser.objects.TagToRemoveWithContent(tag="body", content_max_char_length=64),
+            html_parser.objects.TagToRemoveWithContent(tag="div", content_max_char_length=64),
+            html_parser.objects.TagToRemoveWithContent(tag="p", content_max_char_length=64),
+            html_parser.objects.TagToRemoveWithContent(tag="section", content_max_char_length=64),
+            html_parser.objects.TagToRemoveWithContent(tag="table", content_max_char_length=64),
+            html_parser.objects.TagToRemoveWithContent(tag="ul", content_max_char_length=64),
+            html_parser.objects.TagToRemoveWithContent(tag="ol", content_max_char_length=64),
+            html_parser.objects.TagToRemoveWithContent(tag="dl", content_max_char_length=64),
         ]
+        head_tag = "head"
+        footer_tag = "footer"
+        title_tag = "title"
 
         new_texts = []
+        new_head = []
+        new_footer = []
+        new_title = []
         new_metadata = (
             examples[self.col_to_store_metadata]
             if self.col_to_store_metadata in examples
-            else [[] for _ in range(len(examples[self.name_html_column]))]
+            else [[] for _ in range(len(examples[self.col_html]))]
         )
         for example_doc_html, example_metadata in zip(
-            examples[self.name_html_column], new_metadata
+            examples[self.col_html], new_metadata
         ):  # if metadata already exists
 
-            plain_text, metadata = html_parser.get_clean_text_and_metadata(
+            plain_text, metadata, additional_columns = html_parser.get_clean_text_and_metadata(
                 example_doc_html,
                 tags_to_remove_with_content=tags_to_remove_with_content,
                 consecutive_tags_to_fold=["div"],
                 convert_br_tag_to_breaking_line=True,
+                tags_sub_tree_to_isolate=[head_tag, footer_tag, title_tag],
             )
             new_texts.append(plain_text)
+            new_head.append(additional_columns.get(head_tag, []))
+            new_footer.append(additional_columns.get(footer_tag, []))
+            new_title.append(additional_columns.get(title_tag, []))
             example_metadata.extend(
                 [html_parser.objects.convert_html_metadata_dataclass_to_dict(node) for node in metadata]
             )
 
         examples[self.col_to_store_text] = new_texts
         examples[self.col_to_store_metadata] = new_metadata
+        examples[self.col_to_store_head] = new_head
+        examples[self.col_to_store_footer] = new_footer
+        examples[self.col_to_store_title] = new_title
         return examples
 
 
@@ -591,3 +629,86 @@ class UrlPreprocessor(MetadataPreprocessor):
 
         examples[self.col_to_store_metadata] = example_metadata_list
         return examples
+
+
+class ErrorWrapperPreprocessor:
+    def __init__(
+        self, metadata_preprocessor: MetadataPreprocessor, output_keys: Dict[str, Any], verbose: bool = True
+    ) -> None:
+        self.metadata_preprocessor = metadata_preprocessor
+        self.output_keys = output_keys
+        self.verbose = verbose
+
+        self.error_column_name = f"{type(metadata_preprocessor).__name__}_error"
+        self.error_comment_column_name = f"{type(metadata_preprocessor).__name__}_error_comment"
+
+    @property
+    def new_columns_minimal_features(self) -> Dict[str, Any]:
+        features = self.metadata_preprocessor.new_columns_minimal_features
+        features.update(
+            {
+                self.error_column_name: Value("int64"),
+                self.error_comment_column_name: Value("string"),
+            }
+        )
+        return features
+
+    def preprocess(self, examples: Dict[str, List]) -> Tuple[Dict[str, List], int]:
+        """Process a batch of examples and add or extract corresponding metadata."""
+        num_errors = 0
+
+        metadata_list_backup = {
+            col_name: copy.deepcopy(examples[col_name])
+            for col_name in self.metadata_preprocessor.new_columns_minimal_features.keys()
+            if col_name in examples
+        }
+        try:
+            processed_examples = self.metadata_preprocessor.preprocess(examples=examples)
+
+            random_key = list(processed_examples)[0]
+            num_examples = len(processed_examples[random_key])
+            if self.error_column_name not in processed_examples:
+                processed_examples[self.error_column_name] = [0 for _ in range(num_examples)]
+
+            if self.error_comment_column_name not in processed_examples:
+                processed_examples[self.error_comment_column_name] = ["" for _ in range(num_examples)]
+        except:  # noqa
+            # we try the example one by one to find the culprit(s) and strore the error
+            processed_examples = {
+                key: []
+                for key in list(self.output_keys.keys()) + [self.error_column_name, self.error_comment_column_name]
+            }
+
+            for key, values in metadata_list_backup.items():
+                examples[key] = copy.deepcopy(values)
+
+            random_key = list(examples)[0]
+            for idx in range(len(examples[random_key])):
+                example = {key: [values[idx]] for key, values in examples.items()}
+                try:
+                    processed_example = self.metadata_preprocessor.preprocess(examples=example)
+
+                    for key, value in processed_example.items():
+                        processed_examples[key].append(value[0])
+
+                    processed_examples[self.error_column_name].append(0)
+                    processed_examples[self.error_comment_column_name].append("")
+                except Exception as e:
+                    for output_key in self.output_keys.keys():
+                        if output_key in metadata_list_backup:
+                            # We keep the initial value
+                            processed_examples[output_key].append(metadata_list_backup[output_key][idx])
+                        elif output_key in example:
+                            # We keep the initial value
+                            processed_examples[output_key].append(example[output_key][0])
+                        else:
+                            # We use the default value
+                            processed_examples[output_key].append(self.output_keys[output_key])
+
+                    processed_examples[self.error_column_name].append(1)
+                    processed_examples[self.error_comment_column_name].append(str(e))
+                    logger.info(f"An error occurred with the message: {str(e)}")
+                    num_errors += 1
+        if self.verbose and num_errors != 0:
+            logger.warning(f"{num_errors} errors occurred during the preprocessing")
+        return processed_examples

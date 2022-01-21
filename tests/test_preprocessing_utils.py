@@ -71,20 +71,20 @@ class HtmlPreprocessorTester(unittest.TestCase):
         # Define toy data
         my_dict = {
             "doc_html": [
-                "\n    <html>\n    <head>\n    </head>\n    <body>\n    <h1>This is a title</h1>\n    </body>\n    </html>\n",
-                "<html><body><p>this is a simple paragraph</p></body></html>",
-                "<html><body><p id=1>paragraph 1</p><p id=2>paragraph 2</p></body></html>",
-                '<html><body><div class="div-level-1">blablabla<div class="div-level-2">tidi tidi</div></div></body></html>',
+                "\n    <html>\n    <head>\n    </head>\n    <body>\n    <h1>This is a title</h1>\n   with some additional text to reach 64 characters tidi tadada tidi tadada tidi tadada </body>\n    </html>\n",
+                "<html><body><p>this is a simple paragraph with Obama and Merkel mentioned. tidi tadada tidi tadada tidi tadada tidi tadada tidi tadada</p></body></html>",
+                "<html><body><p id=1>paragraph 1 tidi tadada tidi tadada tidi tadada tidi tadada tidi tadada.</p><p id=2>paragraph 2 is in Paris tidi tadada tidi tadada tidi tadada tidi tadada.</p></body></html>",
+                '<html><body><div class="div-level-1">blablabla blablabla blablabla blablabla blablabla blablabla<div class="div-level-2">tidi tidi tidi tidi</div></div></body></html>',
             ],
             "metadata": [[], [], [], []],
         }
 
         # Define target values
         target_texts = [
-            "This is a title\n",
-            "this is a simple paragraph\n",
-            "paragraph 1\nparagraph 2\n",
-            "blablabla\ntidi tidi\n",
+            "This is a title\nwith some additional text to reach 64 characters tidi tadada tidi tadada tidi tadada\n",
+            "this is a simple paragraph with Obama and Merkel mentioned. tidi tadada tidi tadada tidi tadada tidi tadada tidi tadada\n",
+            "paragraph 1 tidi tadada tidi tadada tidi tadada tidi tadada tidi tadada.\nparagraph 2 is in Paris tidi tadada tidi tadada tidi tadada tidi tadada.\n",
+            "blablabla blablabla blablabla blablabla blablabla blablabla\ntidi tidi tidi tidi\n",
         ]
 
         target_metadata = [
@@ -100,7 +100,7 @@ class HtmlPreprocessorTester(unittest.TestCase):
                     "value": "h1",
                 },
                 {
-                    "char_end_idx": 16,
+                    "char_end_idx": 101,
                     "char_start_idx": 0,
                     "html_attrs": {"attrs": [], "values": []},
                     "key": "html",
@@ -112,7 +112,7 @@ class HtmlPreprocessorTester(unittest.TestCase):
             ],
             [
                 {
-                    "char_end_idx": 26,
+                    "char_end_idx": 119,
                     "char_start_idx": 0,
                     "html_attrs": {"attrs": [], "values": []},
                     "key": "html",
@@ -122,7 +122,7 @@ class HtmlPreprocessorTester(unittest.TestCase):
                     "value": "p",
                 },
                 {
-                    "char_end_idx": 27,
+                    "char_end_idx": 120,
                     "char_start_idx": 0,
                     "html_attrs": {"attrs": [], "values": []},
                     "key": "html",
@@ -134,7 +134,7 @@ class HtmlPreprocessorTester(unittest.TestCase):
             ],
             [
                 {
-                    "char_end_idx": 11,
+                    "char_end_idx": 72,
                     "char_start_idx": 0,
                     "html_attrs": {"attrs": ["id"], "values": ["1"]},
                     "key": "html",
@@ -144,8 +144,8 @@ class HtmlPreprocessorTester(unittest.TestCase):
                     "value": "p",
                 },
                 {
-                    "char_end_idx": 23,
-                    "char_start_idx": 12,
+                    "char_end_idx": 145,
+                    "char_start_idx": 73,
                     "html_attrs": {"attrs": ["id"], "values": ["2"]},
                     "key": "html",
                     "relative_end_pos": 0,
@@ -154,7 +154,7 @@ class HtmlPreprocessorTester(unittest.TestCase):
                     "value": "p",
                 },
                 {
-                    "char_end_idx": 24,
+                    "char_end_idx": 146,
                     "char_start_idx": 0,
                     "html_attrs": {"attrs": [], "values": []},
                     "key": "html",
@@ -166,7 +166,7 @@ class HtmlPreprocessorTester(unittest.TestCase):
             ],
             [
                 {
-                    "char_end_idx": 20,
+                    "char_end_idx": 80,
                     "char_start_idx": 0,
                     "html_attrs": {"attrs": ["class"], "values": ["div-level-1 div-level-2"]},
                     "key": "html",
@@ -176,7 +176,7 @@ class HtmlPreprocessorTester(unittest.TestCase):
                     "value": "div",
                 },
                 {
-                    "char_end_idx": 20,
+                    "char_end_idx": 80,
                     "char_start_idx": 0,
                     "html_attrs": {"attrs": [], "values": []},
                     "key": "html",
@@ -257,10 +257,10 @@ class PipelinePreprocessorTester(unittest.TestCase):
         # Define toy data
         self.init_dict = {
             "doc_html": [
-                "\n    <html>\n    <head>\n    </head>\n    <body>\n    <h1>This is a title</h1>\n    </body>\n    </html>\n",
-                "<html><body><p>this is a simple paragraph with Obama and Merkel mentioned.</p></body></html>",
-                "<html><body><p id=1>paragraph 1.</p><p id=2>paragraph 2 is in Paris.</p></body></html>",
-                '<html><body><div class="div-level-1">blablabla<div class="div-level-2">tidi tidi</div></div></body></html>',
+                '\n    <html>\n    <head><meta charset="utf-8"><title>My test page</title><head>\n    <body>\n    <h1>This is a title</h1>\n   with some additional text to reach 64 characters tidi tadada tidi tadada tidi tadada </body> <footer><p>Author: Hege Refsnes</p><p><a href="mailto:hege@example.com">hege@example.com</a></p></footer><footer><p>Author: Anonymouss</p></footer></html>\n',
+                "<html><body><p>this is a simple paragraph with Obama and Merkel mentioned. tidi tadada tidi tadada tidi tadada tidi tadada tidi tadada</p></body></html>",
+                "<html><body><p id=1>paragraph 1 tidi tadada tidi tadada tidi tadada tidi tadada tidi tadada.</p><p id=2>paragraph 2 is in Paris tidi tadada tidi tadada tidi tadada tidi tadada.</p></body></html>",
+                '<html><body><div class="div-level-1">blablabla blablabla blablabla blablabla blablabla blablabla<div class="div-level-2">tidi tidi tidi tidi</div></div></body></html>',
             ],
             "url": [
                 "https://www.nytimes.com/1998/03/08/sports/on-pro-basketball-one-last-hurrah-for-the-bulls-reinsdorf-isn-t-quite-saying.html",
@@ -272,10 +272,10 @@ class PipelinePreprocessorTester(unittest.TestCase):
 
         # Define target values
         self.target_texts = [
-            "This is a title\n",
-            "this is a simple paragraph with Obama and Merkel mentioned.\n",
-            "paragraph 1.\nparagraph 2 is in Paris.\n",
-            "blablabla\ntidi tidi\n",
+            "This is a title\nwith some additional text to reach 64 characters tidi tadada tidi tadada tidi tadada\n",
+            "this is a simple paragraph with Obama and Merkel mentioned. tidi tadada tidi tadada tidi tadada tidi tadada tidi tadada\n",
+            "paragraph 1 tidi tadada tidi tadada tidi tadada tidi tadada tidi tadada.\nparagraph 2 is in Paris tidi tadada tidi tadada tidi tadada tidi tadada.\n",
+            "blablabla blablabla blablabla blablabla blablabla blablabla\ntidi tidi tidi tidi\n",
         ]
 
         self.target_metadata_url = [
@@ -322,7 +322,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
                     "value": "h1",
                 },
                 {
-                    "char_end_idx": 16,
+                    "char_end_idx": 101,
                     "char_start_idx": 0,
                     "html_attrs": {"attrs": [], "values": []},
                     "key": "html",
@@ -334,7 +334,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
             ],
             [
                 {
-                    "char_end_idx": 59,
+                    "char_end_idx": 119,
                     "char_start_idx": 0,
                     "html_attrs": {"attrs": [], "values": []},
                     "key": "html",
@@ -344,7 +344,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
                     "value": "p",
                 },
                 {
-                    "char_end_idx": 60,
+                    "char_end_idx": 120,
                     "char_start_idx": 0,
                     "html_attrs": {"attrs": [], "values": []},
                     "key": "html",
@@ -356,7 +356,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
             ],
             [
                 {
-                    "char_end_idx": 12,
+                    "char_end_idx": 72,
                     "char_start_idx": 0,
                     "html_attrs": {"attrs": ["id"], "values": ["1"]},
                     "key": "html",
@@ -366,8 +366,8 @@ class PipelinePreprocessorTester(unittest.TestCase):
                     "value": "p",
                 },
                 {
-                    "char_end_idx": 37,
-                    "char_start_idx": 13,
+                    "char_end_idx": 145,
+                    "char_start_idx": 73,
                     "html_attrs": {"attrs": ["id"], "values": ["2"]},
                     "key": "html",
                     "relative_end_pos": 0,
@@ -376,7 +376,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
                     "value": "p",
                 },
                 {
-                    "char_end_idx": 38,
+                    "char_end_idx": 146,
                     "char_start_idx": 0,
                     "html_attrs": {"attrs": [], "values": []},
                     "key": "html",
@@ -388,7 +388,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
             ],
             [
                 {
-                    "char_end_idx": 20,
+                    "char_end_idx": 80,
                     "char_start_idx": 0,
                     "html_attrs": {"attrs": ["class"], "values": ["div-level-1 div-level-2"]},
                     "key": "html",
@@ -398,7 +398,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
                     "value": "div",
                 },
                 {
-                    "char_end_idx": 20,
+                    "char_end_idx": 80,
                     "char_start_idx": 0,
                     "html_attrs": {"attrs": [], "values": []},
                     "key": "html",
@@ -424,20 +424,20 @@ class PipelinePreprocessorTester(unittest.TestCase):
                 {
                     "char_end_idx": 48,
                     "char_start_idx": 42,
-                    "ent_desc": "",
                     "key": "entity",
                     "type": "local",
                     "value": "Angela_Merkel",
+                    "ent_desc": "",
                 },
             ],
             [
                 {
-                    "char_end_idx": 36,
-                    "char_start_idx": 31,
-                    "ent_desc": "",
+                    "char_end_idx": 96,
+                    "char_start_idx": 91,
                     "key": "entity",
                     "type": "local",
                     "value": "Paris",
+                    "ent_desc": "",
                 }
             ],
             [],
@@ -447,16 +447,17 @@ class PipelinePreprocessorTester(unittest.TestCase):
             [],
             [{"char_end_idx": 58, "char_start_idx": 0, "key": "length", "type": "local", "value": "58"}],
             [
-                {"char_end_idx": 11, "char_start_idx": 0, "key": "length", "type": "local", "value": "11"},
-                {"char_end_idx": 36, "char_start_idx": 11, "key": "length", "type": "local", "value": "24"},
+                {"char_end_idx": 71, "char_start_idx": 0, "key": "length", "type": "local", "value": "71"},
+                {"char_end_idx": 144, "char_start_idx": 71, "key": "length", "type": "local", "value": "72"},
             ],
             [],
         ]
+
         self.target_metadata_generation_length_text = [
-            [{"key": "length", "type": "global", "value": "16"}],
-            [{"key": "length", "type": "global", "value": "60"}],
-            [{"key": "length", "type": "global", "value": "38"}],
-            [{"key": "length", "type": "global", "value": "20"}],
+            [{"key": "length", "type": "global", "value": "101"}],
+            [{"key": "length", "type": "global", "value": "120"}],
+            [{"key": "length", "type": "global", "value": "146"}],
+            [{"key": "length", "type": "global", "value": "80"}],
         ]
 
         self.target_metadata_datasource = [
@@ -472,6 +473,17 @@ class PipelinePreprocessorTester(unittest.TestCase):
             [{"key": "datasource", "type": "global", "value": "notfound.com > "}],
         ]
 
+        self.target_head = [['<head><meta charset="utf-8"/><title>My test page</title>\n    </head>'], [], [], []]
+        self.target_footer = [
+            [
+                '<footer><p>Author: Hege Refsnes</p><p><a href="mailto:hege@example.com">hege@example.com</a></p></footer>',
+                "<footer><p>Author: Anonymouss</p></footer>",
+            ],
+            [],
+            [],
+            [],
+        ]
+
     @mock.patch("bsmetadata.preprocessing_tools.wikipedia_desc_utils.DumpDB")
     @mock.patch("bsmetadata.preprocessing_tools.wikipedia_desc_utils.nltk.sent_tokenize", new=mock_sent_tokenize)
     @mock.patch.object(EntityPreprocessor, "fetch_mention_predictions", new=mock_fetch_mention_predictions)
@@ -480,6 +492,9 @@ class PipelinePreprocessorTester(unittest.TestCase):
         mock_db.return_value = MockDumpDB("some/path")
         # Define preprocessors
         col_to_store_text = "text"
+        col_to_store_head = "html_head"
+        col_to_store_footer = "html_footer"
+        col_to_store_title = "html_title"
         col_to_store_metadata_html = "metadata_html"
         col_to_store_metadata_url = "metadata_url"
         col_to_store_metadata_timestamp = "metadata_timestamp"
@@ -490,7 +505,11 @@ class PipelinePreprocessorTester(unittest.TestCase):
         col_to_store_metadata_datasource = "metadata_generation_datasource"
 
         html_processor = HtmlPreprocessor(
-            col_to_store_metadata=col_to_store_metadata_html, col_to_store_text=col_to_store_text
+            col_to_store_metadata=col_to_store_metadata_html,
+            col_to_store_text=col_to_store_text,
+            col_to_store_footer=col_to_store_footer,
+            col_to_store_head=col_to_store_head,
+            col_to_store_title=col_to_store_title,
         )
         url_processor = UrlPreprocessor(col_to_store_metadata=col_to_store_metadata_url, col_url="url")
         timestamp_processor = TimestampPreprocessor(
@@ -511,11 +530,6 @@ class PipelinePreprocessorTester(unittest.TestCase):
         datasource_preprocessor = DatasourcePreprocessor(
             col_to_store_metadata=col_to_store_metadata_datasource, col_url="url"
         )
-
-        features_dict = {
-            "doc_html": Value("string"),
-            "url": Value("string"),
-        }
 
         # Apply function
         ds = Dataset.from_dict(self.init_dict)
@@ -543,6 +557,9 @@ class PipelinePreprocessorTester(unittest.TestCase):
         ds = apply_processor(ds=ds, processor=datasource_preprocessor)
 
         self.assertEqual(ds[:][col_to_store_text], self.target_texts)
+        self.assertEqual(ds[:][col_to_store_head], self.target_head)
+        self.assertEqual(ds[:][col_to_store_footer], self.target_footer)
+        # TODO: add a check of title column
         self.assertEqual(ds[:][col_to_store_metadata_html], self.target_metadata_html)
         self.assertEqual(ds[:][col_to_store_metadata_url], self.target_metadata_url)
         self.assertEqual(ds[:][col_to_store_metadata_timestamp], self.target_metadata_timestamp)
@@ -589,6 +606,9 @@ class PipelinePreprocessorTester(unittest.TestCase):
                 ],
                 "text": Value("string"),
                 "url": Value("string"),
+                "html_footer": [Value("string")],
+                "html_head": [Value("string")],
+                "html_title": [Value("string")],
             }
         )
 
@@ -600,6 +620,11 @@ class PipelinePreprocessorTester(unittest.TestCase):
             remove_columns=columns_names_to_concat,
             features=features,
         )
+
+        self.assertEqual(ds[:][col_to_store_text], self.target_texts)
+        self.assertEqual(ds[:][col_to_store_head], self.target_head)
+        self.assertEqual(ds[:][col_to_store_footer], self.target_footer)
+        # TODO: add a check of title column
 
         for metadata_type in [
             self.target_metadata_html,
@@ -634,6 +659,9 @@ class PipelinePreprocessorTester(unittest.TestCase):
         mock_db.return_value = MockDumpDB("some/path")
         # Define preprocessors
         col_to_store_text = "text"
+        col_to_store_head = "html_head"
+        col_to_store_footer = "html_footer"
+        col_to_store_title = "html_title"
         col_to_store_metadata_html = "metadata"
         col_to_store_metadata_url = "metadata"
         col_to_store_metadata_timestamp = "metadata"
@@ -644,7 +672,11 @@ class PipelinePreprocessorTester(unittest.TestCase):
         col_to_store_metadata_datasource = "metadata"
 
         html_processor = HtmlPreprocessor(
-            col_to_store_metadata=col_to_store_metadata_html, col_to_store_text=col_to_store_text
+            col_to_store_metadata=col_to_store_metadata_html,
+            col_to_store_text=col_to_store_text,
+            col_to_store_footer=col_to_store_footer,
+            col_to_store_head=col_to_store_head,
+            col_to_store_title=col_to_store_title,
         )
         url_processor = UrlPreprocessor(col_to_store_metadata=col_to_store_metadata_url, col_url="url")
         timestamp_processor = TimestampPreprocessor(
@@ -684,6 +716,9 @@ class PipelinePreprocessorTester(unittest.TestCase):
                 ],
                 "text": Value("string"),
                 "url": Value("string"),
+                "html_footer": [Value("string")],
+                "html_head": [Value("string")],
+                "html_title": [Value("string")],
             }
         )
 
@@ -709,6 +744,9 @@ class PipelinePreprocessorTester(unittest.TestCase):
         ds = ds.map(lambda ex: datasource_preprocessor.preprocess(ex), batched=True, batch_size=3, features=features)
 
         self.assertEqual(ds[:][col_to_store_text], self.target_texts)
+        self.assertEqual(ds[:][col_to_store_head], self.target_head)
+        self.assertEqual(ds[:][col_to_store_footer], self.target_footer)
+        # TODO: add a check of title column
 
         for id, metadata_example in enumerate(self.target_metadata_html):
             for metadata in metadata_example:

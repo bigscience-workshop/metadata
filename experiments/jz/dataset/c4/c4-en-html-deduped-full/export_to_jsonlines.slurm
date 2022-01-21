@@ -8,7 +8,7 @@
 #SBATCH --output=/gpfsdswork/projects/rech/six/uue59kq/logs/export-to-jsonlines/%j-%x.out   # output file name
 #SBATCH --error=/gpfsdswork/projects/rech/six/uue59kq/logs/export-to-jsonlines/%j-%x.err    # error file name
 #SBATCH --account=six@cpu                                               # account
-#SBATCH --array=0
+#SBATCH --array=1-2756
 #SBATCH --partition=cpu_p1
 set -x -e
 

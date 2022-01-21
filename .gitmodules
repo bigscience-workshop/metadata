@@ -1,0 +1,4 @@
+[submodule "bsmetadata/vendor/dateutil"]
+	path = bsmetadata/vendor/dateutil
+	url = https://github.com/cccntu/dateutil
+

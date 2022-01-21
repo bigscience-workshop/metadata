@@ -11,6 +11,9 @@ from bsmetadata.metadata_utils import add_metadata_and_chunk_examples
 logger = logging.getLogger(__name__)
 
 
+load_dataset = functools.partial(load_dataset, use_auth_token=True)
+
+
 def get_dataloaders(tokenizer, args):
     """
     Args:

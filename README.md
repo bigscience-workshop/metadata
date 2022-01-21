@@ -82,6 +82,14 @@ Below is a table showing ``relative_start_pos`` (`start`) and ``relative_end_pos
 | ``<i> ... </i><b></b>`` | 0 | 0 | 1 | 2 |
 | ``<i> ... <b></b></i>`` | 0 | 2 | 0 | 1 |
 
+## Pre-processing Metadata:
+
+### Entity Tags.
+
+**Pre-requisite steps for preprocessing Entity Tags**
+
+* Run `preprocessing_scripts/download_entity_processing_files.sh <"location of the folder to save the files">` to download all the required files. (approximate size of files to be downloaded in total is around 20GB and after extracting the zipped folders, space required is around 60GB.)
+
 ## Contribute 🧠
 
 After installing the development dependencies, first you need to install the package in editable mode. You can do it by running in a bash at the root of the repository

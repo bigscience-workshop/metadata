@@ -19,6 +19,33 @@ from urllib.parse import unquote_plus
 
 from dateutil.parser import parse
 
+from bsmetadata.preprocessing_tools import html_parser
+
+
+@dataclass
+class AllTagsRules:
+    attributes_to_keep: List[str] = field(default_factory=(lambda: []), metadata={"help": "TODO."})
+    txt_max_chr_len: float = field(default=-float("inf"), metadata={"help": "TODO."})
+    txt_min_chr_len: float = field(default=-float("inf"), metadata={"help": "TODO."})
+    tags_exceptions_to_txt_max_min_chr_len: List[str] = field(default_factory=(lambda: []), metadata={"help": "TODO."})
+
+
+@dataclass
+class HTMLParserConfig:
+    all_tags_rules: AllTagsRules = AllTagsRules()
+    tags_to_remove_alone_tag_name: List[str] = field(
+        default_factory=(lambda: []),
+        metadata={"help": "TODO."},
+    )
+    tags_to_remove_alone_txt_max_chr_len: List[float] = field(
+        default_factory=(lambda: []),
+        metadata={"help": "TODO."},
+    )
+    tags_to_remove_alone_txt_min_chr_len: List[float] = field(
+        default_factory=(lambda: []),
+        metadata={"help": "TODO."},
+    )
+
 
 @dataclass
 class MetadataConfig:
@@ -78,6 +105,17 @@ class MetadataConfig:
     )
     max_seq_len: int = field(
         default=512, metadata={"help": "The maximum number of tokens to use for each training chunk."}
+    )
+    html_parser_config: Optional[HTMLParserConfig] = HTMLParserConfig(
+        AllTagsRules(
+            attributes_to_keep=attributes_to_keep,
+            txt_max_chr_len=txt_max_chr_len,
+            txt_min_chr_len=txt_min_chr_len,
+            tags_exceptions_to_txt_max_min_chr_len=tags_exceptions,
+        ),
+        tags_to_remove_alone_tag_name=[tag_to_remove.tag for tag_to_remove in tags_to_remove_alone],
+        tags_to_remove_alone_txt_max_chr_len=[tag_to_remove.txt_max_chr_len for tag_to_remove in tags_to_remove_alone],
+        tags_to_remove_alone_txt_min_chr_len=[tag_to_remove.txt_min_chr_len for tag_to_remove in tags_to_remove_alone],
     )
 
 
@@ -150,12 +188,62 @@ class EntityProcessor(MetadataProcessor):
 class HtmlProcessor(MetadataProcessor):
     """An example metadata processor for HTMl tags."""
 
+    def __init__(
+        self,
+        cfg: MetadataConfig,
+    ):
+        """
+        Args:
+            cfg: The data configuration to use.
+        """
+        super().__init__(cfg)
+        attributes_to_keep = cfg.html_parser_config.all_tags_rules.attributes_to_keep
+        txt_max_chr_len = cfg.html_parser_config.all_tags_rules.txt_max_chr_len
+        txt_min_chr_len = cfg.html_parser_config.all_tags_rules.txt_min_chr_len
+        tags_exceptions = cfg.html_parser_config.all_tags_rules.tags_exceptions_to_txt_max_min_chr_len
+        tags_to_remove_alone = [
+            html_parser.objects.TagToRemove(tag=tag, txt_max_chr_len=txt_max_chr_len, txt_min_chr_len=txt_min_chr_len)
+            for (tag, txt_max_chr_len, txt_min_chr_len) in zip(
+                cfg.html_parser_config.tags_to_remove_alone_tag_name,
+                cfg.html_parser_config.tags_to_remove_alone_txt_max_chr_len,
+                cfg.html_parser_config.tags_to_remove_alone_txt_min_chr_len,
+            )
+        ]
+
+        self._tag_filter = html_parser.filters_and_cleaners.TagFilter(
+            tags_to_remove_alone=tags_to_remove_alone,
+            txt_min_chr_len=txt_min_chr_len,
+            txt_max_chr_len=txt_max_chr_len,
+            tags_exceptions=tags_exceptions,
+        )
+        self._attributes_to_keep = attributes_to_keep
+
     def process_local(self, metadata_attrs: Dict[str, Any]) -> Optional[Tuple[str, str]]:
         # We represent a html tag `T` by enclosing the corresponding text span with "<T>" and "</T>".
         # Example: An <b>apple</b> is an edible fruit.
+        if self._tag_filter.drop_tag(
+            html_parser.objects.Metadata(
+                char_start_idx=metadata_attrs["char_start_idx"],
+                value=html_parser.objects.HtmlTag(
+                    tag=metadata_attrs["value"],
+                    attrs={
+                        attr: attr_value
+                        for attr, attr_value in zip(
+                            metadata_attrs["html_attrs"]["attrs"], metadata_attrs["html_attrs"]["values"]
+                        )
+                    },
+                ),
+                char_end_idx=metadata_attrs["char_end_idx"],
+                key=metadata_attrs["key"],
+                type=metadata_attrs["type"],
+            )
+        ):
+            return None
+
         attributes = " ".join(
             f"{attr}:{value}"
             for attr, value in zip(metadata_attrs["html_attrs"]["attrs"], metadata_attrs["html_attrs"]["values"])
+            if (self._attributes_to_keep is None or attr in self._attributes_to_keep)
         )
         if attributes:
             attributes = " " + attributes

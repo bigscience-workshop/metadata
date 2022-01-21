@@ -25,4 +25,4 @@ git add -v dataset_info.json
 
 git commit -v -m "add dataset with html, timestamp, url, datasource, generation length, website description, HTML footers, HTML headers, HTML titles"
 
-git -v push
+git push

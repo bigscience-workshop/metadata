@@ -4,4 +4,4 @@ transformers>=4.6.0,<5  # pip will likely update it to 4.10.0, but it is probabl
 accelerate>=0.4.0,<1  # We may want to use 0.5.0 in the near future
 datasets[streaming]>=1.11.0,<2
 wikipedia2vec==1.0.5
-nltk==3.6.5
+nltk==3.6.7

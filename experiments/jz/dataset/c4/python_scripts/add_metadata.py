@@ -217,7 +217,7 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
 
         metrics_logger.log({"load_dataset": 0})
         if args.use_load_from_disk:
-            dataset_name = os.path.join(args.dataset_config_name, file_name)
+            dataset_name = os.path.join(args.dataset_name, file_name)
             logger.info(f"Loading the dataset {dataset_name} with `load_from_disk`")
             ds = load_from_disk(dataset_name)
         else:

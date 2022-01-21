@@ -224,7 +224,6 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
 
         features_dict = dict(ds.features)
         logger.info(f"the initial features of the dataset are: {features_dict}")
-        features_dict.pop(col_html, None)
 
         def apply_processor(ds: Dataset, processor: MetadataPreprocessor, remove_columns=None) -> Dataset:
             for col_name, feature_type in processor.new_columns_minimal_features.items():

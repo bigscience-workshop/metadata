@@ -8,7 +8,7 @@ from typing import Optional
 import datasets
 import hydra
 import wandb
-from datasets import Dataset, Features, config, load_dataset
+from datasets import Dataset, Features, config, load_dataset, load_from_disk
 from hydra.core.config_store import ConfigStore
 from omegaconf import OmegaConf
 
@@ -75,6 +75,13 @@ class PreprocessingConfig:
     save_batch_size: int = field(
         default=datasets.config.DEFAULT_MAX_BATCH_SIZE,
         metadata={"help": " Size of the batch to load in memory and write at once."},
+    )
+    use_load_from_disk: bool = field(
+        default=False,
+        metadata={
+            "help": "If false, the program will load the dataset with `load_dataset` and if false, it will load it "
+            "with `load_from_disk`."
+        },
     )
 
 
@@ -190,35 +197,43 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
     logger.info("Processors initialization finished")
 
     poss_files = sorted(os.listdir(args.dataset_name))
-    poss_files = [
-        file_name
-        for file_name in poss_files
-        if (file_name.endswith("jsonl.gz") or file_name.endswith("jsonl")) and file_name.startswith("c4-en-html")
-    ]
+
+    if args.use_load_from_disk:
+        poss_files = [file_name for file_name in poss_files if file_name.startswith("c4-en-html")]
+    else:
+        poss_files = [
+            file_name
+            for file_name in poss_files
+            if (file_name.endswith("jsonl.gz") or file_name.endswith("jsonl")) and file_name.startswith("c4-en-html")
+        ]
 
     def process_file(file_name: str):
-        data_files = {"file": file_name}
 
         logger.info(config.HF_DATASETS_CACHE)
-        logger.info(
-            "Downloading and loading a dataset from the hub"
-            f"{args.dataset_name}, {args.dataset_config_name}, data_files={data_files}, cache_dir={args.cache_dir},"
-        )
         processing_name = (
             "-".join(args.metadata_to_include) if args.metadata_to_include is not None else "full-process"
         )
         metrics_logger.log({processing_name: 0})
-        # Downloading and loading a dataset from the hub.
 
         metrics_logger.log({"load_dataset": 0})
-        ds = load_dataset(
-            args.dataset_name,
-            args.dataset_config_name,
-            data_files=data_files,
-            cache_dir=args.cache_dir,
-            keep_in_memory=False,
-            download_mode="force_redownload",
-        )["file"]
+        if args.use_load_from_disk:
+            dataset_name = os.path.join(args.dataset_config_name, file_name)
+            logger.info(f"Loading the dataset {dataset_name} with `load_from_disk`")
+            ds = load_from_disk(dataset_name)
+        else:
+            data_files = {"file": file_name}
+            logger.info(
+                "Loading a dataset with `load_dataset`"
+                f"{args.dataset_name}, {args.dataset_config_name}, data_files={data_files}, cache_dir={args.cache_dir},"
+            )
+            ds = load_dataset(
+                args.dataset_name,
+                args.dataset_config_name,
+                data_files=data_files,
+                cache_dir=args.cache_dir,
+                keep_in_memory=False,
+                download_mode="force_redownload",
+            )["file"]
 
         metrics_logger.log({"load_dataset": 1})
 
@@ -271,7 +286,12 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
         if "datasource" in args.metadata_to_include:
             ds = apply_processor(ds=ds, processor=datasource_preprocessor)
 
-        out_file_name = f"{file_name}.gz" if not file_name.endswith(".gz") else file_name
+        if file_name.endswith(".jsonl.gz"):
+            out_file_name = file_name[: -len(".jsonl.gz")]
+        elif file_name.endswith(".jsonl"):
+            out_file_name = file_name[: -len(".jsonl")]
+        else:
+            out_file_name = file_name
         out_file_name_tmp = f"tmp-{out_file_name}"
 
         saving_path = os.path.join(args.out_dir, out_file_name)
@@ -279,12 +299,7 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
 
         logger.info(f"Save resulting dataset {ds} at {saving_path_tmp}")
         metrics_logger.log({"save_result": 0})
-        ds.to_json(
-            saving_path_tmp,
-            batch_size=args.save_batch_size,
-            num_proc=args.preprocessing_num_workers,
-            compression="gzip",
-        )
+        ds.save_to_disk(saving_path_tmp)
         metrics_logger.log({"save_result": 1})
         logger.info(f"Moving the saved dataset to {saving_path}")
         subprocess.run(["mv", saving_path_tmp, saving_path])

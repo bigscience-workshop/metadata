@@ -1,12 +1,12 @@
 #!/bin/bash
-#SBATCH --job-name=modelling-metadata-c4-dataset-toy-add-metadata-full             # (change me!) job name
+#SBATCH --job-name=modelling-metadata-c4-dataset-toy-add-metadata-full-v2             # (change me!) job name
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1                                             # crucial - only 1 task per dist per node!
 #SBATCH --cpus-per-task=4                                               # (change me! between 0 and 48) number of cores per tasks
 #SBATCH --hint=nomultithread                                            # we get physical cores not logical
 #SBATCH --time 20:00:00                                                 # (change me! between 0 and 20h) maximum execution time (HH:MM:SS)
-#SBATCH --output=/gpfsdswork/projects/rech/six/uue59kq/logs/extract-metadata-from-full/%j-%x.out   # output file name
-#SBATCH --error=/gpfsdswork/projects/rech/six/uue59kq/logs/extract-metadata-from-full/%j-%x.err    # error file name
+#SBATCH --output=/gpfsdswork/projects/rech/six/uue59kq/logs/extract-metadata-from-full-v2/%j-%x.out   # output file name
+#SBATCH --error=/gpfsdswork/projects/rech/six/uue59kq/logs/extract-metadata-from-full-v2/%j-%x.err    # error file name
 #SBATCH --account=six@cpu                                               # account
 #SBATCH --array=0-2756
 #SBATCH --partition=cpu_p1
@@ -67,4 +67,5 @@ python experiments/jz/dataset/c4/python_scripts/add_metadata.py \
     preprocessing_num_workers=$PREPROCESSING_NUM_WORKERS\
     num_files_to_process=$NUM_FILES_TO_PROCESS\
     save_batch_size=$SAVE_BATCH_SIZE\
+    project_name=bsmetadata_extraction
 

@@ -1,6 +1,7 @@
 import logging
 import os
 import sys
+import subprocess
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -196,7 +197,6 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
     ]
 
     def process_file(file_name: str):
-        out_file_name = f"{file_name}.gz" if not file_name.endswith(".gz") else file_name
         data_files = {"file": file_name}
 
         logger.info(config.HF_DATASETS_CACHE)
@@ -204,6 +204,10 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
             "Downloading and loading a dataset from the hub"
             f"{args.dataset_name}, {args.dataset_config_name}, data_files={data_files}, cache_dir={args.cache_dir},"
         )
+        processing_name = (
+            "-".join(args.metadata_to_include) if args.metadata_to_include is not None else "full-process"
+        )
+        metrics_logger.log({processing_name: 0})
         # Downloading and loading a dataset from the hub.
 
         metrics_logger.log({"load_dataset": 0})
@@ -245,7 +249,7 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
             return ds
 
         if "html" in args.metadata_to_include:
-            ds = apply_processor(ds=ds, processor=html_processor, remove_columns=[col_html])
+            ds = apply_processor(ds=ds, processor=html_processor)
 
         if "url" in args.metadata_to_include:
             ds = apply_processor(ds=ds, processor=url_processor)
@@ -268,20 +272,25 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
         if "datasource" in args.metadata_to_include:
             ds = apply_processor(ds=ds, processor=datasource_preprocessor)
 
+        out_file_name = f"{file_name}.gz" if not file_name.endswith(".gz") else file_name
+        out_file_name_tmp = f"tmp-{out_file_name}"
+
         saving_path = os.path.join(args.out_dir, out_file_name)
-        logger.info(f"Save resulting dataset {ds} at {saving_path}")
+        saving_path_tmp = os.path.join(args.out_dir, out_file_name_tmp)
+
+        logger.info(f"Save resulting dataset {ds} at {saving_path_tmp}")
+        metrics_logger.log({"save_result": 0})
         ds.to_json(
-            saving_path, batch_size=args.save_batch_size, num_proc=args.preprocessing_num_workers, compression="gzip"
+            saving_path_tmp,
+            batch_size=args.save_batch_size,
+            num_proc=args.preprocessing_num_workers,
+            compression="gzip",
         )
-        # ds.save_to_disk(
-        # saving_path,
-        # )
-
-        # with open(saving_path, "rb") as f_in:
-        #     with gzip.open(f"{saving_path}.gz", "wb") as f_out:
-        #         shutil.copyfileobj(f_in, f_out)
-
-        # os.remove(saving_path)
+        metrics_logger.log({"save_result": 1})
+        logger.info(f"Moving the saved dataset to {saving_path}")
+        subprocess.run(["mv", saving_path_tmp, saving_path])
+        logger.info(f"Processing of {file_name} ended successfully")
+        metrics_logger.log({processing_name: 1})
 
     for file_name in poss_files[
         args.task_id * args.num_files_to_process : args.task_id * args.num_files_to_process + args.num_files_to_process

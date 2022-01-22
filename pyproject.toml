@@ -15,7 +15,7 @@ hydra-core = ">=1.1,<1.2"  # Poetry will likely update it to 1.1.1, but it is pr
 wandb = ">=0.10.32,<1"  # Poetry will likely update it to 0.12.1, but it is probably ok and good for bugfixes.
 transformers = "^4.6.0"  # Poetry will likely update it to 4.10.0, but it is probably ok and good for bugfixes.
 accelerate = ">=0.4.0,<1"  # We may want to use 0.5.0 in the near future
-datasets = {extras = ["streaming"], version = "^1.11.0"}
+datasets = {extras = ["streaming"], version = "1.17.0"}
 wikipedia2vec = "1.0.5"
 nltk = "3.6.7"
 

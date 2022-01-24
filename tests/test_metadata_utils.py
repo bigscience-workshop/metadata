@@ -10,7 +10,6 @@ from bsmetadata.metadata_processors import (
     HtmlProcessor,
     MetadataProcessor,
     TimestampProcessor,
-    TitleProcessor,
     UrlProcessor,
 )
 from bsmetadata.metadata_utils import (

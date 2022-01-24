@@ -1,5 +1,7 @@
 # BigScience Modeling Metadata
 
+[![Test](actions/workflows/test.yml/badge.svg)](actions/workflows/test.yml)
+
 This repository contains code for including metadata such as URLs, timestamps, website descriptions and HTML tags during language model pretraining. The purpose is to explore, solely from a modeling perspective, how to make good use of metadata to improve various aspects of the model (such as its zero-shot text generation abilities). This repository is **not** intended for general contributions to metadata that are not concerned with modeling.
 
 ## Usage

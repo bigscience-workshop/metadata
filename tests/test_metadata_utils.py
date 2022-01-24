@@ -10,6 +10,7 @@ from bsmetadata.metadata_processors import (
     HtmlProcessor,
     MetadataProcessor,
     TimestampProcessor,
+    TitleProcessor,
     UrlProcessor,
 )
 from bsmetadata.metadata_utils import (
@@ -251,6 +252,13 @@ class MetadataUtilsTester(unittest.TestCase):
                     },
                 ],
             },
+            {
+                "id": "0007",
+                "text": "Your article struck a cord, as a child I would imagine being an inventor. . As an adult I still love it when an insight to a new product or process reveals itself .",
+                "metadata": [
+                    {"key": "title", "type": "global", "value": "My Thoughts On It » Dad, I want to be an inventor"},
+                ],
+            },
         ]
 
     def test_chunks(self):
@@ -268,13 +276,14 @@ class MetadataUtilsTester(unittest.TestCase):
         cfg.metadata_key_value_sep = ": "
         cfg.metadata_sep = " | "
         cfg.metadata_prefix_sep = " |||"
-        cfg.metadata_list = ["url", "timestamp", "website_description"]
+        cfg.metadata_list = ["url", "timestamp", "website_description", "title"]
         PROCESSORS["timestamp"] = MetadataProcessor
 
         global_metadata_prefix_1 = create_metadata_prefix(self.examples[0], cfg)
         global_metadata_prefix_2 = create_metadata_prefix(self.examples[1], cfg)
         global_metadata_prefix_3 = create_metadata_prefix(self.examples[2], cfg)
         global_metadata_prefix_4 = create_metadata_prefix(self.examples[3], cfg)
+        global_metadata_prefix_5 = create_metadata_prefix(self.examples[6], cfg)
 
         self.assertEqual(
             global_metadata_prefix_1,
@@ -289,6 +298,8 @@ class MetadataUtilsTester(unittest.TestCase):
             global_metadata_prefix_4,
             "Website Description: Amazon.com, Inc. ( AM-ə-zon) is an American multinational conglomerate which focuses on e-commerce, cloud computing, digital streaming, and artificial intelligence. |||",
         )
+
+        self.assertEqual(global_metadata_prefix_5, "title: My Thoughts On It » Dad, I want to be an inventor |||")
 
     def test_add_local_metadata_to_text(self):
         cfg = MetadataConfig()
@@ -340,13 +351,13 @@ class MetadataUtilsTester(unittest.TestCase):
 
     def test_add_metadata_and_chunk_examples(self):
         cfg = MetadataConfig()
-        cfg.metadata_list = ["url", "timestamp", "html", "entity", "website_description"]
+        cfg.metadata_list = ["url", "timestamp", "html", "entity", "website_description", "title"]
         cfg.max_seq_len = 64
         cfg.metadata_probability = 1
 
         PROCESSORS["timestamp"] = MetadataProcessor
         ds_dict = {
-            key: [self.examples[0][key], self.examples[1][key], self.examples[3][key]]
+            key: [self.examples[0][key], self.examples[1][key], self.examples[3][key], self.examples[6][key]]
             for key in self.examples[0].keys()
         }
 
@@ -1582,6 +1593,216 @@ class MetadataUtilsTester(unittest.TestCase):
                 1,
                 1,
                 1,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+            ],
+        )
+
+        self.assertEqual(
+            self.tokenizer.convert_ids_to_tokens(mapped_ds[6]["input_ids"]),
+            [
+                "title",
+                ":",
+                "ĠMy",
+                "ĠThoughts",
+                "ĠOn",
+                "ĠIt",
+                "ĠÂ»",
+                "ĠDad",
+                ",",
+                "ĠI",
+                "Ġwant",
+                "Ġto",
+                "Ġbe",
+                "Ġan",
+                "Ġinventor",
+                "Ġ||",
+                "|",
+                "ĠYour",
+                "Ġarticle",
+                "Ġstruck",
+                "Ġa",
+                "Ġcord",
+                ",",
+                "Ġas",
+                "Ġa",
+                "Ġchild",
+                "ĠI",
+                "Ġwould",
+                "Ġimagine",
+                "Ġbeing",
+                "Ġan",
+                "Ġinventor",
+                ".",
+                "Ġ.",
+                "ĠAs",
+                "Ġan",
+                "Ġadult",
+                "ĠI",
+                "Ġstill",
+                "Ġlove",
+                "Ġit",
+                "Ġwhen",
+                "Ġan",
+                "Ġinsight",
+                "Ġto",
+                "Ġa",
+                "Ġnew",
+                "Ġproduct",
+                "Ġor",
+                "Ġprocess",
+                "Ġreveals",
+                "Ġitself",
+                "Ġ.",
+                "<|endoftext|>",
+                "<|endoftext|>",
+                "<|endoftext|>",
+                "<|endoftext|>",
+                "<|endoftext|>",
+                "<|endoftext|>",
+                "<|endoftext|>",
+                "<|endoftext|>",
+                "<|endoftext|>",
+                "<|endoftext|>",
+                "<|endoftext|>",
+            ],
+        )
+
+        self.assertEqual(
+            mapped_ds[6]["attention_mask"],
+            [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+            ],
+        )
+
+        self.assertEqual(
+            mapped_ds[6]["metadata_mask"],
+            [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
                 0,
                 0,
                 0,

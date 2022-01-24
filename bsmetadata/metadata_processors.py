@@ -171,6 +171,15 @@ class UrlProcessor(MetadataProcessor):
         return "".join([metadata_attrs["key"], self.cfg.metadata_key_value_sep, unquote_plus(metadata_attrs["value"])])
 
 
+class TitleProcessor(MetadataProcessor):
+    """An example metadata processor for titles."""
+
+    def process_global(self, metadata_attrs: Dict[str, Any]) -> Optional[str]:
+        # We represent a title by the title of the corresponding webpage content.
+        # Example: "My Thoughts On It » Dad, I want to be an inventor".
+        return "".join([metadata_attrs["key"], self.cfg.metadata_key_value_sep, metadata_attrs["value"]])
+
+
 class WebsiteDescriptionProcessor(MetadataProcessor):
     """An example metadata processor for website descriptions."""
 

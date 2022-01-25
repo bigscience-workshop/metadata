@@ -275,6 +275,7 @@ def main(args: CFG) -> None:
                 optimizer.zero_grad()
                 progress_bar.update(1)
                 completed_steps += 1
+                metrics_logger.log({"gradient_step": completed_steps})
             else:
                 continue
 

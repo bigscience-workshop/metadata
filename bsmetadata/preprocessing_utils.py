@@ -302,13 +302,10 @@ class EntityPreprocessor(
     def __init__(
         self,
         base_url,
-        path_wiki_db,
         path_or_url_flair_ner_model="ner-fast",
         col_to_store_metadata="metadata",
         col_text="text",
     ):
-        self.wiki_db_path = path_wiki_db
-        self.entity_utils = WikipediaDescUtils(path_wiki_db)
         self.base_url = base_url
         self.wiki_version = "wiki_2019"
         self.mention_detection = MentionDetection(self.base_url, self.wiki_version)
@@ -332,7 +329,6 @@ class EntityPreprocessor(
                     "key": Value("string"),
                     "type": Value("string"),
                     "value": Value("string"),
-                    "ent_desc": Value("string"),
                 }
             ]
         }
@@ -350,13 +346,6 @@ class EntityPreprocessor(
         predictions, timing = self.model.predict(mentions_dataset)
         result = process_results(mentions_dataset, predictions, input_text)
         return result
-
-    def _extract_desc_from_entity(self, keyword: str) -> Optional:
-        # fetch description of an entity
-        key = keyword
-        key = key.lower()
-        key = key.replace("_", " ")
-        return self.entity_utils.fetch_entity_description_from_keyword(key)
 
     def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
         # process all the examples in a particular batch and all the metadata extracted for entities for those examples
@@ -382,14 +371,12 @@ class EntityPreprocessor(
                 # element at index = 1 in the result list corresponds to length of the entity
                 char_end_idx = mention_predicted[0] + mention_predicted[1]
 
-                ent_desc = self._extract_desc_from_entity(entity)
                 en = {
                     "key": "entity",
                     "type": "local",
                     "char_start_idx": char_start_idx,
                     "char_end_idx": char_end_idx,
                     "value": entity,
-                    "ent_desc": ent_desc,
                 }
                 example_metadata.append(en)
 

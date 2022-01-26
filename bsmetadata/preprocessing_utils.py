@@ -384,6 +384,75 @@ class EntityPreprocessor(
         return examples
 
 
+class EntityDescPreprocessor(
+    MetadataPreprocessor
+):  # Note: To run this pre-processor, make sure that you have a column with "entities" extracted in the dataset.
+    """Metadata preprocessor for adding entity description information."""
+
+    def __init__(
+        self,
+        path_wiki_db,
+        col_to_store_metadata="metadata",
+        col_text="text",
+    ):
+        self.wiki_db_path = path_wiki_db
+        self.entity_utils = WikipediaDescUtils(path_wiki_db)
+
+        self.col_text = col_text
+        super().__init__(col_to_store_metadata=col_to_store_metadata)
+
+    @property
+    def new_columns_minimal_features(self) -> Dict[str, Any]:
+        features = {
+            self.col_to_store_metadata: [
+                {
+                    "char_end_idx": Value("int64"),
+                    "char_start_idx": Value("int64"),
+                    "key": Value("string"),
+                    "type": Value("string"),
+                    "value": Value("string"),
+                    "ent_desc": Value("string"),
+                }
+            ]
+        }
+        return features
+
+    def _extract_desc_from_entity(self, keyword: str) -> Optional:
+        # fetch description of an entity
+        key = keyword
+        key = key.lower()
+        key = key.replace("_", " ")
+        return self.entity_utils.fetch_entity_description_from_keyword(key)
+
+    def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
+        # process all the examples in a particular batch and all the metadata extracted for entities for those examples
+
+        example_metadata_list = (
+            examples[self.col_to_store_metadata]
+            if self.col_to_store_metadata in examples
+            else [[] for _ in range(len(examples[self.col_text]))]
+        )
+
+        # Iterate through the metadata associated with all examples in this batch.
+        for example_metadata in example_metadata_list:
+
+            # Get the entities associated with this example.
+            for md in example_metadata:
+                if md["key"] == "entity":
+                    entity = md["value"]
+                    # Fetch the entity description for the entity.
+                    entity_desc = self._extract_desc_from_entity(entity)
+                    md.update(
+                        {
+                            "ent_desc": entity_desc,
+                        }
+                    )
+
+        examples[self.col_to_store_metadata] = example_metadata_list
+
+        return examples
+
+
 class GenerationLengthPreprocessor(MetadataPreprocessor):
     """An exemplary metadata preprocessor for adding generation length information based on text."""
 

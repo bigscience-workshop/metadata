@@ -419,7 +419,6 @@ class PipelinePreprocessorTester(unittest.TestCase):
                     "key": "entity",
                     "type": "local",
                     "value": "Barack_Obama",
-                    "ent_desc": "Barack Hussein Obama II is an American politician.",
                 },
                 {
                     "char_end_idx": 48,
@@ -427,7 +426,6 @@ class PipelinePreprocessorTester(unittest.TestCase):
                     "key": "entity",
                     "type": "local",
                     "value": "Angela_Merkel",
-                    "ent_desc": "",
                 },
             ],
             [
@@ -437,7 +435,6 @@ class PipelinePreprocessorTester(unittest.TestCase):
                     "key": "entity",
                     "type": "local",
                     "value": "Paris",
-                    "ent_desc": "",
                 }
             ],
             [],
@@ -601,7 +598,6 @@ class PipelinePreprocessorTester(unittest.TestCase):
                         "relative_start_pos": Value("int64"),
                         "type": Value("string"),
                         "value": Value("string"),
-                        "ent_desc": Value("string"),
                     }
                 ],
                 "text": Value("string"),
@@ -644,7 +640,6 @@ class PipelinePreprocessorTester(unittest.TestCase):
                         "relative_end_pos",
                         "relative_start_pos",
                         "html_attrs",
-                        "ent_desc",
                     ]:
                         if potential_missing_key in metadata:
                             continue
@@ -711,7 +706,6 @@ class PipelinePreprocessorTester(unittest.TestCase):
                         "relative_start_pos": Value("int64"),
                         "type": Value("string"),
                         "value": Value("string"),
-                        "ent_desc": Value("string"),
                     }
                 ],
                 "text": Value("string"),
@@ -750,11 +744,6 @@ class PipelinePreprocessorTester(unittest.TestCase):
 
         for id, metadata_example in enumerate(self.target_metadata_html):
             for metadata in metadata_example:
-                metadata.update(
-                    {
-                        "ent_desc": None,
-                    }
-                )
                 self.assertIn(metadata, ds[id][col_to_store_metadata_html])
 
         for id, metadata_example in enumerate(self.target_metadata_url):
@@ -766,7 +755,6 @@ class PipelinePreprocessorTester(unittest.TestCase):
                         "relative_end_pos": None,
                         "relative_start_pos": None,
                         "html_attrs": None,
-                        "ent_desc": None,
                     }
                 )
                 self.assertIn(metadata, ds[id][col_to_store_metadata_url])
@@ -780,7 +768,6 @@ class PipelinePreprocessorTester(unittest.TestCase):
                         "relative_end_pos": None,
                         "relative_start_pos": None,
                         "html_attrs": None,
-                        "ent_desc": None,
                     }
                 )
                 self.assertIn(metadata, ds[id][col_to_store_metadata_timestamp])
@@ -794,7 +781,6 @@ class PipelinePreprocessorTester(unittest.TestCase):
                         "relative_end_pos": None,
                         "relative_start_pos": None,
                         "html_attrs": None,
-                        "ent_desc": None,
                     }
                 )
                 self.assertIn(metadata, ds[id][col_to_store_metadata_website_desc])
@@ -817,7 +803,6 @@ class PipelinePreprocessorTester(unittest.TestCase):
                         "relative_end_pos": None,
                         "relative_start_pos": None,
                         "html_attrs": None,
-                        "ent_desc": None,
                     }
                 )
                 self.assertIn(metadata, ds[id][col_to_store_metadata_generation_length_sentence])
@@ -831,7 +816,6 @@ class PipelinePreprocessorTester(unittest.TestCase):
                         "relative_end_pos": None,
                         "relative_start_pos": None,
                         "html_attrs": None,
-                        "ent_desc": None,
                     }
                 )
                 self.assertIn(metadata, ds[id][col_to_store_metadata_generation_length_text])
@@ -845,7 +829,6 @@ class PipelinePreprocessorTester(unittest.TestCase):
                         "relative_end_pos": None,
                         "relative_start_pos": None,
                         "html_attrs": None,
-                        "ent_desc": None,
                     }
                 )
                 self.assertIn(metadata, ds[id][col_to_store_metadata_datasource])

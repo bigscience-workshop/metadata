@@ -23,6 +23,7 @@ from urllib.parse import unquote, urlparse, urlsplit
 
 from bs_dateutil.parser import ParserError, parse
 from datasets import Value
+from matplotlib.pyplot import title
 from REL.entity_disambiguation import EntityDisambiguation
 from REL.mention_detection import MentionDetection
 from REL.ner import load_flair_ner
@@ -626,6 +627,49 @@ class UrlPreprocessor(MetadataPreprocessor):
         for example_url, example_metadata in zip(examples[self.col_url], example_metadata_list):
             if example_url:
                 example_metadata.append({"key": "url", "type": "global", "value": example_url})
+
+        examples[self.col_to_store_metadata] = example_metadata_list
+        return examples
+
+
+class TitlePreprocessor(MetadataPreprocessor):
+    """An exemplary metadata preprocessor for adding titles information."""
+
+    def __init__(self, col_to_store_metadata="metadata", col_text="text", col_title="html_title") -> None:
+        self.col_title = col_title
+        self.col_text = col_text
+        super().__init__(col_to_store_metadata=col_to_store_metadata)
+
+    @property
+    def new_columns_minimal_features(self) -> Dict[str, Any]:
+        features = {
+            self.col_to_store_metadata: [
+                {
+                    "key": Value("string"),
+                    "type": Value("string"),
+                    "value": Value("string"),
+                }
+            ]
+        }
+        return features
+
+    def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
+        example_metadata_list = (
+            examples[self.col_to_store_metadata]
+            if self.col_to_store_metadata in examples
+            else [[] for _ in range(len(examples[self.col_text]))]
+        )
+
+        # Iterate through the metadata associated with all examples in this batch.
+        for example_title, example_metadata in zip(examples[self.col_title], example_metadata_list):
+
+            if not example_title:
+                continue
+            title = example_title[0]
+            title = re.search("<title>(.*)</title>", title)
+            title = title.group(1)
+
+            example_metadata.append({"key": "title", "type": "global", "value": title})
 
         examples[self.col_to_store_metadata] = example_metadata_list
         return examples

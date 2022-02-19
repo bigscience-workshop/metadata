@@ -302,6 +302,7 @@ class EntityPreprocessor(
     def __init__(
         self,
         base_url,
+        num_chars,
         path_or_url_flair_ner_model="ner-fast",
         col_to_store_metadata="metadata",
         col_text="text",
@@ -315,7 +316,7 @@ class EntityPreprocessor(
             "model_path": "ed-wiki-2019",
         }
         self.model = EntityDisambiguation(self.base_url, self.wiki_version, self.config, reset_embeddings=True)
-
+        self.num_chars = num_chars
         self.col_text = col_text
         super().__init__(col_to_store_metadata=col_to_store_metadata)
 
@@ -335,8 +336,8 @@ class EntityPreprocessor(
         return features
 
     def preprocess_example(self, examples: Dict[str, List]) -> Dict[str, List]:
-        # preprocess all the examples in a particular batch in the required format
-        processed = {ex_id: [ex_text, []] for ex_id, ex_text in enumerate(examples[self.col_text])}
+        # preprocess all the examples in a particular batch in the required format and check if length of text is less than num_chars
+        processed = {ex_id: [ex_text, []] for ex_id, ex_text in enumerate(examples[self.col_text]) if len(ex_text) <= self.num_chars}
         return processed
 
     def fetch_mention_predictions(self, examples: Dict[str, List]) -> Dict[str, List]:

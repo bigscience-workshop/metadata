@@ -302,7 +302,7 @@ class EntityPreprocessor(
     def __init__(
         self,
         base_url,
-        num_chars,
+        num_chars=4000, #default length of text set as threshold to include an example in a batch
         path_or_url_flair_ner_model="ner-fast",
         col_to_store_metadata="metadata",
         col_text="text",
@@ -336,7 +336,7 @@ class EntityPreprocessor(
         return features
 
     def preprocess_example(self, examples: Dict[str, List]) -> Dict[str, List]:
-        # preprocess all the examples in a particular batch in the required format and consider an example only if length of text is less or equal to num_chars
+        # preprocess all the examples in a particular batch in the required format and consider an example only if length of text is less than or equal to num_chars
         processed = {ex_id: [ex_text, []] for ex_id, ex_text in enumerate(examples[self.col_text]) if len(ex_text) <= self.num_chars}
         return processed
 

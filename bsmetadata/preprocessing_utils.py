@@ -302,7 +302,7 @@ class EntityPreprocessor(
     def __init__(
         self,
         base_url,
-        num_chars=4000, #default length of text set as threshold to include an example in a batch
+        num_chars=5000, #default length of text set as threshold to include an example in a batch
         path_or_url_flair_ner_model="ner-fast",
         col_to_store_metadata="metadata",
         col_text="text",

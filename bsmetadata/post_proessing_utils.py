@@ -42,7 +42,7 @@ class MetadataPostProcessor(ABC):
 
     @abstractmethod
     def post_process(self, examples: Dict[str, List]) -> Dict[str, List]:
-        """Process a batch of examples and add or extract corresponding metadata."""
+        """Process a batch of examples and process the corresponding extracted metadata."""
         pass
 
 
@@ -70,17 +70,17 @@ class WebsiteDescPostProcessor(MetadataPostProcessor):
         return features
 
     def post_process(self, examples: Dict[str, List]) -> Dict[str, List]:
-        if not examples[self.col_to_process]:
-            return examples
 
         example_metadata_list = examples[self.col_to_process]
-
         # Iterate through the metadata associated with all examples in this batch.
+   
         for example_metadata in  example_metadata_list:
-            if self.is_noisy_data(example_metadata[0]["value"]):
+            if example_metadata and (self.is_noisy_data(example_metadata[0]["value"]) or self.is_outlier(example_metadata[0]["value"])):
                 example_metadata = []
+                
+                
 
-        examples[self.col_to_store_metadata] = example_metadata_list
+        examples[self.col_to_process] = example_metadata_list
         return examples
 
     
@@ -88,5 +88,8 @@ class WebsiteDescPostProcessor(MetadataPostProcessor):
         corrupt_regex = ['.* refer(|s) to.?:', '\[\[\w*:']
         corrupt_regex_str = '|'.join('({0})'.format(x) for x in corrupt_regex)
         return re.match(corrupt_regex_str, data)
+    
+    def is_outlier(self, data):
+        return len(data.split()) < 5 or len(data.split()) > 50 #caps tbd
 
 

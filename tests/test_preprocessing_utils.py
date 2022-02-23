@@ -16,7 +16,6 @@ from bsmetadata.preprocessing_utils import (
     TimestampPreprocessor,
     UrlPreprocessor,
     WebsiteDescPreprocessor,
-    mark_paragraph,
 )
 
 
@@ -64,137 +63,139 @@ class WebsiteDescPreprocessorTester(unittest.TestCase):
         self.assertEqual(ds[:]["metadata"], target_metadata)
 
 
+class HtmlToyData:
+    # Define toy data
+    my_dict = {
+        "doc_html": [
+            "\n    <html>\n    <head>\n    </head>\n    <body>\n    <h1>This is a title</h1>\n   with some additional text to reach 64 characters tidi tadada tidi tadada tidi tadada </body>\n    </html>\n",
+            "<html><body><p>this is a simple paragraph with Obama and Merkel mentioned. tidi tadada tidi tadada tidi tadada tidi tadada tidi tadada</p></body></html>",
+            "<html><body><p id=1>paragraph 1 tidi tadada tidi tadada tidi tadada tidi tadada tidi tadada.</p><p id=2>paragraph 2 is in Paris tidi tadada tidi tadada tidi tadada tidi tadada.</p></body></html>",
+            '<html><body><div class="div-level-1">blablabla blablabla blablabla blablabla blablabla blablabla<div class="div-level-2">tidi tidi tidi tidi</div></div></body></html>',
+        ],
+        "metadata": [[], [], [], []],
+    }
+
+    # Define target values
+    target_texts = [
+        "This is a title\nwith some additional text to reach 64 characters tidi tadada tidi tadada tidi tadada\n",
+        "this is a simple paragraph with Obama and Merkel mentioned. tidi tadada tidi tadada tidi tadada tidi tadada tidi tadada\n",
+        "paragraph 1 tidi tadada tidi tadada tidi tadada tidi tadada tidi tadada.\nparagraph 2 is in Paris tidi tadada tidi tadada tidi tadada tidi tadada.\n",
+        "blablabla blablabla blablabla blablabla blablabla blablabla\ntidi tidi tidi tidi\n",
+    ]
+
+    target_metadata = [
+        [
+            {
+                "char_end_idx": 15,
+                "char_start_idx": 0,
+                "html_attrs": {"attrs": [], "values": []},
+                "key": "html",
+                "relative_end_pos": 0,
+                "relative_start_pos": 1,
+                "type": "local",
+                "value": "h1",
+            },
+            {
+                "char_end_idx": 101,
+                "char_start_idx": 0,
+                "html_attrs": {"attrs": [], "values": []},
+                "key": "html",
+                "relative_end_pos": 0,
+                "relative_start_pos": 0,
+                "type": "local",
+                "value": "body",
+            },
+        ],
+        [
+            {
+                "char_end_idx": 119,
+                "char_start_idx": 0,
+                "html_attrs": {"attrs": [], "values": []},
+                "key": "html",
+                "relative_end_pos": 0,
+                "relative_start_pos": 1,
+                "type": "local",
+                "value": "p",
+            },
+            {
+                "char_end_idx": 120,
+                "char_start_idx": 0,
+                "html_attrs": {"attrs": [], "values": []},
+                "key": "html",
+                "relative_end_pos": 0,
+                "relative_start_pos": 0,
+                "type": "local",
+                "value": "body",
+            },
+        ],
+        [
+            {
+                "char_end_idx": 72,
+                "char_start_idx": 0,
+                "html_attrs": {"attrs": ["id"], "values": ["1"]},
+                "key": "html",
+                "relative_end_pos": 0,
+                "relative_start_pos": 1,
+                "type": "local",
+                "value": "p",
+            },
+            {
+                "char_end_idx": 145,
+                "char_start_idx": 73,
+                "html_attrs": {"attrs": ["id"], "values": ["2"]},
+                "key": "html",
+                "relative_end_pos": 0,
+                "relative_start_pos": 0,
+                "type": "local",
+                "value": "p",
+            },
+            {
+                "char_end_idx": 146,
+                "char_start_idx": 0,
+                "html_attrs": {"attrs": [], "values": []},
+                "key": "html",
+                "relative_end_pos": 0,
+                "relative_start_pos": 0,
+                "type": "local",
+                "value": "body",
+            },
+        ],
+        [
+            {
+                "char_end_idx": 80,
+                "char_start_idx": 0,
+                "html_attrs": {"attrs": ["class"], "values": ["div-level-1 div-level-2"]},
+                "key": "html",
+                "relative_end_pos": 0,
+                "relative_start_pos": 1,
+                "type": "local",
+                "value": "div",
+            },
+            {
+                "char_end_idx": 80,
+                "char_start_idx": 0,
+                "html_attrs": {"attrs": [], "values": []},
+                "key": "html",
+                "relative_end_pos": 1,
+                "relative_start_pos": 0,
+                "type": "local",
+                "value": "body",
+            },
+        ],
+    ]
+
+
 class HtmlPreprocessorTester(unittest.TestCase):
     def setUp(self) -> None:
         self.html_processor = HtmlPreprocessor()
 
     def test_toy_dataset(self):
-        # Define toy data
-        my_dict = {
-            "doc_html": [
-                "\n    <html>\n    <head>\n    </head>\n    <body>\n    <h1>This is a title</h1>\n   with some additional text to reach 64 characters tidi tadada tidi tadada tidi tadada </body>\n    </html>\n",
-                "<html><body><p>this is a simple paragraph with Obama and Merkel mentioned. tidi tadada tidi tadada tidi tadada tidi tadada tidi tadada</p></body></html>",
-                "<html><body><p id=1>paragraph 1 tidi tadada tidi tadada tidi tadada tidi tadada tidi tadada.</p><p id=2>paragraph 2 is in Paris tidi tadada tidi tadada tidi tadada tidi tadada.</p></body></html>",
-                '<html><body><div class="div-level-1">blablabla blablabla blablabla blablabla blablabla blablabla<div class="div-level-2">tidi tidi tidi tidi</div></div></body></html>',
-            ],
-            "metadata": [[], [], [], []],
-        }
-
-        # Define target values
-        target_texts = [
-            "This is a title\nwith some additional text to reach 64 characters tidi tadada tidi tadada tidi tadada\n",
-            "this is a simple paragraph with Obama and Merkel mentioned. tidi tadada tidi tadada tidi tadada tidi tadada tidi tadada\n",
-            "paragraph 1 tidi tadada tidi tadada tidi tadada tidi tadada tidi tadada.\nparagraph 2 is in Paris tidi tadada tidi tadada tidi tadada tidi tadada.\n",
-            "blablabla blablabla blablabla blablabla blablabla blablabla\ntidi tidi tidi tidi\n",
-        ]
-
-        target_metadata = [
-            [
-                {
-                    "char_end_idx": 15,
-                    "char_start_idx": 0,
-                    "html_attrs": {"attrs": [], "values": []},
-                    "key": "html",
-                    "relative_end_pos": 0,
-                    "relative_start_pos": 1,
-                    "type": "local",
-                    "value": "h1",
-                },
-                {
-                    "char_end_idx": 101,
-                    "char_start_idx": 0,
-                    "html_attrs": {"attrs": [], "values": []},
-                    "key": "html",
-                    "relative_end_pos": 0,
-                    "relative_start_pos": 0,
-                    "type": "local",
-                    "value": "body",
-                },
-            ],
-            [
-                {
-                    "char_end_idx": 119,
-                    "char_start_idx": 0,
-                    "html_attrs": {"attrs": [], "values": []},
-                    "key": "html",
-                    "relative_end_pos": 0,
-                    "relative_start_pos": 1,
-                    "type": "local",
-                    "value": "p",
-                },
-                {
-                    "char_end_idx": 120,
-                    "char_start_idx": 0,
-                    "html_attrs": {"attrs": [], "values": []},
-                    "key": "html",
-                    "relative_end_pos": 0,
-                    "relative_start_pos": 0,
-                    "type": "local",
-                    "value": "body",
-                },
-            ],
-            [
-                {
-                    "char_end_idx": 72,
-                    "char_start_idx": 0,
-                    "html_attrs": {"attrs": ["id"], "values": ["1"]},
-                    "key": "html",
-                    "relative_end_pos": 0,
-                    "relative_start_pos": 1,
-                    "type": "local",
-                    "value": "p",
-                },
-                {
-                    "char_end_idx": 145,
-                    "char_start_idx": 73,
-                    "html_attrs": {"attrs": ["id"], "values": ["2"]},
-                    "key": "html",
-                    "relative_end_pos": 0,
-                    "relative_start_pos": 0,
-                    "type": "local",
-                    "value": "p",
-                },
-                {
-                    "char_end_idx": 146,
-                    "char_start_idx": 0,
-                    "html_attrs": {"attrs": [], "values": []},
-                    "key": "html",
-                    "relative_end_pos": 0,
-                    "relative_start_pos": 0,
-                    "type": "local",
-                    "value": "body",
-                },
-            ],
-            [
-                {
-                    "char_end_idx": 80,
-                    "char_start_idx": 0,
-                    "html_attrs": {"attrs": ["class"], "values": ["div-level-1 div-level-2"]},
-                    "key": "html",
-                    "relative_end_pos": 0,
-                    "relative_start_pos": 1,
-                    "type": "local",
-                    "value": "div",
-                },
-                {
-                    "char_end_idx": 80,
-                    "char_start_idx": 0,
-                    "html_attrs": {"attrs": [], "values": []},
-                    "key": "html",
-                    "relative_end_pos": 1,
-                    "relative_start_pos": 0,
-                    "type": "local",
-                    "value": "body",
-                },
-            ],
-        ]
-
         # Apply function
-        ds = Dataset.from_dict(my_dict)
+        ds = Dataset.from_dict(HtmlToyData.my_dict)
         ds = ds.map(lambda ex: self.html_processor.preprocess(ex), batched=True, batch_size=3)
 
-        self.assertEqual(ds[:]["text"], target_texts)
-        self.assertEqual(ds[:]["metadata"], target_metadata)
+        self.assertEqual(ds[:]["text"], HtmlToyData.target_texts)
+        self.assertEqual(ds[:]["metadata"], HtmlToyData.target_metadata)
 
 
 def mock_fetch_mention_predictions(self, examples):
@@ -833,270 +834,6 @@ class PipelinePreprocessorTester(unittest.TestCase):
                     }
                 )
                 self.assertIn(metadata, ds[id][col_to_store_metadata_datasource])
-
-
-def test_mark_paragraph_by_one_h1():
-    """test_mark_paragraph_by_one_h1
-
-    The test case is from :py:class:`~tests.test_preprocessing_utils.PipelinePreprocessorTester` for now.
-
-    Example:
-        html = ('\n    <html>\n    <head><meta charset="utf-8"><title>My test page</title><head>\n'
-                "    <body>\n    <h1>This is a title</h1>\n"
-                "   with some additional text to reach 64 characters tidi tadada tidi tadada tidi tadada </body>"
-                ' <footer><p>Author: Hege Refsnes</p><p><a href="mailto:hege@example.com">hege@example.com</a></p></footer>'
-                "<footer><p>Author: Anonymouss</p></footer></html>\n")
-    """
-
-    text = "This is a title\nwith some additional text to reach 64 characters tidi tadada tidi tadada tidi tadada\n"
-    html_metadata_with_one_h1 = [
-        {
-            "char_end_idx": 15,
-            "char_start_idx": 0,
-            "html_attrs": {"attrs": [], "values": []},
-            "key": "html",
-            "relative_end_pos": 0,
-            "relative_start_pos": 1,
-            "type": "local",
-            "value": "h1",
-        },
-        {
-            "char_end_idx": 101,
-            "char_start_idx": 0,
-            "html_attrs": {"attrs": [], "values": []},
-            "key": "html",
-            "relative_end_pos": 0,
-            "relative_start_pos": 0,
-            "type": "local",
-            "value": "body",
-        },
-    ]
-    expected_par_metadata = [
-        {
-            "char_end_idx": 15,
-            "char_start_idx": 0,
-            "key": "paragraph",
-            "type": "local",
-            "value": "This is a title\n",
-        },
-        {
-            "char_end_idx": 101,
-            "char_start_idx": 16,
-            "key": "paragraph",
-            "type": "local",
-            "value": "with some additional text to reach 64 characters tidi tadada tidi tadada tidi tadada\n",
-        },
-    ]
-    par_metadata = mark_paragraph(html_metadata_with_one_h1, text)
-    assert par_metadata == expected_par_metadata
-
-
-def test_mark_paragraph_by_footers_and_ps():
-    """test_mark_paragraph_by_footers_and_ps
-
-    The test case is from :py:class:`~tests.test_preprocessing_utils.PipelinePreprocessorTester` for now.
-
-    Example:
-        html = ('\n    <html>\n    <head><meta charset="utf-8"><title>My test page</title><head>\n'
-                "    <body>\n    <h1>This is a title</h1>\n"
-                "   with some additional text to reach 64 characters tidi tadada tidi tadada tidi tadada </body>"
-                ' <footer><p>Author: Hege Refsnes</p><p><a href="mailto:hege@example.com">hege@example.com</a></p></footer>'
-                "<footer><p>Author: Anonymouss</p></footer></html>\n")
-    """
-
-    html_footers = [  # noqa: F841
-        [
-            '<footer><p>Author: Hege Refsnes</p><p><a href="mailto:hege@example.com">hege@example.com</a></p></footer>',
-            "<footer><p>Author: Anonymouss</p></footer>",
-        ],
-        [],
-        [],
-        [],
-    ]
-    # TODO:
-    # expected_par_metadata = [
-    #     {
-    #         "char_end_idx": ?,
-    #         "char_start_idx": 102,
-    #         "key": "paragraph",
-    #         "type": "local",
-    #         "value": "Author: Hege Refsnes\n",
-    #     },
-    #     {
-    #         "char_end_idx": ?,
-    #         "char_start_idx": ?,
-    #         "key": "paragraph",
-    #         "type": "local",
-    #         "value": "hege@example.com\n",
-    #     },
-    #     {
-    #         "char_end_idx": ?,
-    #         "char_start_idx": ?,
-    #         "key": "paragraph",
-    #         "type": "local",
-    #         "value": "Author: Anonymouss\n",
-    #     },
-    # ]
-    # par_metadata = mark_paragraph_by_footers(html_footers_and_ps)
-    # assert expected_par_metadata == par_metadata
-
-
-def test_mark_paragraph_by_one_p():
-    """test_mark_paragraph_by_one_p
-
-    The test case is from :py:class:`~tests.test_preprocessing_utils.PipelinePreprocessorTester` for now.
-
-    Example:
-        html = ("<html><body><p>this is a simple paragraph with Obama and Merkel mentioned. "
-                "tidi tadada tidi tadada tidi tadada tidi tadada tidi tadada</p></body></html>")
-    """
-
-    text = "this is a simple paragraph with Obama and Merkel mentioned. tidi tadada tidi tadada tidi tadada tidi tadada tidi tadada\n"
-    html_metadata_with_one_p = [
-        {
-            "char_end_idx": 119,
-            "char_start_idx": 0,
-            "html_attrs": {"attrs": [], "values": []},
-            "key": "html",
-            "relative_end_pos": 0,
-            "relative_start_pos": 1,
-            "type": "local",
-            "value": "p",
-        },
-        {
-            "char_end_idx": 120,
-            "char_start_idx": 0,
-            "html_attrs": {"attrs": [], "values": []},
-            "key": "html",
-            "relative_end_pos": 0,
-            "relative_start_pos": 0,
-            "type": "local",
-            "value": "body",
-        },
-    ]
-    expected_par_metadata = [
-        {
-            "char_end_idx": 119,
-            "char_start_idx": 0,
-            "key": "paragraph",
-            "type": "local",
-            "value": text,
-        },
-    ]
-    par_metadata = mark_paragraph(html_metadata_with_one_p, text)
-    assert expected_par_metadata == par_metadata
-
-
-def test_mark_paragraph_by_two_ps():
-    """test_mark_paragraph_by_two_ps
-
-    The test case is from :py:class:`~tests.test_preprocessing_utils.PipelinePreprocessorTester` for now.
-
-    Example:
-        html = ("<html><body><p id=1>paragraph 1 tidi tadada tidi tadada tidi tadada tidi tadada tidi tadada.</p>"
-                "<p id=2>paragraph 2 is in Paris tidi tadada tidi tadada tidi tadada tidi tadada.</p></body></html>")
-    """
-
-    text = (
-        "paragraph 1 tidi tadada tidi tadada tidi tadada tidi tadada tidi tadada.\n"
-        "paragraph 2 is in Paris tidi tadada tidi tadada tidi tadada tidi tadada.\n"
-    )
-    html_metadata_with_two_ps = [
-        {
-            "char_end_idx": 72,
-            "char_start_idx": 0,
-            "html_attrs": {"attrs": ["id"], "values": ["1"]},
-            "key": "html",
-            "relative_end_pos": 0,
-            "relative_start_pos": 1,
-            "type": "local",
-            "value": "p",
-        },
-        {
-            "char_end_idx": 145,
-            "char_start_idx": 73,
-            "html_attrs": {"attrs": ["id"], "values": ["2"]},
-            "key": "html",
-            "relative_end_pos": 0,
-            "relative_start_pos": 0,
-            "type": "local",
-            "value": "p",
-        },
-        {
-            "char_end_idx": 146,
-            "char_start_idx": 0,
-            "html_attrs": {"attrs": [], "values": []},
-            "key": "html",
-            "relative_end_pos": 0,
-            "relative_start_pos": 0,
-            "type": "local",
-            "value": "body",
-        },
-    ]
-    expected_par_metadata = [
-        {
-            "char_end_idx": 72,
-            "char_start_idx": 0,
-            "key": "paragraph",
-            "type": "local",
-            "value": "paragraph 1 tidi tadada tidi tadada tidi tadada tidi tadada tidi tadada.\n",
-        },
-        {
-            "char_end_idx": 145,
-            "char_start_idx": 73,
-            "key": "paragraph",
-            "type": "local",
-            "value": "paragraph 2 is in Paris tidi tadada tidi tadada tidi tadada tidi tadada.\n",
-        },
-    ]
-    par_metadata = mark_paragraph(html_metadata_with_two_ps, text)
-    assert expected_par_metadata == par_metadata
-
-
-def test_mark_paragraph_by_nested_divs():
-    """test_mark_paragraph_by_nested_divs
-
-    The test case is from :py:class:`~tests.test_preprocessing_utils.PipelinePreprocessorTester` for now.
-
-    Example:
-        html = ('<html><body><div class="div-level-1">blablabla blablabla blablabla blablabla blablabla blablabla
-                '<div class="div-level-2">tidi tidi tidi tidi</div></div></body></html>')
-    """
-
-    text = "blablabla blablabla blablabla blablabla blablabla blablabla\ntidi tidi tidi tidi\n"
-    html_metadata_with_nested_divs = [
-        {
-            "char_end_idx": 80,
-            "char_start_idx": 0,
-            "html_attrs": {"attrs": ["class"], "values": ["div-level-1 div-level-2"]},
-            "key": "html",
-            "relative_end_pos": 0,
-            "relative_start_pos": 1,
-            "type": "local",
-            "value": "div",
-        },
-        {
-            "char_end_idx": 80,
-            "char_start_idx": 0,
-            "html_attrs": {"attrs": [], "values": []},
-            "key": "html",
-            "relative_end_pos": 1,
-            "relative_start_pos": 0,
-            "type": "local",
-            "value": "body",
-        },
-    ]
-    expected_par_metadata = [
-        {
-            "char_end_idx": 80,
-            "char_start_idx": 0,
-            "key": "paragraph",
-            "type": "local",
-            "value": text,
-        },
-    ]
-    par_metadata = mark_paragraph(html_metadata_with_nested_divs, text)
-    assert expected_par_metadata == par_metadata
 
 
 if __name__ == "__main__":

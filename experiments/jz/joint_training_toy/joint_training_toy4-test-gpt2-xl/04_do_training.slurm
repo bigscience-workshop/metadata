@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name=modelling-metadata-html-joint_training_toy2-fp16
+#SBATCH --job-name=modelling-metadata-html-joint-toy-4-test-gpt2-xl
 #SBATCH --ntasks=1                    # number of MP tasks
-#SBATCH --constraint=v100-16g
+#SBATCH --constraint=v100-32g
 #SBATCH --cpus-per-task=8                                              # (change me! between 0 and 40) number of cores per tasks
 #SBATCH --hint=nomultithread                                           # we get physical cores not logical
 #SBATCH --time 01:00:00                                                # (change me! between 0 and 20h) maximum execution time (HH:MM:SS) 
@@ -49,7 +49,7 @@ REPO_DIR="${DATASETS_CUSTOM}/${myarray[-1]}"
 echo "compute_environment: LOCAL_MACHINE
 deepspeed_config: {}
 distributed_type: 'NO'
-fp16: true
+fp16: false
 machine_rank: 0
 main_process_ip: null
 main_process_port: null
@@ -58,10 +58,15 @@ num_machines: 1
 num_processes: 1
 " > accelerate_config.yaml
 
+
+# 16
 accelerate launch --config_file accelerate_config.yaml bsmetadata/train.py \
+    model_name=gpt2-xl \
+    data_config.per_device_train_batch_size=1 \
+    data_config.per_device_eval_batch_size=1 \
+    data_config.metadata_config.max_seq_len=16 \
     data_config.experiment="with_metadata" \
     data_config.metadata_config.metadata_list='[entity, timestamp, url, website_description]' \
-    data_config.metadata_config.max_seq_len=1024 \
     data_config.dataset_name="${REPO_DIR}" \
     data_config.preprocessing_num_workers=8 \
     out_dir="${SCRATCH}/metadata_outputs/${SLURM_JOB_ID}" \
@@ -69,7 +74,84 @@ accelerate launch --config_file accelerate_config.yaml bsmetadata/train.py \
     do_train=True \
     do_eval=True \
     evaluation_strategy=STEPS \
-    eval_steps=50 \
+    eval_steps=5000 \
     save_strategy=STEPS \
-    save_steps=50 \
-    gradient_accumulation_steps=2
+    save_steps=5000 \
+    gradient_accumulation_steps=1
+# 128
+accelerate launch --config_file accelerate_config.yaml bsmetadata/train.py \
+    model_name=gpt2-xl \
+    data_config.per_device_train_batch_size=1 \
+    data_config.per_device_eval_batch_size=1 \
+    data_config.metadata_config.max_seq_len=128 \
+    data_config.experiment="with_metadata" \
+    data_config.metadata_config.metadata_list='[entity, timestamp, url, website_description]' \
+    data_config.dataset_name="${REPO_DIR}" \
+    data_config.preprocessing_num_workers=8 \
+    out_dir="${SCRATCH}/metadata_outputs/${SLURM_JOB_ID}" \
+    jobid="${SLURM_JOB_ID}" \
+    do_train=True \
+    do_eval=True \
+    evaluation_strategy=STEPS \
+    eval_steps=5000 \
+    save_strategy=STEPS \
+    save_steps=5000 \
+    gradient_accumulation_steps=1
+
+# 256
+accelerate launch --config_file accelerate_config.yaml bsmetadata/train.py \
+    model_name=gpt2-xl \
+    data_config.per_device_train_batch_size=1 \
+    data_config.per_device_eval_batch_size=1 \
+    data_config.metadata_config.max_seq_len=256 \
+    data_config.experiment="with_metadata" \
+    data_config.metadata_config.metadata_list='[entity, timestamp, url, website_description]' \
+    data_config.dataset_name="${REPO_DIR}" \
+    data_config.preprocessing_num_workers=8 \
+    out_dir="${SCRATCH}/metadata_outputs/${SLURM_JOB_ID}" \
+    jobid="${SLURM_JOB_ID}" \
+    do_train=True \
+    do_eval=True \
+    evaluation_strategy=STEPS \
+    eval_steps=5000 \
+    save_strategy=STEPS \
+    save_steps=5000 \
+    gradient_accumulation_steps=1
+# 512
+accelerate launch --config_file accelerate_config.yaml bsmetadata/train.py \
+    model_name=gpt2-xl \
+    data_config.per_device_train_batch_size=1 \
+    data_config.per_device_eval_batch_size=1 \
+    data_config.metadata_config.max_seq_len=512 \
+    data_config.experiment="with_metadata" \
+    data_config.metadata_config.metadata_list='[entity, timestamp, url, website_description]' \
+    data_config.dataset_name="${REPO_DIR}" \
+    data_config.preprocessing_num_workers=8 \
+    out_dir="${SCRATCH}/metadata_outputs/${SLURM_JOB_ID}" \
+    jobid="${SLURM_JOB_ID}" \
+    do_train=True \
+    do_eval=True \
+    evaluation_strategy=STEPS \
+    eval_steps=5000 \
+    save_strategy=STEPS \
+    save_steps=5000 \
+    gradient_accumulation_steps=1
+# 1024
+accelerate launch --config_file accelerate_config.yaml bsmetadata/train.py \
+    model_name=gpt2-xl \
+    data_config.per_device_train_batch_size=1 \
+    data_config.per_device_eval_batch_size=1 \
+    data_config.metadata_config.max_seq_len=1024 \
+    data_config.experiment="with_metadata" \
+    data_config.metadata_config.metadata_list='[entity, timestamp, url, website_description]' \
+    data_config.dataset_name="${REPO_DIR}" \
+    data_config.preprocessing_num_workers=8 \
+    out_dir="${SCRATCH}/metadata_outputs/${SLURM_JOB_ID}" \
+    jobid="${SLURM_JOB_ID}" \
+    do_train=True \
+    do_eval=True \
+    evaluation_strategy=STEPS \
+    eval_steps=5000 \
+    save_strategy=STEPS \
+    save_steps=5000 \
+    gradient_accumulation_steps=1

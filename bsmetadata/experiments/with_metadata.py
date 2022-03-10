@@ -131,7 +131,7 @@ def get_dataloaders(tokenizer, args):
     metadata_type_sample_weights = {k: v / metadata_type_weight_sum for k, v in metadata_type_counter.items()}
 
     # First we pre-process our text and metadata
-    if args.metadata_config.random_drop_metadata:
+    if args.metadata_config.random_sample_metadata:
         datasets = datasets.map(
             functools.partial(random_sample_metadata, metadata_type_sample_weights=metadata_type_sample_weights),
             batched=True,

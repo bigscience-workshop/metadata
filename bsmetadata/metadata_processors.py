@@ -47,9 +47,9 @@ class MetadataConfig:
         default=": ",
         metadata={"help": "The character sequence that is used by default to separate a metadata key and its value."},
     )
-    random_drop_metadata: bool = field(
+    random_sample_metadata: bool = field(
         default=False,
-        metadata={"help": "Whether to random drop metadata, using bsmetadata.metadata_utils.random_drop_metadata."},
+        metadata={"help": "Whether to random drop metadata, using bsmetadata.metadata_utils.random_sample_metadata."},
     )
     metadata_probability: float = field(
         default=1, metadata={"help": "The probability of adding metadata to an input example."}

@@ -129,20 +129,6 @@ def get_metadata_types(metadata_list):
     return list(set(m["key"] for m in metadata_list))
 
 
-def add_metadata_types_column(
-    examples: Dict[str, List],
-) -> Dict[str, List]:
-    """Adds a column with the metadata types to the provided examples.
-    Do this in batches to speed up the process.
-    """
-    examples_metadata_types = []
-    for example_metadata_list in examples["metadata"]:
-        metadata_types = get_metadata_types(example_metadata_list)
-        example_metadata_list.append(metadata_types)
-    examples["metadata_types"] = examples_metadata_types
-    return examples
-
-
 def random_sample_metadata(
     examples: Dict[str, List],
     metadata_type_sample_weights=None,
@@ -157,8 +143,6 @@ def random_sample_metadata(
         A new collection of examples, with some metadata dropped.
     """
     new_metadata = []
-    # TODO: use previously obtained `metadata_types` and pop metadata_types column after this function
-    # for example_metadata_list, metadata_types in zip(examples["metadata"], examples["metadata_types"]):
     for example_metadata_list in examples["metadata"]:
         metadata_types = get_metadata_types(example_metadata_list)
         num_metadata_to_keep = random.randint(1, len(metadata_types))

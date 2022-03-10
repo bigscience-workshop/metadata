@@ -1,11 +1,18 @@
 import functools
 import logging
+from collections import Counter
+from itertools import chain
 
 from datasets import config, load_dataset
 from torch.utils.data import DataLoader
+from tqdm.auto import tqdm
 from transformers import default_data_collator
 
-from bsmetadata.metadata_utils import add_metadata_and_chunk_examples, random_drop_metadata
+from bsmetadata.metadata_utils import (
+    add_metadata_and_chunk_examples,
+    add_metadata_types_column,
+    random_sample_metadata,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -117,10 +124,28 @@ def get_dataloaders(tokenizer, args):
 
     logger.info("Start to add metadata and chunk examples")
 
+    # get statistics of the dataset for sampling metadata
+    datasets = datasets.map(
+        add_metadata_types_column,
+        batched=True,
+        num_proc=args.preprocessing_num_workers,
+        load_from_cache_file=not args.overwrite_cache,
+        desc="Get metadata types",
+        batch_size=args.map_batch_size,
+    )
+    metadata_type_counter = Counter(
+        chain.from_iterable(
+            x["metadata_types"]
+            for x in tqdm(datasets["train"], desc="iterate over training set to count metadata types")
+        )
+    )
+    metadata_type_weight_sum = sum(metadata_type_counter.values())
+    metadata_type_sample_weights = {k: v / metadata_type_weight_sum for k, v in metadata_type_counter.items()}
+
     # First we pre-process our text and metadata
     if args.metadata_config.random_drop_metadata:
         datasets = datasets.map(
-            random_drop_metadata,
+            functools.partial(random_sample_metadata, metadata_type_sample_weights=metadata_type_sample_weights),
             batched=True,
             num_proc=args.preprocessing_num_workers,
             load_from_cache_file=not args.overwrite_cache,

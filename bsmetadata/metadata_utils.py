@@ -18,6 +18,7 @@ from collections import defaultdict
 from dataclasses import asdict, dataclass, field
 from typing import Any, DefaultDict, Dict, List, Optional, Tuple
 
+import numpy as np
 from transformers import PreTrainedTokenizerFast
 
 from bsmetadata.metadata_processors import PROCESSORS, MetadataConfig, MetadataProcessor
@@ -128,11 +129,26 @@ def get_metadata_types(metadata_list):
     return list(set(m["key"] for m in metadata_list))
 
 
-def random_drop_metadata(
+def add_metadata_types_column(
     examples: Dict[str, List],
 ) -> Dict[str, List]:
+    """Adds a column with the metadata types to the provided examples.
+    Do this in batches to speed up the process.
+    """
+    examples_metadata_types = []
+    for example_metadata_list in examples["metadata"]:
+        metadata_types = get_metadata_types(example_metadata_list)
+        example_metadata_list.append(metadata_types)
+    examples["metadata_types"] = examples_metadata_types
+    return examples
+
+
+def random_sample_metadata(
+    examples: Dict[str, List],
+    metadata_type_sample_weights=None,
+) -> Dict[str, List]:
     """Randomly drop some of the metadata from the provided examples.
-    Uniformly decide the number of metadata types to keep. And drop the metadata uniformly.
+    Uniformly decide the number of metadata types to keep. And sample the metadata types to keep.
 
     Args:
         examples: The examples to process, with required "metadata".
@@ -141,11 +157,16 @@ def random_drop_metadata(
         A new collection of examples, with some metadata dropped.
     """
     new_metadata = []
+    # TODO: use previously obtained `metadata_types` and pop metadata_types column after this function
+    # for example_metadata_list, metadata_types in zip(examples["metadata"], examples["metadata_types"]):
     for example_metadata_list in examples["metadata"]:
         metadata_types = get_metadata_types(example_metadata_list)
-        num_metadata_to_keep = random.randint(0, len(metadata_types))
-        random.shuffle(metadata_types)
-        metadata_types = metadata_types[:num_metadata_to_keep]
+        num_metadata_to_keep = random.randint(1, len(metadata_types))
+        vec = np.arange(len(metadata_types))
+        if metadata_type_sample_weights is not None:
+            weights = np.array([metadata_type_sample_weights[m] for m in metadata_types])
+            weights = weights / weights.sum()
+        metadata_types = np.random.choice(vec, num_metadata_to_keep, replace=False, p=weights)
         new_metadata.append([m for m in example_metadata_list if m["key"] in metadata_types])
     examples["metadata"] = new_metadata
     return examples

@@ -22,7 +22,7 @@ for dependencies in preprocessing_requires.values():
 
 setup(
     name="bsmetadata",
-    python_requires=">=3.7.11, <3.10",
+    python_requires=">=3.7.11, <3.9",  # wikipedia2vec doesn't support Python 3.9
     version="0.1.0",
     url="https://github.com/bigscience-workshop/metadata.git",
     author="Multiple Authors",

@@ -1,7 +1,10 @@
-hydra_core>=1.1,<1.2  # pip will likely update it to 1.1.1, but it is probably ok and good for bugfixes.
-wandb>=0.10.32,<1  # pip will likely update it to 0.12.1, but it is probably ok and good for bugfixes.
-transformers>=4.6.0,<5  # pip will likely update it to 4.10.0, but it is probably ok and good for bugfixes.
-accelerate>=0.4.0,<1  # We may want to use 0.5.0 in the near future
-datasets[streaming]==1.17.0
-wikipedia2vec==1.0.5
+pyarrow>=7.0.0,<8       # Our custom `Features` need >=6, yet 7 is probably better for bugfixes.
+datasets==1.18.3        # Our custom `Features` need this.
+torch==1.9.0            # Technically an extra, but flair for REL only works with !=1.8.
+transformers>=4.6.0,<5  # pip will likely update it to 4.17.0, but it is probably ok and good for bugfixes.
+accelerate>=0.4.0,<1    # pip will likely update it to 0.5.1, but it is probably ok and good for bugfixes.
+hydra_core>=1.1,<1.2    # pip will likely update it to 1.1.1, but it is probably ok and good for bugfixes.
+wandb>=0.10.32,<1       # pip will likely update it to 0.12.11, but it is probably ok and good for bugfixes.
+gensim>=3.8.3,<4        # Technically secondary, but gensim>=4 breaks wikipedia2vec.
+wikipedia2vec==1.0.5    # wikipedia2vec doesn't support Python 3.9.
 nltk==3.6.7

@@ -16,7 +16,7 @@ This script provides functions for adding different kinds of metadata to a pretr
 
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List
+from typing import List
 
 import numpy as np
 import torch

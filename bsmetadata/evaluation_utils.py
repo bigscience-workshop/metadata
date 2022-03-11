@@ -11,7 +11,7 @@
 # limitations under the License.
 
 """
-This script provides functions for adding different kinds of metadata to a pretraining corpus.
+This script provides functions for evaluating different kinds of metadata.
 """
 
 import logging

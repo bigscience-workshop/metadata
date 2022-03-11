@@ -15,42 +15,38 @@ This script provides functions for adding different kinds of metadata to a pretr
 """
 
 import logging
-import numpy as np
-from typing import Any, Dict, List
-from tqdm import tqdm
-import torch
 from abc import ABC, abstractmethod
+from typing import Any, Dict, List
 
+import numpy as np
+import torch
+from tqdm import tqdm
 
 
 logger = logging.getLogger(__name__)
 
 
 def calc_ppl(sentence, model, tokenizer):
-        tokenize_input = tokenizer.encode(sentence)  
-        tensor_input = torch.tensor([tokenize_input])
-        loss=model(tensor_input, labels=tensor_input)[0]
-        return np.exp(loss.detach().numpy())
+    tokenize_input = tokenizer.encode(sentence)
+    tensor_input = torch.tensor([tokenize_input])
+    loss = model(tensor_input, labels=tensor_input)[0]
+    return np.exp(loss.detach().numpy())
+
 
 class MetadataEvaluation(ABC):
-
-    def __init__(self, model) -> None: 
+    def __init__(self, model) -> None:
         self.model = model
         self.tokenizer = model.tokenizer
-        
+
     @abstractmethod
     def evaluate(self, correct_examples: List, incorrect_examples: List) -> List:
         pass
 
-    
 
 class WebsiteDescriptionEvaluation(MetadataEvaluation):
-
-    def __init__(self, model) -> None:  
+    def __init__(self, model) -> None:
         self.model = model
         self.tokenizer = model.tokenizer
-       
-    
 
     def evaluate(self, correct_examples: List, incorrect_examples: List) -> List:
         assert len(correct_examples) == len(incorrect_examples)
@@ -58,12 +54,5 @@ class WebsiteDescriptionEvaluation(MetadataEvaluation):
         for correct_example, incorrect_example in tqdm(zip(correct_examples, incorrect_examples)):
             correct_ppl = calc_ppl(correct_example, self.model, self.tokenizer)
             incorrect_ppl = calc_ppl(incorrect_example, self.model, self.tokenizer)
-            results.append(correct_ppl<incorrect_ppl)
-        return results 
-        
-
-        
-        
-        
-
-    
+            results.append(correct_ppl < incorrect_ppl)
+        return results

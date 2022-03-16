@@ -14,6 +14,7 @@ from bsmetadata.preprocessing_utils import (
     HtmlPreprocessor,
     MetadataPreprocessor,
     TimestampPreprocessor,
+    TitlePreprocessor,
     UrlPreprocessor,
     WebsiteDescPreprocessor,
 )
@@ -470,6 +471,8 @@ class PipelinePreprocessorTester(unittest.TestCase):
             [{"key": "datasource", "type": "global", "value": "notfound.com > "}],
         ]
 
+        self.target_metadata_title = [[{"key": "title", "type": "global", "value": "My test page"}], [], [], []]
+
         self.target_head = [['<head><meta charset="utf-8"/><title>My test page</title>\n    </head>'], [], [], []]
         self.target_footer = [
             [
@@ -500,6 +503,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
         col_to_store_metadata_generation_length_text = "metadata_generation_length_text"
         col_to_store_metadata_generation_length_sentence = "metadata_generation_length_sentence"
         col_to_store_metadata_datasource = "metadata_generation_datasource"
+        col_to_store_metadata_title = "metadata_generation_title"
 
         html_processor = HtmlPreprocessor(
             col_to_store_metadata=col_to_store_metadata_html,
@@ -527,6 +531,9 @@ class PipelinePreprocessorTester(unittest.TestCase):
         datasource_preprocessor = DatasourcePreprocessor(
             col_to_store_metadata=col_to_store_metadata_datasource, col_url="url"
         )
+        title_preprocessor = TitlePreprocessor(
+            col_to_store_metadata=col_to_store_metadata_title, col_text=col_to_store_text, col_title=col_to_store_title
+        )
 
         # Apply function
         ds = Dataset.from_dict(self.init_dict)
@@ -552,6 +559,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
         ds = apply_processor(ds=ds, processor=generation_length_preprocessor_text)
         ds = apply_processor(ds=ds, processor=generation_length_preprocessor_sentence)
         ds = apply_processor(ds=ds, processor=datasource_preprocessor)
+        ds = apply_processor(ds=ds, processor=title_preprocessor)
 
         self.assertEqual(ds[:][col_to_store_text], self.target_texts)
         self.assertEqual(ds[:][col_to_store_head], self.target_head)
@@ -569,6 +577,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
             ds[:][col_to_store_metadata_generation_length_sentence], self.target_metadata_generation_length_sentence
         )
         self.assertEqual(ds[:][col_to_store_metadata_datasource], self.target_metadata_datasource)
+        self.assertEqual(ds[:][col_to_store_metadata_title], self.target_metadata_title)
 
         col_to_store_all_metadata = "metadata"
         columns_names_to_concat = [
@@ -580,6 +589,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
             col_to_store_metadata_generation_length_text,
             col_to_store_metadata_generation_length_sentence,
             col_to_store_metadata_datasource,
+            col_to_store_metadata_title,
         ]
         concat_columns_fn = concat_columns(
             columns_names_to_concat=columns_names_to_concat,
@@ -631,6 +641,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
             self.target_metadata_generation_length_text,
             self.target_metadata_generation_length_sentence,
             self.target_metadata_datasource,
+            self.target_metadata_title,
         ]:
             for id, metadata_example in enumerate(metadata_type):
                 for metadata in metadata_example:
@@ -665,6 +676,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
         col_to_store_metadata_generation_length_text = "metadata"
         col_to_store_metadata_generation_length_sentence = "metadata"
         col_to_store_metadata_datasource = "metadata"
+        col_to_store_metadata_title = "metadata"
 
         html_processor = HtmlPreprocessor(
             col_to_store_metadata=col_to_store_metadata_html,
@@ -691,6 +703,9 @@ class PipelinePreprocessorTester(unittest.TestCase):
         )
         datasource_preprocessor = DatasourcePreprocessor(
             col_to_store_metadata=col_to_store_metadata_datasource, col_url="url"
+        )
+        title_preprocessor = TitlePreprocessor(
+            col_to_store_metadata=col_to_store_metadata_title, col_text=col_to_store_text, col_title=col_to_store_title
         )
 
         features = Features(
@@ -736,6 +751,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
             features=features,
         )
         ds = ds.map(lambda ex: datasource_preprocessor.preprocess(ex), batched=True, batch_size=3, features=features)
+        ds = ds.map(lambda ex: title_preprocessor.preprocess(ex), batched=True, batch_size=3, features=features)
 
         self.assertEqual(ds[:][col_to_store_text], self.target_texts)
         self.assertEqual(ds[:][col_to_store_head], self.target_head)
@@ -832,6 +848,19 @@ class PipelinePreprocessorTester(unittest.TestCase):
                     }
                 )
                 self.assertIn(metadata, ds[id][col_to_store_metadata_datasource])
+
+        for id, metadata_example in enumerate(self.target_metadata_title):
+            for metadata in metadata_example:
+                metadata.update(
+                    {
+                        "char_end_idx": None,
+                        "char_start_idx": None,
+                        "relative_end_pos": None,
+                        "relative_start_pos": None,
+                        "html_attrs": None,
+                    }
+                )
+                self.assertIn(metadata, ds[id][col_to_store_metadata_title])
 
 
 if __name__ == "__main__":

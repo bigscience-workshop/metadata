@@ -30,7 +30,7 @@ ARROW_DATASET_DIR="/gpfsscratch/rech/six/uue59kq/new_dataset/c4-en-html-with-met
 export HF_DATASETS_OFFLINE=1
 export HF_DATASETS_CACHE=$SCRATCH/to_delete
 
-MODELING_METADATA_REPO=$WORK/repos/sync/metadata/
+MODELING_METADATA_REPO=$WORK/repos/metadata/
 
 cd $MODELING_METADATA_REPO
 

@@ -32,7 +32,7 @@ export HF_DATASETS_CACHE=$SCRATCH/to_delete
 
 METADATA_TO_INCLUDE='["entity"]'
 
-PROCESS_DIR=/gpfsscratch/rech/six/uue59kq/new_dataset/
+PROCESS_DIR=/gpfsscratch/rech/six/uue59kq/new_dataset
 DATASET_FILES_DIR=$PROCESS_DIR/c4-en-html-with-metadata-arrow
 OUT_DIR=$PROCESS_DIR/process-v2/c4-en-reduced-with-entity
 

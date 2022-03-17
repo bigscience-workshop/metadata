@@ -276,7 +276,7 @@ if __name__ == '__main__':
     logger.info(f" ===== Loading {args.dataset_path} =====")
     ds = load_dataset(
         str(args.dataset_path.parent), 
-        data_files=[f"*{args.dataset_path}"],
+        data_files=[f"*{str(args.dataset_path.name)}"],
         features = get_features(),
         split="train"
     )

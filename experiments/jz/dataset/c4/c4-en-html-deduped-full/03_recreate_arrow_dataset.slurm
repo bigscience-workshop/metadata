@@ -7,7 +7,7 @@
 #SBATCH --partition=cpu_p1
 #SBATCH --time 20:00:00              # maximum execution time (HH:MM:SS)
 #SBATCH --output=/gpfsdswork/projects/rech/six/uue59kq/logs/modelling-metadata/recreate-arrow/%j-%x.out           # output file name
-#SBATCH --array=1-1000
+#SBATCH --array=1001-2758
 #SBATCH --account=six@cpu
 
 # ===== GET DATASET ======

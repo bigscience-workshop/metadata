@@ -5,7 +5,7 @@
 #SBATCH --cpus-per-task=40         # number of cores per tasks
 #SBATCH --hint=nomultithread         # we get physical cores not logical
 #SBATCH --partition=cpu_p1
-#SBATCH --time 20:00:00              # maximum execution time (HH:MM:SS)
+#SBATCH --time 01:00:00              # maximum execution time (HH:MM:SS)
 #SBATCH --output=/gpfsdswork/projects/rech/six/uue59kq/logs/modelling-metadata/recreate-arrow/%j-%x.out           # output file name
 #SBATCH --array=1001-1501
 #SBATCH --account=six@cpu

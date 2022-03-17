@@ -297,6 +297,7 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
                 features=Features(features_dict),
                 remove_columns=remove_columns,
             )
+            logger.info(f"   Example of 1st example 100 first characters:\n    {repr(ds[0][col_to_store_text][:100])}")
             metrics_logger.log({extraction_name: 1})
             logger.info(f"End {extraction_name}")
             return ds

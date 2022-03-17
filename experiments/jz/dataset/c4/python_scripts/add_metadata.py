@@ -171,7 +171,6 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
         logger.info("   Entity...")
         entity_processor = EntityPreprocessor(
             base_url=args.entity_path_data_dir,
-            path_wiki_db=args.path_wiki_db,
             path_or_url_flair_ner_model=args.path_or_url_flair_ner_model,
             col_to_store_metadata=col_to_store_metadata_entities,
             col_text=col_to_store_text,

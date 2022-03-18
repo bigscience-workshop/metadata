@@ -76,6 +76,13 @@ class PreprocessingConfig:
         default=datasets.config.DEFAULT_MAX_BATCH_SIZE,
         metadata={"help": " Size of the batch to load in memory and write at once."},
     )
+    select_n_first_indices: Optional[int] = field(
+        default=None,
+        metadata={
+            "help": "The number of indices to process from the initial datasets. If None, the "
+            "whole dataset will be processed. Use for debugging purpose."
+        },
+    )
     use_load_from_disk: bool = field(
         default=False,
         metadata={
@@ -235,6 +242,10 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
             )["file"]
 
         metrics_logger.log({"load_dataset": 1})
+        
+        if args.select_n_first_indices:
+            logger.info(f"Extract the {args.select_n_first_indices} first indices from the dataset")
+            ds = ds.select([i for i in range(args.select_n_first_indices)])
 
         features_dict = dict(ds.features)
         logger.info(f"the initial features of the dataset are: {features_dict}")

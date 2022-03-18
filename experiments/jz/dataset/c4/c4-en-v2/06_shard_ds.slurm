@@ -24,8 +24,8 @@ LIST_DATASET=($(cat $LIST_DATASETS_FILE))
 DATASET_NAME=${LIST_DATASET[$SLURM_ARRAY_TASK_ID]%.jsonl.gz*}
 echo $DATASET_NAME
 
-JSON_DATASET_FILES="/gpfsscratch/rech/six/uue59kq/new_dataset/c4-en-html-with-metadata/"$DATASET_NAME
-ARROW_DATASET_DIR="/gpfsscratch/rech/six/uue59kq/new_dataset/c4-en-html-with-metadata-sharded/"
+ARROW_DATASET_DIR="/gpfsscratch/rech/six/uue59kq/new_dataset/c4-en-html-with-metadata-arrow/"$DATASET_NAME
+ARROW_DATASET_SHARDED_DIR="/gpfsscratch/rech/six/uue59kq/new_dataset/c4-en-html-with-metadata-sharded/"
 
 export HF_DATASETS_OFFLINE=1
 export HF_DATASETS_CACHE=$SCRATCH/to_delete
@@ -35,6 +35,6 @@ MODELING_METADATA_REPO=$WORK/repos/metadata/
 cd $MODELING_METADATA_REPO
 
 python experiments/jz/dataset/c4/python_scripts/shard_ds.py \
-    --dataset-path $JSON_DATASET_FILES \
-    --save-path $ARROW_DATASET_DIR \
+    --dataset-path $ARROW_DATASET_DIR \
+    --save-path $ARROW_DATASET_SHARDED_DIR \
     --number_shards 10 \

@@ -51,7 +51,7 @@ def save_dataset(
     num_shards,
 ):
     logger.info(f"Saving: {shard_id} / {num_shards}")
-    save_path = f"{save_split_path}--shard-id-{shard_id}--{num_shards}"
+    save_path = Path(f"{str(save_split_path)}--shard-id-{shard_id}--{num_shards}")
     if save_path.exists():
         logger.info("Shard was already saved")
         return

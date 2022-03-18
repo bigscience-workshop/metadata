@@ -7,6 +7,7 @@ from typing import List
 from datasets import Dataset, load_from_disk
 from datasets.utils.logging import set_verbosity_info
 
+
 set_verbosity_info()
 logger = logging.getLogger(__name__)
 
@@ -15,9 +16,7 @@ def get_args():
     parser = ArgumentParser()
     parser.add_argument("--dataset-path", type=str, required=True, help="Dataset path.")
     parser.add_argument("--number_shards", type=int, required=True, help="Number of shards.")
-    parser.add_argument(
-        "--save-path", type=str, required=True, help="Where to save the dataset."
-    )
+    parser.add_argument("--save-path", type=str, required=True, help="Where to save the dataset.")
     parser.add_argument("--index-slice", type=int)
     parser.add_argument("--total-number-slice", type=int)
     args = parser.parse_args()
@@ -32,6 +31,7 @@ def get_args():
         assert isinstance(args.total_number_slice, int)
     return args
 
+
 def shard_dataset(ds: Dataset, number_shards: int) -> List[Dataset]:
     if number_shards <= 1:
         return [ds]
@@ -43,6 +43,7 @@ def shard_dataset(ds: Dataset, number_shards: int) -> List[Dataset]:
         shard = ds.shard(num_shards=number_shards, index=shard_id)
         results.append(shard)
     return results
+
 
 def save_dataset(
     ds_shard,
@@ -58,9 +59,8 @@ def save_dataset(
     ds_shard.save_to_disk(
         f"{str(save_path.absolute())}.tmp",
     )
-    subprocess.run(
-        ["mv", f"{str(save_path.absolute())}.tmp", str(save_path.absolute())]
-    )
+    subprocess.run(["mv", f"{str(save_path.absolute())}.tmp", str(save_path.absolute())])
+
 
 def main():
     # Setup logging
@@ -70,13 +70,11 @@ def main():
         level=logging.INFO,
     )
     args = get_args()
-    logger.info(
-        f"** The job is runned with the following arguments: **\n{args}\n **** "
-    )
+    logger.info(f"** The job is runned with the following arguments: **\n{args}\n **** ")
 
     ds = load_from_disk(str(args.dataset_path.absolute()))
 
-    shards_per_split = shard_dataset(ds, args.number_shards) 
+    shards_per_split = shard_dataset(ds, args.number_shards)
 
     folder_name = str(args.dataset_path.name)
     save_split_path: Path = args.save_path / folder_name

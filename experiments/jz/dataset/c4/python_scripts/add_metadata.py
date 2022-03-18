@@ -90,6 +90,12 @@ class PreprocessingConfig:
             "with `load_from_disk`."
         },
     )
+    skip_if_save_file_already_exist: bool(
+        default=False,
+        metadata={
+            "help": "If true, the program will process the file if the path at which the final dataset will be saved already exist."
+        },
+    )
 
 
 class Logger:
@@ -214,6 +220,21 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
         ]
 
     def process_file(file_name: str):
+        if file_name.endswith(".jsonl.gz"):
+            out_file_name = file_name[: -len(".jsonl.gz")]
+        elif file_name.endswith(".jsonl"):
+            out_file_name = file_name[: -len(".jsonl")]
+        else:
+            out_file_name = file_name
+        out_file_name_tmp = f"tmp-{out_file_name}"
+
+        saving_path = os.path.join(args.out_dir, out_file_name)
+        saving_path_tmp = os.path.join(args.out_dir, out_file_name_tmp)
+
+        if args.skip_if_save_file_already_exist:
+            if os.path.isfile(os.path.join(saving_path, "dataset.arrow")):
+                logger.warning(f"Skipping the processing of {file_name} as the saved processed dataset already exist")
+                return
 
         logger.info(config.HF_DATASETS_CACHE)
         processing_name = (
@@ -242,7 +263,7 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
             )["file"]
 
         metrics_logger.log({"load_dataset": 1})
-        
+
         if args.select_n_first_indices:
             logger.info(f"Extract the {args.select_n_first_indices} first indices from the dataset")
             ds = ds.select([i for i in range(args.select_n_first_indices)])
@@ -296,17 +317,6 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
 
         if "datasource" in args.metadata_to_include:
             ds = apply_processor(ds=ds, processor=datasource_preprocessor)
-
-        if file_name.endswith(".jsonl.gz"):
-            out_file_name = file_name[: -len(".jsonl.gz")]
-        elif file_name.endswith(".jsonl"):
-            out_file_name = file_name[: -len(".jsonl")]
-        else:
-            out_file_name = file_name
-        out_file_name_tmp = f"tmp-{out_file_name}"
-
-        saving_path = os.path.join(args.out_dir, out_file_name)
-        saving_path_tmp = os.path.join(args.out_dir, out_file_name_tmp)
 
         logger.info(f"Save resulting dataset {ds} at {saving_path_tmp}")
         metrics_logger.log({"save_result": 0})

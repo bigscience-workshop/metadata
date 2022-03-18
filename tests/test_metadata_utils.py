@@ -69,7 +69,7 @@ class MetadataUtilsTester(unittest.TestCase):
                         "relative_end_pos": 0,
                         "type": "local",
                         "value": "b",
-                        "html_attrs": {"attrs": ["class"], "values": ["level1"]},
+                        "html_attrs": {"attrs": ["class", "id", "href"], "values": ["level1", "4", "https://test.org"]},
                         "char_start_idx": 43,
                         "char_end_idx": 53,
                     },
@@ -414,7 +414,7 @@ class MetadataUtilsTester(unittest.TestCase):
 
         self.assertEqual(
             self.tokenizer.decode(mapped_ds[0]["input_ids"]),
-            "url: https://en.wikipedia.org/wiki/Apple ||| An <b>apple [[Malus domestica]]</b> is an edible fruit produced by an <b class:level1><i class:level2>apple</i> tree</b> (Malus domestica).<|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|>",
+            "url: https://en.wikipedia.org/wiki/Apple ||| An <b>apple [[Malus domestica]]</b> is an edible fruit produced by an <b class:level1 id:4 href:https://test.org><i class:level2>apple</i> tree</b> (Malus domestica).<|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|>",
         )
         self.assertEqual(
             self.tokenizer.decode(mapped_ds[1]["input_ids"]),
@@ -455,7 +455,7 @@ class MetadataUtilsTester(unittest.TestCase):
 
         self.assertEqual(
             self.tokenizer.decode(mapped_ds[0]["input_ids"]),
-            f" url: https://en.wikipedia.org/wiki/Apple | html | entity ||| An <b>apple [[Malus domestica]]</b> is an edible fruit produced by an <b class:level1><i class:level2>apple</i> tree</b> (Malus domestica).{'<|endoftext|>'*17}",
+            f" url: https://en.wikipedia.org/wiki/Apple | html | entity ||| An <b>apple [[Malus domestica]]</b> is an edible fruit produced by an <b class:level1 id:4 href:https://test.org><i class:level2>apple</i> tree</b> (Malus domestica).{'<|endoftext|>'*7}",
         )
         self.assertEqual(
             self.tokenizer.decode(mapped_ds[1]["input_ids"]),
@@ -502,7 +502,7 @@ class MetadataUtilsTester(unittest.TestCase):
 
         self.assertEqual(
             self.tokenizer.decode(mapped_ds[0]["input_ids"]),
-            " html | entity ||| An <b>apple [[Malus domestica]]</b> is an edible fruit produced by an <b class:level1><i class:level2>apple</i> tree</b> (Malus domestica).<|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|>",
+            " html | entity ||| An <b>apple [[Malus domestica]]</b> is an edible fruit produced by an <b class:level1 id:4 href:https://test.org><i class:level2>apple</i> tree</b> (Malus domestica).<|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|>",
         )
         self.assertEqual(
             self.tokenizer.decode(mapped_ds[1]["input_ids"]),
@@ -514,7 +514,7 @@ class MetadataUtilsTester(unittest.TestCase):
         )
 
         # fmt: off
-        self.assertEqual(self.tokenizer.convert_ids_to_tokens(mapped_ds[0]["input_ids"]), ['Ġhtml', 'Ġ|', 'Ġentity', 'Ġ||', '|', 'ĠAn', 'Ġ<', 'b', '>', 'apple', 'Ġ[[', 'Mal', 'us', 'Ġdomest', 'ica', ']]', '</', 'b', '>', 'Ġis', 'Ġan', 'Ġedible', 'Ġfruit', 'Ġproduced', 'Ġby', 'Ġan', 'Ġ<', 'b', 'Ġclass', ':', 'level', '1', '><', 'i', 'Ġclass', ':', 'level', '2', '>', 'apple', '</', 'i', '>', 'Ġtree', '</', 'b', '>', 'Ġ(', 'Mal', 'us', 'Ġdomest', 'ica', ').', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>'],)
+        self.assertEqual(self.tokenizer.convert_ids_to_tokens(mapped_ds[0]["input_ids"]), ['Ġhtml', 'Ġ|', 'Ġentity', 'Ġ||', '|', 'ĠAn', 'Ġ<', 'b', '>', 'apple', 'Ġ[[', 'Mal', 'us', 'Ġdomest', 'ica', ']]', '</', 'b', '>', 'Ġis', 'Ġan', 'Ġedible', 'Ġfruit', 'Ġproduced', 'Ġby', 'Ġan', 'Ġ<', 'b', 'Ġclass', ':', 'level', '1', 'Ġid', ':', '4', 'Ġhref', ':', 'https', '://', 'test', '.', 'org', '><', 'i', 'Ġclass', ':', 'level', '2', '>', 'apple', '</', 'i', '>', 'Ġtree', '</', 'b', '>', 'Ġ(', 'Mal', 'us', 'Ġdomest', 'ica', ').', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>', '<|endoftext|>'])
         self.assertEqual(self.tokenizer.convert_ids_to_tokens(mapped_ds[1]["input_ids"]), ['Ġhtml', 'Ġ|', 'Ġentity', 'Ġ||', '|', 'ĠAn', 'Ġ<', 'b', '>', 'apple', 'Ġ[[', 'Mal', 'us', 'Ġdomest', 'ica', ']]', '</', 'b', '>', 'Ġis', 'Ġan', 'Ġedible', 'Ġfruit', 'Ġproduced', 'Ġby', 'Ġan', 'Ġ<', 'a', '></', 'a', '><', 'b', 'Ġclass', ':', 'level', '1', '><', 'b', 'Ġclass', ':', 'level', '2', '><', 'i', 'Ġclass', ':', 'level', '3', '><', 'a', '></', 'a', '>', 'apple', '</', 'i', '>', 'Ġtree', '</', 'b', '></', 'b', '>', 'Ġ(', 'Mal', 'us', 'Ġdomest', 'ica', ').'],)
         self.assertEqual(self.tokenizer.convert_ids_to_tokens(mapped_ds[2]["input_ids"]), ['Ġhtml', 'Ġ|', 'Ġentity', 'Ġ||', '|', 'ĠAn', 'Ġ<', 'b', '>', 'apple', 'Ġ[[', 'Mal', 'us', 'Ġdomest', 'ica', ']]', '</', 'b', '>', 'Ġis', 'Ġan', 'Ġedible', 'Ġfruit', 'Ġproduced', 'Ġby', 'Ġan', 'Ġ<', 'a', '></', 'a', '><', 'b', 'Ġclass', ':', 'level', '1', '><', 'b', 'Ġclass', ':', 'level', '2', '><', 'i', 'Ġclass', ':', 'level', '3', '><', 'a', '></', 'a', '>', 'apple', '</', 'i', '>', 'Ġtree', '</', 'b', '></', 'b', '>', 'Ġ(', 'Mal', 'us', 'Ġdomest', 'ica', ').'],)
         # fmt: on

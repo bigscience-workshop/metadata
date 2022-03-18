@@ -414,7 +414,7 @@ class MetadataUtilsTester(unittest.TestCase):
 
         self.assertEqual(
             self.tokenizer.decode(mapped_ds[0]["input_ids"]),
-            "url: https://en.wikipedia.org/wiki/Apple ||| An <b>apple [[Malus domestica]]</b> is an edible fruit produced by an <b class:level1 id:4 href:https://test.org><i class:level2>apple</i> tree</b> (Malus domestica).<|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|>",
+            "url: https://en.wikipedia.org/wiki/Apple ||| An <b>apple [[Malus domestica]]</b> is an edible fruit produced by an <b class:level1 id:4 href:https://test.org><i class:level2>apple</i> tree</b> (Malus domestica).<|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|>",
         )
         self.assertEqual(
             self.tokenizer.decode(mapped_ds[1]["input_ids"]),

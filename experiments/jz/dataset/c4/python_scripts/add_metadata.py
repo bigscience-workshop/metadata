@@ -90,7 +90,7 @@ class PreprocessingConfig:
             "with `load_from_disk`."
         },
     )
-    skip_if_save_file_already_exist: bool(
+    skip_if_save_file_already_exist: bool = field(
         default=False,
         metadata={
             "help": "If true, the program will process the file if the path at which the final dataset will be saved already exist."

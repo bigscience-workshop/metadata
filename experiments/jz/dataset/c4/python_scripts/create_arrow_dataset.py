@@ -123,9 +123,9 @@ if __name__ == "__main__":
 
     logger.info(f"ds info: {ds}")
 
-    logger.info(f" ===== Saving Final dataset =====")
+    logger.info(" ===== Saving Final dataset =====")
     logger.info(f"Saving to final dataset at {args.save_path}.")
     tmp_save_path = Path(args.save_path.parent, f"tmp-{args.save_path.name}")
     ds.save_to_disk(tmp_save_path)
     tmp_save_path.rename(args.save_path)
-    logger.info(f" ===== Final dataset saved successfully =====")
+    logger.info(" ===== Final dataset saved successfully =====")

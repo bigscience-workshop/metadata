@@ -24,26 +24,57 @@ from bsmetadata.preprocessing_tools import html_parser
 
 @dataclass
 class AllTagsRules:
-    attributes_to_keep: List[str] = field(default_factory=(lambda: []), metadata={"help": "TODO."})
-    txt_max_chr_len: float = field(default=-float("inf"), metadata={"help": "TODO."})
-    txt_min_chr_len: float = field(default=-float("inf"), metadata={"help": "TODO."})
-    tags_exceptions_to_txt_max_min_chr_len: List[str] = field(default_factory=(lambda: []), metadata={"help": "TODO."})
+    """Class containing rules common to all HTML tags to keep them or not"""
+
+    attributes_to_keep: List[str] = field(
+        default_factory=(lambda: []),
+        metadata={"help": "List of the html attributes that we wish to keep. If None we keep them all."},
+    )
+    txt_max_chr_len: float = field(
+        default=-float("inf"),
+        metadata={
+            "help": "A tag will not be added if its opening tag is spaced from its ending tag by a number of "
+            "characters between `txt_min_chr_len` and `txt_max_chr_len`."
+        },
+    )
+    txt_min_chr_len: float = field(
+        default=-float("inf"),
+        metadata={
+            "help": "A tag will not be added if its opening tag is spaced from its ending tag by a number of "
+            "characters between `txt_min_chr_len` and `txt_max_chr_len`."
+        },
+    )
+    tags_exceptions_to_txt_max_min_chr_len: List[str] = field(
+        default_factory=(lambda: []),
+        metadata={
+            "help": "A list of tags that would be excluded from the filter out rule using the values of "
+            "`txt_min_chr_len` and `txt_max_chr_len`."
+        },
+    )
 
 
 @dataclass
 class HTMLParserConfig:
+    """A class to store all hyperparameters for adding or not adding html metadata"""
+
     all_tags_rules: AllTagsRules = AllTagsRules()
     tags_to_remove_alone_tag_name: List[str] = field(
         default_factory=(lambda: []),
-        metadata={"help": "TODO."},
+        metadata={
+            "help": "Lists of tags that are governed by a particular rule based on the spacing of their opening and "
+            "closing tags to be kept or not in the final list. A tag will not be added if its opening tag is spaced "
+            "from its ending tag by a number of characters between the value at the same index as it in the "
+            "`tags_to_remove_alone_txt_min_chr_len` list and the corresponding value in the "
+            "`tags_to_remove_alone_txt_max_chr_len` list."
+        },
     )
     tags_to_remove_alone_txt_max_chr_len: List[float] = field(
         default_factory=(lambda: []),
-        metadata={"help": "TODO."},
+        metadata={"help": "Corresponding text length lower bound."},
     )
     tags_to_remove_alone_txt_min_chr_len: List[float] = field(
         default_factory=(lambda: []),
-        metadata={"help": "TODO."},
+        metadata={"help": "Corresponding text length upper bound."},
     )
 
 

@@ -6,13 +6,13 @@ from transformers import GPT2TokenizerFast
 
 from bsmetadata.metadata_processors import (
     PROCESSORS,
+    AllTagsRules,
     EntityProcessor,
+    HTMLParserConfig,
     HtmlProcessor,
     MetadataProcessor,
     TimestampProcessor,
     UrlProcessor,
-    HTMLParserConfig,
-    AllTagsRules
 )
 from bsmetadata.metadata_utils import (
     MetadataConfig,
@@ -71,7 +71,10 @@ class MetadataUtilsTester(unittest.TestCase):
                         "relative_end_pos": 0,
                         "type": "local",
                         "value": "b",
-                        "html_attrs": {"attrs": ["class", "id", "href"], "values": ["level1", "4", "https://test.org"]},
+                        "html_attrs": {
+                            "attrs": ["class", "id", "href"],
+                            "values": ["level1", "4", "https://test.org"],
+                        },
                         "char_start_idx": 43,
                         "char_end_idx": 53,
                     },
@@ -387,7 +390,7 @@ class MetadataUtilsTester(unittest.TestCase):
 
         self.assertEqual(mapped_ds[5]["metadata_mask"], [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ])
         # fmt: on
-        
+
     def test_add_metadata_and_chunk_examples_with_true_processor(self):
         cfg = MetadataConfig()
         cfg.metadata_list = ["url", "timestamp", "html", "entity"]
@@ -607,16 +610,16 @@ class MetadataUtilsTester(unittest.TestCase):
             "entity": "EntityOn",
         }
         cfg.html_parser_config = HTMLParserConfig(
-        AllTagsRules(
-            attributes_to_keep=["class"],
-            txt_max_chr_len=-float("inf"),
-            txt_min_chr_len=-float("inf"),
-            tags_exceptions_to_txt_max_min_chr_len=None,
-        ),
-        tags_to_remove_alone_tag_name=[],
-        tags_to_remove_alone_txt_max_chr_len=[],
-        tags_to_remove_alone_txt_min_chr_len=[],
-    )
+            AllTagsRules(
+                attributes_to_keep=["class"],
+                txt_max_chr_len=-float("inf"),
+                txt_min_chr_len=-float("inf"),
+                tags_exceptions_to_txt_max_min_chr_len=None,
+            ),
+            tags_to_remove_alone_tag_name=[],
+            tags_to_remove_alone_txt_max_chr_len=[],
+            tags_to_remove_alone_txt_min_chr_len=[],
+        )
 
         tokenizer = GPT2TokenizerFast.from_pretrained("gpt2-xl")
         tokenizer.add_tokens(

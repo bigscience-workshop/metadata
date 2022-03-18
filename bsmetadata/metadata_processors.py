@@ -221,26 +221,24 @@ class HtmlProcessor(MetadataProcessor):
     def process_local(self, metadata_attrs: Dict[str, Any]) -> Optional[Tuple[str, str]]:
         # We represent a html tag `T` by enclosing the corresponding text span with "<T>" and "</T>".
         # Example: An <b>apple</b> is an edible fruit.
-        html_node =  html_parser.objects.Metadata(
-                char_start_idx=metadata_attrs["char_start_idx"],
-                value=html_parser.objects.HtmlTag(
-                    tag=metadata_attrs["value"],
-                    attrs={
-                        attr: attr_value
-                        for attr, attr_value in zip(
-                            metadata_attrs["html_attrs"]["attrs"], metadata_attrs["html_attrs"]["values"]
-                        )
-                    },
-                ),
-                char_end_idx=metadata_attrs["char_end_idx"],
-                key=metadata_attrs["key"],
-                type=metadata_attrs["type"],
-                relative_start_pos=0, # unused
-                relative_end_pos=0, # unused
-            )
-        if self._tag_filter.drop_tag(
-           html_node
-        ):
+        html_node = html_parser.objects.Metadata(
+            char_start_idx=metadata_attrs["char_start_idx"],
+            value=html_parser.objects.HtmlTag(
+                tag=metadata_attrs["value"],
+                attrs={
+                    attr: attr_value
+                    for attr, attr_value in zip(
+                        metadata_attrs["html_attrs"]["attrs"], metadata_attrs["html_attrs"]["values"]
+                    )
+                },
+            ),
+            char_end_idx=metadata_attrs["char_end_idx"],
+            key=metadata_attrs["key"],
+            type=metadata_attrs["type"],
+            relative_start_pos=0,  # unused
+            relative_end_pos=0,  # unused
+        )
+        if self._tag_filter.drop_tag(html_node):
             return None
 
         attributes = " ".join(

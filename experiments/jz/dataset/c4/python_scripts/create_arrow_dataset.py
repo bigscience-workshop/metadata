@@ -32,7 +32,7 @@ def get_features():
         "_type": "Value"
         },
         "c4_timestamp": {
-        "dtype": "timestamp[s]",
+        "dtype": "string",
         "id": null,
         "_type": "Value"
         },

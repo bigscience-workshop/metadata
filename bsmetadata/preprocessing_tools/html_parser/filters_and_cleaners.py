@@ -50,8 +50,8 @@ class AttributeCleaner:
 class TagFilter:
     def __init__(
         self,
-        tags_to_remove_alone: Optional[List[TagToRemove]],
-        tags_to_remove_with_content: Optional[List[TagToRemoveWithContent]],
+        tags_to_remove_alone: Optional[List[TagToRemove]]=None,
+        tags_to_remove_with_content: Optional[List[TagToRemoveWithContent]]=None,
         txt_max_chr_len_alone: Optional[float] = -float("inf"),
         txt_min_chr_len_alone: Optional[float] = -float("inf"),
         tags_exceptions_alone: Optional[List[str]] = None,

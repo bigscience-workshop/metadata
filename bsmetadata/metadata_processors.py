@@ -108,14 +108,14 @@ class MetadataConfig:
     )
     html_parser_config: Optional[HTMLParserConfig] = HTMLParserConfig(
         AllTagsRules(
-            attributes_to_keep=attributes_to_keep,
-            txt_max_chr_len=txt_max_chr_len,
-            txt_min_chr_len=txt_min_chr_len,
-            tags_exceptions_to_txt_max_min_chr_len=tags_exceptions,
+            attributes_to_keep=None,
+            txt_max_chr_len=-float("inf"),
+            txt_min_chr_len=-float("inf"),
+            tags_exceptions_to_txt_max_min_chr_len=None,
         ),
-        tags_to_remove_alone_tag_name=[tag_to_remove.tag for tag_to_remove in tags_to_remove_alone],
-        tags_to_remove_alone_txt_max_chr_len=[tag_to_remove.txt_max_chr_len for tag_to_remove in tags_to_remove_alone],
-        tags_to_remove_alone_txt_min_chr_len=[tag_to_remove.txt_min_chr_len for tag_to_remove in tags_to_remove_alone],
+        tags_to_remove_alone_tag_name=[],
+        tags_to_remove_alone_txt_max_chr_len=[],
+        tags_to_remove_alone_txt_min_chr_len=[],
     )
 
 
@@ -212,17 +212,16 @@ class HtmlProcessor(MetadataProcessor):
 
         self._tag_filter = html_parser.filters_and_cleaners.TagFilter(
             tags_to_remove_alone=tags_to_remove_alone,
-            txt_min_chr_len=txt_min_chr_len,
-            txt_max_chr_len=txt_max_chr_len,
-            tags_exceptions=tags_exceptions,
+            txt_min_chr_len_alone=txt_min_chr_len,
+            txt_max_chr_len_alone=txt_max_chr_len,
+            tags_exceptions_alone=tags_exceptions,
         )
         self._attributes_to_keep = attributes_to_keep
 
     def process_local(self, metadata_attrs: Dict[str, Any]) -> Optional[Tuple[str, str]]:
         # We represent a html tag `T` by enclosing the corresponding text span with "<T>" and "</T>".
         # Example: An <b>apple</b> is an edible fruit.
-        if self._tag_filter.drop_tag(
-            html_parser.objects.Metadata(
+        html_node =  html_parser.objects.Metadata(
                 char_start_idx=metadata_attrs["char_start_idx"],
                 value=html_parser.objects.HtmlTag(
                     tag=metadata_attrs["value"],
@@ -236,7 +235,11 @@ class HtmlProcessor(MetadataProcessor):
                 char_end_idx=metadata_attrs["char_end_idx"],
                 key=metadata_attrs["key"],
                 type=metadata_attrs["type"],
+                relative_start_pos=0, # unused
+                relative_end_pos=0, # unused
             )
+        if self._tag_filter.drop_tag(
+           html_node
         ):
             return None
 

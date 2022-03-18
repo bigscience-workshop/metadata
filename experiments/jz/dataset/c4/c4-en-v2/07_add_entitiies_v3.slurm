@@ -66,5 +66,4 @@ python experiments/jz/dataset/c4/python_scripts/add_metadata.py \
     preprocessing_num_workers=$PREPROCESSING_NUM_WORKERS\
     num_files_to_process=$NUM_FILES_TO_PROCESS\
     save_batch_size=$SAVE_BATCH_SIZE\
-    use_load_from_disk=true \
-    select_n_first_indices=1
+    use_load_from_disk=true

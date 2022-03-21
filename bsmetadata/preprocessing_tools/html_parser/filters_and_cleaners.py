@@ -1,3 +1,4 @@
+import logging
 from typing import DefaultDict, List, Optional, Tuple
 
 import htmlmin
@@ -15,6 +16,9 @@ from bsmetadata.preprocessing_tools.html_parser.variables import (
     PLAIN_TEXT_SEPARATOR,
     PRE_TAG,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 class AttributeCleaner:
@@ -46,8 +50,8 @@ class AttributeCleaner:
 class TagFilter:
     def __init__(
         self,
-        tags_to_remove_alone: Optional[List[TagToRemove]],
-        tags_to_remove_with_content: Optional[List[TagToRemoveWithContent]],
+        tags_to_remove_alone: Optional[List[TagToRemove]] = None,
+        tags_to_remove_with_content: Optional[List[TagToRemoveWithContent]] = None,
         txt_max_chr_len_alone: Optional[float] = -float("inf"),
         txt_min_chr_len_alone: Optional[float] = -float("inf"),
         tags_exceptions_alone: Optional[List[str]] = None,
@@ -249,6 +253,7 @@ class TextAndMetadataCleaner:
         txt_max_chr_len_with_content: float = -float("inf"),
         txt_min_chr_len_with_content: float = -float("inf"),
         tags_exceptions_to_txt_max_min_chr_len_with_content: List[str] = None,
+        tags_sub_tree_to_isolate: List[str] = None,
     ):
         self.html_str = html_str
         self.tags_to_remove_with_content = tags_to_remove_with_content
@@ -256,9 +261,13 @@ class TextAndMetadataCleaner:
         self.attrs_to_keep = attrs_to_keep
         self.start_parsing_at_tag = start_parsing_at_tag
         self.convert_br_tag_to_breaking_line = convert_br_tag_to_breaking_line
+        self.tags_sub_tree_to_isolate = tags_sub_tree_to_isolate
 
         if self.tags_to_remove_alone is None:
             self.tags_to_remove_alone = []
+
+        if self.tags_sub_tree_to_isolate is None:
+            self.tags_sub_tree_to_isolate = []
         self.tags_to_remove_alone.extend(
             [
                 TagToRemove(FAKE_TAG_BLOCK),
@@ -291,17 +300,40 @@ class TextAndMetadataCleaner:
 
     def apply(self):
         html_str = self.html_str
-        # Traitement n°1: start the parsing at a special tags (mostly tested with <body>)
-        if self.start_parsing_at_tag is not None:
-            root = fromstring(html_str)
-            find = etree.XPath(f"//{self.start_parsing_at_tag}")
+        # Traitement n°1: isolate part of the DOM
+        additional_columns = {}
+        if self.tags_sub_tree_to_isolate:
             try:
-                new_etree = find(root)[0]
-            except IndexError:
-                raise ValueError(
+                root = fromstring(html_str)
+            except ValueError:
+                # this is not a valid HTML (begin probably with <?xml version="1.0")
+                logger.warning("This example wasn't parsed: invalid HTML")
+                return "", [], {}
+            for tag in self.tags_sub_tree_to_isolate:
+                find = etree.XPath(f"//{tag}")
+                matches = find(root)
+                html_extracted = [
+                    etree.tostring(match, encoding="UTF-8", pretty_print=False).decode("UTF-8") for match in matches
+                ]
+                additional_columns[tag] = html_extracted
+
+        # Traitement n°2: start the parsing at a special tags (mostly tested with <body>)
+        if self.start_parsing_at_tag is not None:
+            try:
+                root = fromstring(html_str)
+            except ValueError:
+                # this is not a valid HTML (begin probably with <?xml version="1.0")
+                logger.warning("This example wasn't parsed: invalid HTML")
+                return "", [], {}
+            find = etree.XPath(f"//{self.start_parsing_at_tag}")
+            matches = find(root)
+            if len(matches) == 0:
+                logger.warning(
                     f"You have asked to start parsing at the {self.start_parsing_at_tag} tag but the current example "
                     "does not contain this tag"
                 )
+                return "", [], {}
+            new_etree = matches[0]
             html_str = etree.tostring(new_etree, method="html", encoding="UTF-8", pretty_print=False).decode("UTF-8")
             if not html_str.startswith("<html>"):
                 self.tag_filter.tags_to_remove_alone.update({"html": TagToRemove("html")})
@@ -309,7 +341,7 @@ class TextAndMetadataCleaner:
                 # need to re-add html tag otherwise the fromstring` do something strange
                 html_str = f"<html>{html_str}</html>"
 
-        # Traitement n°2: [all treatments impacting the chr_idx] we removes sub-trees from the HTML + we minify the html
+        # Traitement n°3: [all treatments impacting the chr_idx] we removes sub-trees from the HTML + we minify the html
         html_str = htmlmin.minify(html_str, remove_comments=True, keep_pre=True)
 
         new_etree = fromstring(html_str)
@@ -319,7 +351,7 @@ class TextAndMetadataCleaner:
         html_str = etree.tostring(new_etree, method="html", encoding="UTF-8", pretty_print=False).decode("UTF-8")
         html_str = htmlmin.minify(html_str, keep_pre=True)
 
-        # Traitement n°3: we separate the text from the list of metadata json that we keep
+        # Traitement n°4: we separate the text from the list of metadata json that we keep
         self.metadata = []
         self._current_char_idx = 0
         self._current_num_metadata_by_idx = DefaultDict(lambda: 0)
@@ -330,7 +362,7 @@ class TextAndMetadataCleaner:
 
         self._clean_relative_pos(self.metadata)
 
-        return plain_text, self.metadata
+        return plain_text, self.metadata, additional_columns
 
     def _br_conversion(self, tag):
         if tag == "br":

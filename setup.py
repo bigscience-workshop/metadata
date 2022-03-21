@@ -13,7 +13,7 @@ preprocessing_requires = {
     "html": ["lxml==4.6.3", "htmlmin==0.1.12"],
     "entity": ["REL @ git+https://github.com/manandey/REL.git#egg=REL"],
     "timestamp": ["bs_dateutil @ git+https://github.com/cccntu/dateutil.git@2.8.5"],
-    "website_description": ["wikipedia2vec==1.0.5", "nltk==3.6.5"],
+    "website_description": ["wikipedia2vec==1.0.5", "nltk==3.6.7"],
 }
 
 preprocessing_dependencies = []
@@ -30,5 +30,5 @@ setup(
     description="Codebase for including metadata (e.g., URLs, timestamps, HTML tags) during language model pretraining.",
     packages=find_packages(),
     install_requires=install_requires,
-    extras_require={"preprocessing": preprocessing_dependencies},
+    extras_require={"preprocessing": preprocessing_dependencies, "torch": "torch==1.9.0"},  # for Flair
 )

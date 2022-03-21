@@ -17,6 +17,7 @@ def get_clean_text_and_metadata(
     txt_max_chr_len_with_content: float = -float("inf"),
     txt_min_chr_len_with_content: float = -float("inf"),
     tags_exceptions_to_txt_max_min_chr_len_with_content: List[str] = None,
+    tags_sub_tree_to_isolate: List[str] = None,
 ):
     text_and_metadata_cleaner = TextAndMetadataCleaner(
         html_str=html_str,
@@ -32,5 +33,6 @@ def get_clean_text_and_metadata(
         txt_max_chr_len_with_content=txt_max_chr_len_with_content,
         txt_min_chr_len_with_content=txt_min_chr_len_with_content,
         tags_exceptions_to_txt_max_min_chr_len_with_content=tags_exceptions_to_txt_max_min_chr_len_with_content,
+        tags_sub_tree_to_isolate=tags_sub_tree_to_isolate,
     )
     return text_and_metadata_cleaner.apply()

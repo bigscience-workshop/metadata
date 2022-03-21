@@ -226,7 +226,7 @@ def main(args: CFG) -> None:
         model.train()
         return {"perplexity": perplexity}
 
-    if not args.do_train or not args.do_eval:
+    if not args.do_train and not args.do_eval:
         return
 
     progress_bar = tqdm(range(args.max_train_steps), desc="training")
@@ -275,6 +275,7 @@ def main(args: CFG) -> None:
                 optimizer.zero_grad()
                 progress_bar.update(1)
                 completed_steps += 1
+                metrics_logger.log({"gradient_step": completed_steps})
             else:
                 continue
 
@@ -304,7 +305,7 @@ def main(args: CFG) -> None:
     metrics_logger.close()
     logger.info("Training finished")
 
-    if is_local_main_process and args.out_dir is not None:
+    if args.out_dir is not None:
         accelerator.wait_for_everyone()
         unwrapped_model = accelerator.unwrap_model(model)
         unwrapped_model.save_pretrained(args.out_dir, save_function=accelerator.save)

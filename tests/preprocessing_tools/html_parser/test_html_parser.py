@@ -93,7 +93,7 @@ def test_parse_simple_html():
     </body>
     </html>
 """
-    plain_text, metadata = get_clean_text_and_metadata(html)
+    plain_text, metadata, _ = get_clean_text_and_metadata(html)
     assert plain_text == "This is a title\n"  # the space are doe to the block contents
 
     metadata_tags = [metadata_node.value.tag for metadata_node in metadata]
@@ -122,7 +122,7 @@ def test_parse_html_remove_tag_alone():
     </html>
 """
     tags_to_remove_alone = [TagToRemove("body")]
-    plain_text, metadata = get_clean_text_and_metadata(html, tags_to_remove_alone=tags_to_remove_alone)
+    plain_text, metadata, _ = get_clean_text_and_metadata(html, tags_to_remove_alone=tags_to_remove_alone)
     assert plain_text == "This is a title\n"
 
     metadata_tags = [metadata_node.value.tag for metadata_node in metadata]
@@ -156,7 +156,9 @@ def test_parse_html_remove_tag_and_content():
     </html>
 """
     tags_to_remove_with_content = [TagToRemoveWithContent(tag="div")]
-    plain_text, metadata = get_clean_text_and_metadata(html, tags_to_remove_with_content=tags_to_remove_with_content)
+    plain_text, metadata, _ = get_clean_text_and_metadata(
+        html, tags_to_remove_with_content=tags_to_remove_with_content
+    )
     assert plain_text == (
         """This is a title
 This is a paragraph not in div
@@ -201,7 +203,7 @@ def test_parse_html_nested_example():
     </body>
     </html>
 """
-    plain_text, metadata = get_clean_text_and_metadata(html)
+    plain_text, metadata, _ = get_clean_text_and_metadata(html)
     assert plain_text == (
         """This is a title
 This is a first sub-div in div
@@ -254,7 +256,7 @@ def test_parse_html_nested_example_2():
     </body>
     </html>
 """
-    plain_text, metadata = get_clean_text_and_metadata(html)
+    plain_text, metadata, _ = get_clean_text_and_metadata(html)
     assert (
         plain_text
         == """This is a title
@@ -319,7 +321,9 @@ def test_parse_html_nested_example_max_length():
     </html>
 """
     tags_to_remove_with_content = [TagToRemoveWithContent(tag="div", content_max_char_length=6)]
-    plain_text, metadata = get_clean_text_and_metadata(html, tags_to_remove_with_content=tags_to_remove_with_content)
+    plain_text, metadata, _ = get_clean_text_and_metadata(
+        html, tags_to_remove_with_content=tags_to_remove_with_content
+    )
     assert plain_text == (
         "This is a title\n"
         "This is a sub-div in div\n"
@@ -374,7 +378,9 @@ def test_parse_html_nested_example_min_length():
     </html>
 """
     tags_to_remove_with_content = [TagToRemoveWithContent(tag="div", content_min_char_length=7, method="top-down")]
-    plain_text, metadata = get_clean_text_and_metadata(html, tags_to_remove_with_content=tags_to_remove_with_content)
+    plain_text, metadata, _ = get_clean_text_and_metadata(
+        html, tags_to_remove_with_content=tags_to_remove_with_content
+    )
     assert plain_text == ("This is a title\n" "small\n" "This is a paragraph not in div\n")
 
     metadata_tags = [metadata_node.value.tag for metadata_node in metadata]
@@ -422,7 +428,7 @@ def test_remove_all_table():
         TagToRemoveWithContent(tag="td"),
     ]
     attrs_to_keep = ["class", "id"]
-    plain_text, metadata = get_clean_text_and_metadata(
+    plain_text, metadata, _ = get_clean_text_and_metadata(
         html,
         tags_to_remove_with_content=tags_to_remove_with_content,
         attrs_to_keep=attrs_to_keep,
@@ -464,7 +470,7 @@ def test_table():
         TagToRemoveWithContent(tag="table", content_min_char_length=54),
     ]
     attrs_to_keep = ["class", "id"]
-    plain_text, metadata = get_clean_text_and_metadata(
+    plain_text, metadata, _ = get_clean_text_and_metadata(
         html,
         tags_to_remove_with_content=tags_to_remove_with_content,
         attrs_to_keep=attrs_to_keep,
@@ -501,7 +507,7 @@ def test_table_keep_everything():
         </tr>
     </tbody>
 </table></body></html>"""
-    plain_text, metadata = get_clean_text_and_metadata(
+    plain_text, metadata, _ = get_clean_text_and_metadata(
         html,
     )
     assert plain_text == "The table header\nThe table body with two columns\n"
@@ -531,7 +537,7 @@ def test_table_keep_everything():
 def test_behavior_on_corrupt_examples():
     # Corrupt 1: missing end tag value
     html = """<p> test </>"""
-    plain_text, metadata = get_clean_text_and_metadata(
+    plain_text, metadata, _ = get_clean_text_and_metadata(
         html,
         # start_parsing_at_tag=None,
     )
@@ -556,7 +562,7 @@ def test_behavior_on_corrupt_examples():
 
     # Corrupt 2: unnecessary "
     html = """<a href="http://example.com""> test </a>"""
-    plain_text, metadata = get_clean_text_and_metadata(
+    plain_text, metadata, _ = get_clean_text_and_metadata(
         html,
         # start_parsing_at_tag=None,
     )
@@ -589,7 +595,7 @@ def test_attribs():
         '<div class="div-level-1">blablabla<div class="div-level-2">tidi tidi</div></div>'
         "</body></html>"
     )
-    plain_text, metadata = get_clean_text_and_metadata(
+    plain_text, metadata, _ = get_clean_text_and_metadata(
         html,
     )
     assert plain_text == ("this is a title that we keep\n" "blablabla\n" "tidi tidi\n")
@@ -628,7 +634,7 @@ def test_remove_consecutive_tag():
         "</body></html>"
     )
     consecutive_tags_to_fold = ["div"]
-    plain_text, metadata = get_clean_text_and_metadata(html, consecutive_tags_to_fold=consecutive_tags_to_fold)
+    plain_text, metadata, _ = get_clean_text_and_metadata(html, consecutive_tags_to_fold=consecutive_tags_to_fold)
     assert plain_text == ("this is a title that we keep\n" "blablabla\n" "tidi tidi\n")
 
     metadata_tags = [metadata_node.value.tag for metadata_node in metadata]
@@ -671,7 +677,7 @@ def test_remove_consecutive_tag_with_tag_to_remove():
     )
     consecutive_tags_to_fold = ["div"]
     tags_to_remove_alone = [TagToRemove("span")]
-    plain_text, metadata = get_clean_text_and_metadata(
+    plain_text, metadata, _ = get_clean_text_and_metadata(
         html,
         consecutive_tags_to_fold=consecutive_tags_to_fold,
         tags_to_remove_alone=tags_to_remove_alone,
@@ -718,7 +724,7 @@ def test_remove_consecutive_tag_very_nested():
     )
     consecutive_tags_to_fold = ["div"]
     tags_to_remove_alone = [TagToRemove("span")]
-    plain_text, metadata = get_clean_text_and_metadata(
+    plain_text, metadata, _ = get_clean_text_and_metadata(
         html,
         consecutive_tags_to_fold=consecutive_tags_to_fold,
         tags_to_remove_alone=tags_to_remove_alone,
@@ -765,7 +771,7 @@ def test_min_len_to_include_tag():
     )
     consecutive_tags_to_fold = ["div"]
     tags_to_remove_alone = [TagToRemove("span", content_max_char_length=5)]
-    plain_text, metadata = get_clean_text_and_metadata(
+    plain_text, metadata, _ = get_clean_text_and_metadata(
         html,
         consecutive_tags_to_fold=consecutive_tags_to_fold,
         tags_to_remove_alone=tags_to_remove_alone,
@@ -811,7 +817,7 @@ def test_idx_order():
         '<div class="div-level-1" id=1><div class="div-level-2" href="http"><div class="div-level-3"> blablabla tidi <span id=3>tidi2</span></div><span id=2>this one keep his tag</span></div></div>'
         "</body></html>"
     )
-    plain_text, metadata = get_clean_text_and_metadata(
+    plain_text, metadata, _ = get_clean_text_and_metadata(
         html,
     )
 
@@ -929,7 +935,7 @@ def test_idx_order_with_br():
         '<br></br><div class="div-level-1" id=1><div class="div-level-2" href="http"><div class="div-level-3"><br> blablabla tidi <span id=3>tidi2</span></div><span id=2>this one keep his tag</span></div></div>'
         "</body></html>"
     )
-    plain_text, metadata = get_clean_text_and_metadata(
+    plain_text, metadata, _ = get_clean_text_and_metadata(
         html,
     )
 
@@ -1042,23 +1048,23 @@ def test_idx_order_with_br():
 
 def test_convert_br_tag():
     html = "<html><body>" "first line<br>" "second line" "</body></html>"
-    plain_text, metadata = get_clean_text_and_metadata(html, convert_br_tag_to_breaking_line=True)
+    plain_text, metadata, _ = get_clean_text_and_metadata(html, convert_br_tag_to_breaking_line=True)
     assert plain_text == "first line\nsecond line\n"
     assert "br" not in [html_tag.value.tag for html_tag in metadata]
 
     html = "<html><body>" "first line<br><br><br>" "second line" "</body></html>"
-    plain_text, metadata = get_clean_text_and_metadata(html, convert_br_tag_to_breaking_line=True)
+    plain_text, metadata, _ = get_clean_text_and_metadata(html, convert_br_tag_to_breaking_line=True)
     assert plain_text == "first line\n\n\nsecond line\n"
     assert "br" not in [html_tag.value.tag for html_tag in metadata]
 
     html = "<html><body>" "first line<br><br><br>" "second line" "</body></html>"
-    plain_text, metadata = get_clean_text_and_metadata(
+    plain_text, metadata, _ = get_clean_text_and_metadata(
         html,
     )
     assert plain_text == "first line\nsecond line\n"
     assert "br" in [html_tag.value.tag for html_tag in metadata]
 
     html = "<html><body>" "first line<br />" "second line" "</body></html>"
-    plain_text, metadata = get_clean_text_and_metadata(html, convert_br_tag_to_breaking_line=True)
+    plain_text, metadata, _ = get_clean_text_and_metadata(html, convert_br_tag_to_breaking_line=True)
     assert plain_text == "first line\nsecond line\n"
     assert "br" not in [html_tag.value.tag for html_tag in metadata]

@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import Optional, OrderedDict
 
+from lxml.etree import Comment
+
 
 @dataclass
 class TagToRemove:
@@ -49,7 +51,8 @@ def convert_html_metadata_dataclass_to_dict(metadata: Metadata):
             "relative_end_pos": metadata.relative_end_pos,
             # The information about the HTML tag is separated into two keys because the dictionary must have a stable
             # format between the different types of metadata
-            "value": metadata.value.tag,
+            # some tags have a value of type `cython_function_or_method` which is not supported by pyrarrow
+            "value": str(metadata.value.tag) if type(metadata.value.tag) == type(Comment) else metadata.value.tag,
             "html_attrs": metadata.value.attrs,
         }
     )

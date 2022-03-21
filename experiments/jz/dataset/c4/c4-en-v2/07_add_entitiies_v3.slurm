@@ -7,7 +7,7 @@
 #SBATCH --time 20:00:00                                                 # (change me! between 0 and 20h) maximum execution time (HH:MM:SS)
 #SBATCH --output=/gpfsdswork/projects/rech/six/uue59kq/logs/modelling-metadata/add-entities-test/%j-%x.out  
 #SBATCH --account=six@cpu                                               # account
-#SBATCH --array=0-59
+#SBATCH --array=29
 #SBATCH --partition=cpu_p1
 
 set -x -e

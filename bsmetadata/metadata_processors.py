@@ -138,6 +138,14 @@ class MetadataConfig:
         default="normal",
         metadata={"help": "The settings in which you want to use entites. Valid choices: (beg, end, normal)"},
     )
+    local_metadata_special_token_start: Optional[Dict[str, str]] = field(
+        default=None,
+        metadata={"help": "A dictionary whose keys correspond to a local metadata type and values ...."},
+    )
+    local_metadata_special_token_end: Optional[Dict[str, str]] = field(
+        default=None,
+        metadata={"help": "A dictionary whose keys correspond to a local metadata type and values..."},
+    )    
     max_seq_len: int = field(
         default=512, metadata={"help": "The maximum number of tokens to use for each training chunk."}
     )

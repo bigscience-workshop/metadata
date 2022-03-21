@@ -4,7 +4,7 @@
 #SBATCH --ntasks-per-node=1                                             # crucial - only 1 task per dist per node!
 #SBATCH --cpus-per-task=4                                               # (change me! between 0 and 48) number of cores per tasks
 #SBATCH --hint=nomultithread                                            # we get physical cores not logical
-#SBATCH --time 20:00:00                                                 # (change me! between 0 and 20h) maximum execution time (HH:MM:SS)
+#SBATCH --time 8:00:00                                                 # (change me! between 0 and 20h) maximum execution time (HH:MM:SS)
 #SBATCH --output=/gpfsdswork/projects/rech/six/uue59kq/logs/modelling-metadata/add-entities-test-retry-oom-retry/%j-%x.out  
 #SBATCH --account=six@cpu                                               # account
 #SBATCH --array=501,1401,1963,832,293,1513

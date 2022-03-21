@@ -257,44 +257,53 @@ class MetadataUtilsTester(unittest.TestCase):
                 ],
             },
             {
-                "id": "0001",  # To be used for entity_setting = "end"
-                "text": "It was a brilliant first round. You have to break down the Cuban's rhythm you can't let them get into rhythm. \nThe risk with that is Yafai has got to go him.",
+                "id": "6",  # To be used for entity_setting = "beg" and "end"
+                "text": "Hints and tips for media appearances, speaking and social media. This week; wall-to-wall politicians; Great Britain: Louis Vuitton condoms; Billy Connolly,; Lisa Dutton; Something in Common; What was I saying?: We’re all publishers; An interview with Lembit Opik; Music from The Good Suns.",
                 "metadata": [
                     {
                         "key": "entity",
                         "type": "local",
+                        "char_start_idx": 0,
+                        "char_end_idx": 289,
+                        "value": "United_Kingdom",
                         "relative_start_pos": 0,
                         "relative_end_pos": 0,
-                        "char_start_idx": 0,
-                        "char_end_idx": 109,
-                        "value": "Galal Yafai",
                     },
                     {
                         "key": "entity",
                         "type": "local",
+                        "char_start_idx": 0,
+                        "char_end_idx": 289,
+                        "value": "Louis_Vuitton",
                         "relative_start_pos": 1,
                         "relative_end_pos": 1,
+                    },
+                    {
+                        "key": "entity",
+                        "type": "local",
                         "char_start_idx": 0,
-                        "char_end_idx": 109,
-                        "value": "Cuban",
+                        "char_end_idx": 289,
+                        "value": "Billy_Connolly",
+                        "relative_start_pos": 2,
+                        "relative_end_pos": 2,
                     },
                     {
                         "key": "entity",
                         "type": "local",
-                        "relative_start_pos": 0,
-                        "relative_end_pos": 0,
-                        "char_start_idx": 111,
-                        "char_end_idx": 156,
-                        "value": "Next Para 1",
+                        "char_start_idx": 0,
+                        "char_end_idx": 289,
+                        "value": "Something_in_Common",
+                        "relative_start_pos": 3,
+                        "relative_end_pos": 3,
                     },
                     {
                         "key": "entity",
                         "type": "local",
-                        "relative_start_pos": 1,
-                        "relative_end_pos": 1,
-                        "char_start_idx": 111,
-                        "char_end_idx": 156,
-                        "value": "Next Para 2",
+                        "char_start_idx": 0,
+                        "char_end_idx": 289,
+                        "value": "Lembit_Öpik",
+                        "relative_start_pos": 4,
+                        "relative_end_pos": 4,
                     },
                 ],
             },
@@ -356,12 +365,12 @@ class MetadataUtilsTester(unittest.TestCase):
         text5, mask5 = add_local_metadata_to_text(self.examples[0], cfg)
         self.assertEqual(
             text3,
-            "It was a brilliant first round. You have to break down the Cuban's rhythm you can't let them get into rhythm. <ENTITY_CHAIN> [[Galal Yafai]] [[Cuban]] </ENTITY_CHAIN> \nThe risk with that is Yafai has got to go him <ENTITY_CHAIN> [[Next Para 1]] [[Next Para 2]] </ENTITY_CHAIN>.",
+            "Hints and tips for media appearances, speaking and social media. This week; wall-to-wall politicians; Great Britain: Louis Vuitton condoms; Billy Connolly,; Lisa Dutton; Something in Common; What was I saying?: We’re all publishers; An interview with Lembit Opik; Music from The Good Suns. <ENTITY_CHAIN> [[United_Kingdom]] [[Louis_Vuitton]] [[Billy_Connolly]] [[Something_in_Common]] [[Lembit_Öpik]] </ENTITY_CHAIN>",
         )
 
         self.assertEqual(
             text4,
-            "<ENTITY_CHAIN> [[Galal Yafai]] [[Cuban]] </ENTITY_CHAIN> It was a brilliant first round. You have to break down the Cuban's rhythm you can't let them get into rhythm. \n<ENTITY_CHAIN> [[Next Para 1]] [[Next Para 2]] </ENTITY_CHAIN> The risk with that is Yafai has got to go him.",
+            "<ENTITY_CHAIN> [[United_Kingdom]] [[Louis_Vuitton]] [[Billy_Connolly]] [[Something_in_Common]] [[Lembit_Öpik]] </ENTITY_CHAIN> Hints and tips for media appearances, speaking and social media. This week; wall-to-wall politicians; Great Britain: Louis Vuitton condoms; Billy Connolly,; Lisa Dutton; Something in Common; What was I saying?: We’re all publishers; An interview with Lembit Opik; Music from The Good Suns.",
         )
         self.assertEqual(
             text5,

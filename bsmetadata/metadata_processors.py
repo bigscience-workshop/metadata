@@ -140,11 +140,11 @@ class MetadataConfig:
     )
     local_metadata_special_token_start: Optional[Dict[str, str]] = field(
         default=None,
-        metadata={"help": "A dictionary whose keys correspond to a local metadata type and values ...."},
+        metadata={"help": "A dictionary whose keys correspond to a local metadata type and the value would be appended at the beginning, based on start index of the local metadata."},
     )
     local_metadata_special_token_end: Optional[Dict[str, str]] = field(
         default=None,
-        metadata={"help": "A dictionary whose keys correspond to a local metadata type and values..."},
+        metadata={"help": "A dictionary whose keys correspond to a local metadata type and the value would be appended at the end, based on end index of the local metadata."},
     )    
     max_seq_len: int = field(
         default=512, metadata={"help": "The maximum number of tokens to use for each training chunk."}

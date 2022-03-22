@@ -141,13 +141,13 @@ class MetadataConfig:
     local_metadata_special_token_start: Optional[Dict[str, str]] = field(
         default=None,
         metadata={
-            "help": "A dictionary whose keys correspond to a local metadata type and the value would be appended at the beginning, based on start index of the local metadata."
+            "help": "A dictionary whose keys correspond to a local metadata type and value to the associated key will be prepended to the corresponding local metadata token."
         },
     )
     local_metadata_special_token_end: Optional[Dict[str, str]] = field(
         default=None,
         metadata={
-            "help": "A dictionary whose keys correspond to a local metadata type and the value would be appended at the end, based on end index of the local metadata."
+            "help": "A dictionary whose keys correspond to a local metadata type and value to the associated key will be appended to the corresponding local metadata token."
         },
     )
     max_seq_len: int = field(

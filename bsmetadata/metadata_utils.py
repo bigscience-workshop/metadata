@@ -156,7 +156,8 @@ def random_sample_metadata(
             weights = weights / weights.sum()
         else:
             weights = None
-        metadata_types = np.random.choice(vec, num_metadata_to_keep, replace=False, p=weights)
+        metadata_types_ids = np.random.choice(vec, num_metadata_to_keep, replace=False, p=weights)
+        metadata_types = [metadata_types[i] for i in metadata_types_ids]
         new_metadata.append([m for m in example_metadata_list if m["key"] in metadata_types])
     examples["metadata"] = new_metadata
     return examples

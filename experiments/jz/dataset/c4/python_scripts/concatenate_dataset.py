@@ -68,10 +68,9 @@ def main():
     save_path: Path = args.save_path / folder_name
     save_path.mkdir(parents=True, exist_ok=True)
 
-    ds_full.save_to_disk(
-        f"{str(save_path.absolute())}.tmp",
-    )
-    subprocess.run(["mv", f"{str(save_path.absolute())}.tmp", str(save_path.absolute())])
+    tmp_save_path = Path(args.save_path.parent, f"tmp-{args.save_path.name}")
+    ds_full.save_to_disk(str(tmp_save_path.absolute()))
+    subprocess.run(["mv", str(tmp_save_path.absolute()), str(save_path.absolute())])
 
 
 if __name__ == "__main__":

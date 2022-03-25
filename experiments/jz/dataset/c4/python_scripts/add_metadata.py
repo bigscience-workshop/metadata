@@ -96,10 +96,10 @@ class PreprocessingConfig:
             "help": "If true, the program will process the file if the path at which the final dataset will be saved already exist."
         },
     )
-    possible_datasets: Optional[list] = field(
+    set_dataset: Optional[str] = field(
         default=None,
         metadata={
-            "help": "list of the possible datasets to process."
+            "help": "Name of the dataset"
         },
     )
 
@@ -214,8 +214,8 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
         )
     logger.info("Processors initialization finished")
 
-    if args.possible_datasets is not None:
-        poss_files = args.possible_datasets
+    if args.set_dataset is not None:
+        poss_files = [args.set_dataset]
     else:
         poss_files = sorted(os.listdir(args.dataset_name))
 

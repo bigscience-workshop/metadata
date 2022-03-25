@@ -46,6 +46,9 @@ SAVE_BATCH_SIZE=100
 PATH_OR_URL_FLAIR_NER_MODEL=$SCRATCH/cache_dir/flair/ner-fast/en-ner-fast-conll03-v0.4.pt
 
 LIST_DATASET=("c4-en-html_cc-main-2019-18_pq00-013--shard-id-3--10" "c4-en-html_cc-main-2019-18_pq00-046--shard-id-7--10" "c4-en-html_cc-main-2019-18_pq00-066--shard-id-5--10" "c4-en-html_cc-main-2019-18_pq00-160--shard-id-3--10" "c4-en-html_cc-main-2019-18_pq00-205--shard-id-2--10")
+DATASET_ID=$SLURM_ARRAY_TASK_ID
+DATASET_NAME=${LIST_DATASET[$SLURM_ARRAY_TASK_ID]%.jsonl.gz*}
+echo $DATASET_NAME
 
 echo "Args:"
 echo "    task_id=${SLURM_ARRAY_TASK_ID}"
@@ -70,4 +73,4 @@ python experiments/jz/dataset/c4/python_scripts/add_metadata.py \
     save_batch_size=$SAVE_BATCH_SIZE\
     use_load_from_disk=true\
     skip_if_save_file_already_exist=true\
-    possible_datasets=$LIST_DATASET
+    set_dataset=$LIST_DATASET

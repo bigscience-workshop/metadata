@@ -58,7 +58,9 @@ def main():
     
     ds_shards_list = []
     for ds_shard_path in ds_shard_paths:
-        ds_shards_list.append(load_from_disk(str(ds_shard_path)))
+        sub_ds = load_from_disk(str(ds_shard_path))
+        logger.info(f"   Example of 1st example 100 first characters:\n    {repr(sub_ds[0]["text"][:100])}")
+        ds_shards_list.append(sub_ds)
 
     ds_full = concatenate_datasets(ds_shards_list)
 

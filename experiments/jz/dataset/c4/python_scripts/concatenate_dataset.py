@@ -70,8 +70,8 @@ def main():
 
     tmp_save_path = Path(args.save_path.parent, f"tmp-{args.save_path.name}")
     ds_full.save_to_disk(str(tmp_save_path.absolute()))
-    subprocess.run(["mv", str(tmp_save_path.absolute()), str(save_path.absolute())])
-
+    tmp_save_path.rename(args.save_path)
+    logger.info(" ===== Final dataset saved successfully =====")
 
 if __name__ == "__main__":
     main()

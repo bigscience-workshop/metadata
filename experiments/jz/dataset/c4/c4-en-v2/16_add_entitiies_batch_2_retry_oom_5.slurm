@@ -7,7 +7,7 @@
 #SBATCH --time 2:00:00                                                 # (change me! between 0 and 20h) maximum execution time (HH:MM:SS)
 #SBATCH --output=/gpfsdswork/projects/rech/six/uue59kq/logs/modelling-metadata/add-entities-test-retry-oom-retry-5/%j-%x.out  
 #SBATCH --account=six@cpu                                               # account
-#SBATCH --array=0-3
+#SBATCH --array=0-2
 #SBATCH --qos=qos_cpu-dev
 
 set -x -e
@@ -45,9 +45,9 @@ SAVE_BATCH_SIZE=100
 
 PATH_OR_URL_FLAIR_NER_MODEL=$SCRATCH/cache_dir/flair/ner-fast/en-ner-fast-conll03-v0.4.pt
 
-declare -a LIST_DATASET=("c4-en-html_cc-main-2019-18_pq00-046--shard-id-7--10" "c4-en-html_cc-main-2019-18_pq00-066--shard-id-5--10" "c4-en-html_cc-main-2019-18_pq00-160--shard-id-3--10" "c4-en-html_cc-main-2019-18_pq00-205--shard-id-2--10")
 DATASET_ID=$SLURM_ARRAY_TASK_ID
-DATASET_NAME=${LIST_DATASET[$SLURM_ARRAY_TASK_ID]}
+declare -a LIST_DATASET=("c4-en-html_cc-main-2019-18_pq00-066--shard-id-5--10" "c4-en-html_cc-main-2019-18_pq00-160--shard-id-3--10" "c4-en-html_cc-main-2019-18_pq00-205--shard-id-2--10")
+DATASET_NAME=${LIST_DATASET[$DATASET_ID]}
 echo $DATASET_NAME
 
 echo "Args:"

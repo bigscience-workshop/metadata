@@ -19,7 +19,7 @@ set -x -e
 # If there are new dependencies to install, you have to tell me about them and not do it in this script
 source $HOME/start-modelling-metadata-user
 
-cd $WORK/repos/sync/metadata/
+cd $WORK/repos/metadata/
 
 # We are on an offline partition
 export FLAIR_CACHE_ROOT=$SCRATCH/cache_dir/flair

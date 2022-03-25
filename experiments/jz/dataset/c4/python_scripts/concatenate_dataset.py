@@ -57,9 +57,10 @@ def main():
         assert len(ds_shard_paths) == args.number_shards
     
     ds_shards_list = []
-    for ds_shard_path in ds_shard_paths:
+    col_to_store_text = "text"
+    for id_shard, ds_shard_path in enumerate(ds_shard_paths):
         sub_ds = load_from_disk(str(ds_shard_path))
-        logger.info(f"   Example of 1st example 100 first characters:\n    {repr(sub_ds[0]["text"][:100])}")
+        logger.info(f"   Example of 1st example 100 first characters of shard n°{id_shard}:\n    {repr(sub_ds[0][col_to_store_text][:100])}")
         ds_shards_list.append(sub_ds)
 
     ds_full = concatenate_datasets(ds_shards_list)

@@ -9,6 +9,7 @@
 #SBATCH --output=/gpfsdswork/projects/rech/six/uue59kq/logs/modelling-metadata/concatenate-arrow/%j-%x.out           # output file name
 #SBATCH --array=0
 #SBATCH --account=six@cpu
+#SBATCH --qos=qos_cpu-dev
 
 # ===== GET DATASET ======
 

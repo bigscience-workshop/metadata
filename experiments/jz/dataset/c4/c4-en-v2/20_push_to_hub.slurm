@@ -14,7 +14,7 @@ set -x -e
 
 source $HOME/start-modelling-metadata-user
 
-cd $SCRATCH/new_dataset/c4-en-html-deduped-processed/c4-en-html-with-metadata
+cd $SCRATCH/new_dataset/c4-en-html-with-metadata
 
 git status
 

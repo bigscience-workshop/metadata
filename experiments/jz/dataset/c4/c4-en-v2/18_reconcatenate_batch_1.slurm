@@ -7,7 +7,7 @@
 #SBATCH --partition=cpu_p1
 #SBATCH --time 01:00:00              # maximum execution time (HH:MM:SS)
 #SBATCH --output=/gpfsdswork/projects/rech/six/uue59kq/logs/modelling-metadata/concatenate-arrow/%j-%x.out           # output file name
-#SBATCH --array=0-250
+#SBATCH --array=0-5
 #SBATCH --account=six@cpu
 #SBATCH --qos=qos_cpu-dev
 

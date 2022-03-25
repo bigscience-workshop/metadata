@@ -66,11 +66,10 @@ def main():
 
     folder_name = args.dataset_name
     save_path: Path = args.save_path / folder_name
-    save_path.mkdir(parents=True, exist_ok=True)
 
-    tmp_save_path = Path(args.save_path.parent, f"tmp-{args.save_path.name}")
+    tmp_save_path = Path(save_path.parent, f"tmp-{save_path.name}")
     ds_full.save_to_disk(str(tmp_save_path.absolute()))
-    tmp_save_path.rename(args.save_path)
+    tmp_save_path.rename(save_path)
     logger.info(" ===== Final dataset saved successfully =====")
 
 if __name__ == "__main__":

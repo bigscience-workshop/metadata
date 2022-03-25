@@ -96,6 +96,12 @@ class PreprocessingConfig:
             "help": "If true, the program will process the file if the path at which the final dataset will be saved already exist."
         },
     )
+    possible_datasets: Optional[list] = field(
+        default=None,
+        metadata={
+            "help": "list of the possible datasets to process."
+        },
+    )
 
 
 class Logger:
@@ -208,7 +214,10 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
         )
     logger.info("Processors initialization finished")
 
-    poss_files = sorted(os.listdir(args.dataset_name))
+    if args.possible_datasets is not None:
+        poss_files = args.possible_datasets
+    else:
+        poss_files = sorted(os.listdir(args.dataset_name))
 
     if args.use_load_from_disk:
         poss_files = [file_name for file_name in poss_files if file_name.startswith("c4-en-html")]

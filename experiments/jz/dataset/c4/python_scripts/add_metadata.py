@@ -336,9 +336,11 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
         logger.info(f"Processing of {file_name} ended successfully")
         metrics_logger.log({processing_name: 1})
 
-    for file_name in poss_files[
-        args.task_id * args.num_files_to_process : args.task_id * args.num_files_to_process + args.num_files_to_process
-    ]:
+    if args.set_dataset is None:
+        poss_files = poss_files[
+            args.task_id * args.num_files_to_process : args.task_id * args.num_files_to_process + args.num_files_to_process
+        ]
+    for file_name in poss_files:
         logger.info(f"Start to process {file_name}")
         process_file(file_name=file_name)
 

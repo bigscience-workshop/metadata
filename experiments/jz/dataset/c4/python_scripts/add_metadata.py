@@ -98,9 +98,7 @@ class PreprocessingConfig:
     )
     set_dataset: Optional[str] = field(
         default=None,
-        metadata={
-            "help": "Name of the dataset"
-        },
+        metadata={"help": "Name of the dataset"},
     )
 
 
@@ -338,7 +336,8 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
 
     if args.set_dataset is None:
         poss_files = poss_files[
-            args.task_id * args.num_files_to_process : args.task_id * args.num_files_to_process + args.num_files_to_process
+            args.task_id * args.num_files_to_process : args.task_id * args.num_files_to_process
+            + args.num_files_to_process
         ]
     for file_name in poss_files:
         logger.info(f"Start to process {file_name}")

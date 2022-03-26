@@ -1,11 +1,11 @@
-import os
 import logging
+import os
 import subprocess
 from argparse import ArgumentParser
 from pathlib import Path
 from typing import List
 
-from datasets import load_from_disk, concatenate_datasets
+from datasets import concatenate_datasets, load_from_disk
 from datasets.utils.logging import set_verbosity_info
 
 
@@ -34,7 +34,6 @@ def save_dataset(
     if save_path.exists():
         logger.info("Shard was already saved")
         return
-    
 
 
 def main():
@@ -55,12 +54,14 @@ def main():
 
     if args.number_shards is not None:
         assert len(ds_shard_paths) == args.number_shards
-    
+
     ds_shards_list = []
     col_to_store_text = "text"
     for id_shard, ds_shard_path in enumerate(ds_shard_paths):
         sub_ds = load_from_disk(str(ds_shard_path))
-        logger.info(f"   Example of 1st example 100 first characters of shard n°{id_shard}:\n    {repr(sub_ds[0][col_to_store_text][:100])}")
+        logger.info(
+            f"   Example of 1st example 100 first characters of shard n°{id_shard}:\n    {repr(sub_ds[0][col_to_store_text][:100])}"
+        )
         ds_shards_list.append(sub_ds)
 
     ds_full = concatenate_datasets(ds_shards_list)
@@ -75,11 +76,13 @@ def main():
     tmp_save_path.rename(save_path)
     logger.info(" ===== Final dataset saved successfully =====")
 
+
 if __name__ == "__main__":
     main()
 
-from pathlib import Path
 import os
+from pathlib import Path
+
 
 dir_dataset_path = Path("/gpfsscratch/rech/six/uue59kq/new_dataset/process-v2/c4-en-sharded-with-entity")
 dataset_name = "c4-en-html_cc-main-2019-18_pq00-205"

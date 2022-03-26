@@ -18,20 +18,20 @@ cd $SCRATCH/new_dataset/c4-en-html-with-metadata
 
 git status
 
-start_time=$SECONDS
-git add -v *.gz
-elapsed=$(( SECONDS - start_time ))
-echo "Git add took: "$elapsed" s"
+# start_time=$SECONDS
+# git add -v *.gz
+# elapsed=$(( SECONDS - start_time ))
+# echo "Git add took: "$elapsed" s"
 
-start_time=$SECONDS
-git add -v dataset_entities_info.json
-elapsed=$(( SECONDS - start_time ))
-echo "Git add took: "$elapsed" s"
+# start_time=$SECONDS
+# git add -v dataset_entities_info.json
+# elapsed=$(( SECONDS - start_time ))
+# echo "Git add took: "$elapsed" s"
 
-start_time=$SECONDS
-git commit -v -m "add dataset with entities"
-elapsed=$(( SECONDS - start_time ))
-echo "Git commit took: "$elapsed" s"
+# start_time=$SECONDS
+# git commit -v -m "add dataset with entities"
+# elapsed=$(( SECONDS - start_time ))
+# echo "Git commit took: "$elapsed" s"
 
 start_time=$SECONDS
 git push

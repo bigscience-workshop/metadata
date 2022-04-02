@@ -1,5 +1,7 @@
 pyarrow>=7.0.0,<8       # Our custom `Features` need >=6, yet 7 is probably better for bugfixes.
-datasets==1.18.3        # Our custom `Features` need this.
+pandas<1.4; python_version < '3.8'
+pandas>=1.4; python_version >= '3.8'
+datasets>=1.18.4,<2     # Our custom `Features` need this.
 torch==1.9.0            # Technically an extra, but flair for REL only works with !=1.8.
 transformers>=4.6.0,<5  # pip will likely update it to 4.17.0, but it is probably ok and good for bugfixes.
 accelerate>=0.4.0,<1    # pip will likely update it to 0.5.1, but it is probably ok and good for bugfixes.

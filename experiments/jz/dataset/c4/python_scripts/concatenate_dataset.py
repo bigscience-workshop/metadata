@@ -1,9 +1,7 @@
 import logging
 import os
-import subprocess
 from argparse import ArgumentParser
 from pathlib import Path
-from typing import List
 
 from datasets import concatenate_datasets, load_from_disk
 from datasets.utils.logging import set_verbosity_info
@@ -79,10 +77,6 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-import os
-from pathlib import Path
-
 
 dir_dataset_path = Path("/gpfsscratch/rech/six/uue59kq/new_dataset/process-v2/c4-en-sharded-with-entity")
 dataset_name = "c4-en-html_cc-main-2019-18_pq00-205"

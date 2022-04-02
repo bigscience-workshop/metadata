@@ -63,137 +63,139 @@ class WebsiteDescPreprocessorTester(unittest.TestCase):
         self.assertEqual(ds[:]["metadata"], target_metadata)
 
 
+class HtmlToyData:
+    # Define toy data
+    my_dict = {
+        "doc_html": [
+            "\n    <html>\n    <head>\n    </head>\n    <body>\n    <h1>This is a title</h1>\n   with some additional text to reach 64 characters tidi tadada tidi tadada tidi tadada </body>\n    </html>\n",
+            "<html><body><p>this is a simple paragraph with Obama and Merkel mentioned. tidi tadada tidi tadada tidi tadada tidi tadada tidi tadada</p></body></html>",
+            "<html><body><p id=1>paragraph 1 tidi tadada tidi tadada tidi tadada tidi tadada tidi tadada.</p><p id=2>paragraph 2 is in Paris tidi tadada tidi tadada tidi tadada tidi tadada.</p></body></html>",
+            '<html><body><div class="div-level-1">blablabla blablabla blablabla blablabla blablabla blablabla<div class="div-level-2">tidi tidi tidi tidi</div></div></body></html>',
+        ],
+        "metadata": [[], [], [], []],
+    }
+
+    # Define target values
+    target_texts = [
+        "This is a title\nwith some additional text to reach 64 characters tidi tadada tidi tadada tidi tadada\n",
+        "this is a simple paragraph with Obama and Merkel mentioned. tidi tadada tidi tadada tidi tadada tidi tadada tidi tadada\n",
+        "paragraph 1 tidi tadada tidi tadada tidi tadada tidi tadada tidi tadada.\nparagraph 2 is in Paris tidi tadada tidi tadada tidi tadada tidi tadada.\n",
+        "blablabla blablabla blablabla blablabla blablabla blablabla\ntidi tidi tidi tidi\n",
+    ]
+
+    target_metadata = [
+        [
+            {
+                "char_end_idx": 15,
+                "char_start_idx": 0,
+                "html_attrs": {"attrs": [], "values": []},
+                "key": "html",
+                "relative_end_pos": 0,
+                "relative_start_pos": 1,
+                "type": "local",
+                "value": "h1",
+            },
+            {
+                "char_end_idx": 101,
+                "char_start_idx": 0,
+                "html_attrs": {"attrs": [], "values": []},
+                "key": "html",
+                "relative_end_pos": 0,
+                "relative_start_pos": 0,
+                "type": "local",
+                "value": "body",
+            },
+        ],
+        [
+            {
+                "char_end_idx": 119,
+                "char_start_idx": 0,
+                "html_attrs": {"attrs": [], "values": []},
+                "key": "html",
+                "relative_end_pos": 0,
+                "relative_start_pos": 1,
+                "type": "local",
+                "value": "p",
+            },
+            {
+                "char_end_idx": 120,
+                "char_start_idx": 0,
+                "html_attrs": {"attrs": [], "values": []},
+                "key": "html",
+                "relative_end_pos": 0,
+                "relative_start_pos": 0,
+                "type": "local",
+                "value": "body",
+            },
+        ],
+        [
+            {
+                "char_end_idx": 72,
+                "char_start_idx": 0,
+                "html_attrs": {"attrs": ["id"], "values": ["1"]},
+                "key": "html",
+                "relative_end_pos": 0,
+                "relative_start_pos": 1,
+                "type": "local",
+                "value": "p",
+            },
+            {
+                "char_end_idx": 145,
+                "char_start_idx": 73,
+                "html_attrs": {"attrs": ["id"], "values": ["2"]},
+                "key": "html",
+                "relative_end_pos": 0,
+                "relative_start_pos": 0,
+                "type": "local",
+                "value": "p",
+            },
+            {
+                "char_end_idx": 146,
+                "char_start_idx": 0,
+                "html_attrs": {"attrs": [], "values": []},
+                "key": "html",
+                "relative_end_pos": 0,
+                "relative_start_pos": 0,
+                "type": "local",
+                "value": "body",
+            },
+        ],
+        [
+            {
+                "char_end_idx": 80,
+                "char_start_idx": 0,
+                "html_attrs": {"attrs": ["class"], "values": ["div-level-1 div-level-2"]},
+                "key": "html",
+                "relative_end_pos": 0,
+                "relative_start_pos": 1,
+                "type": "local",
+                "value": "div",
+            },
+            {
+                "char_end_idx": 80,
+                "char_start_idx": 0,
+                "html_attrs": {"attrs": [], "values": []},
+                "key": "html",
+                "relative_end_pos": 1,
+                "relative_start_pos": 0,
+                "type": "local",
+                "value": "body",
+            },
+        ],
+    ]
+
+
 class HtmlPreprocessorTester(unittest.TestCase):
     def setUp(self) -> None:
         self.html_processor = HtmlPreprocessor()
 
     def test_toy_dataset(self):
-        # Define toy data
-        my_dict = {
-            "doc_html": [
-                "\n    <html>\n    <head>\n    </head>\n    <body>\n    <h1>This is a title</h1>\n   with some additional text to reach 64 characters tidi tadada tidi tadada tidi tadada </body>\n    </html>\n",
-                "<html><body><p>this is a simple paragraph with Obama and Merkel mentioned. tidi tadada tidi tadada tidi tadada tidi tadada tidi tadada</p></body></html>",
-                "<html><body><p id=1>paragraph 1 tidi tadada tidi tadada tidi tadada tidi tadada tidi tadada.</p><p id=2>paragraph 2 is in Paris tidi tadada tidi tadada tidi tadada tidi tadada.</p></body></html>",
-                '<html><body><div class="div-level-1">blablabla blablabla blablabla blablabla blablabla blablabla<div class="div-level-2">tidi tidi tidi tidi</div></div></body></html>',
-            ],
-            "metadata": [[], [], [], []],
-        }
-
-        # Define target values
-        target_texts = [
-            "This is a title\nwith some additional text to reach 64 characters tidi tadada tidi tadada tidi tadada\n",
-            "this is a simple paragraph with Obama and Merkel mentioned. tidi tadada tidi tadada tidi tadada tidi tadada tidi tadada\n",
-            "paragraph 1 tidi tadada tidi tadada tidi tadada tidi tadada tidi tadada.\nparagraph 2 is in Paris tidi tadada tidi tadada tidi tadada tidi tadada.\n",
-            "blablabla blablabla blablabla blablabla blablabla blablabla\ntidi tidi tidi tidi\n",
-        ]
-
-        target_metadata = [
-            [
-                {
-                    "char_end_idx": 15,
-                    "char_start_idx": 0,
-                    "html_attrs": {"attrs": [], "values": []},
-                    "key": "html",
-                    "relative_end_pos": 0,
-                    "relative_start_pos": 1,
-                    "type": "local",
-                    "value": "h1",
-                },
-                {
-                    "char_end_idx": 101,
-                    "char_start_idx": 0,
-                    "html_attrs": {"attrs": [], "values": []},
-                    "key": "html",
-                    "relative_end_pos": 0,
-                    "relative_start_pos": 0,
-                    "type": "local",
-                    "value": "body",
-                },
-            ],
-            [
-                {
-                    "char_end_idx": 119,
-                    "char_start_idx": 0,
-                    "html_attrs": {"attrs": [], "values": []},
-                    "key": "html",
-                    "relative_end_pos": 0,
-                    "relative_start_pos": 1,
-                    "type": "local",
-                    "value": "p",
-                },
-                {
-                    "char_end_idx": 120,
-                    "char_start_idx": 0,
-                    "html_attrs": {"attrs": [], "values": []},
-                    "key": "html",
-                    "relative_end_pos": 0,
-                    "relative_start_pos": 0,
-                    "type": "local",
-                    "value": "body",
-                },
-            ],
-            [
-                {
-                    "char_end_idx": 72,
-                    "char_start_idx": 0,
-                    "html_attrs": {"attrs": ["id"], "values": ["1"]},
-                    "key": "html",
-                    "relative_end_pos": 0,
-                    "relative_start_pos": 1,
-                    "type": "local",
-                    "value": "p",
-                },
-                {
-                    "char_end_idx": 145,
-                    "char_start_idx": 73,
-                    "html_attrs": {"attrs": ["id"], "values": ["2"]},
-                    "key": "html",
-                    "relative_end_pos": 0,
-                    "relative_start_pos": 0,
-                    "type": "local",
-                    "value": "p",
-                },
-                {
-                    "char_end_idx": 146,
-                    "char_start_idx": 0,
-                    "html_attrs": {"attrs": [], "values": []},
-                    "key": "html",
-                    "relative_end_pos": 0,
-                    "relative_start_pos": 0,
-                    "type": "local",
-                    "value": "body",
-                },
-            ],
-            [
-                {
-                    "char_end_idx": 80,
-                    "char_start_idx": 0,
-                    "html_attrs": {"attrs": ["class"], "values": ["div-level-1 div-level-2"]},
-                    "key": "html",
-                    "relative_end_pos": 0,
-                    "relative_start_pos": 1,
-                    "type": "local",
-                    "value": "div",
-                },
-                {
-                    "char_end_idx": 80,
-                    "char_start_idx": 0,
-                    "html_attrs": {"attrs": [], "values": []},
-                    "key": "html",
-                    "relative_end_pos": 1,
-                    "relative_start_pos": 0,
-                    "type": "local",
-                    "value": "body",
-                },
-            ],
-        ]
-
         # Apply function
-        ds = Dataset.from_dict(my_dict)
+        ds = Dataset.from_dict(HtmlToyData.my_dict)
         ds = ds.map(lambda ex: self.html_processor.preprocess(ex), batched=True, batch_size=3)
 
-        self.assertEqual(ds[:]["text"], target_texts)
-        self.assertEqual(ds[:]["metadata"], target_metadata)
+        self.assertEqual(ds[:]["text"], HtmlToyData.target_texts)
+        self.assertEqual(ds[:]["metadata"], HtmlToyData.target_metadata)
 
 
 def mock_fetch_mention_predictions(self, examples):

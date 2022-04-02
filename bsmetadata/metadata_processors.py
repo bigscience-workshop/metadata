@@ -19,6 +19,64 @@ from urllib.parse import unquote_plus
 
 from dateutil.parser import parse
 
+from bsmetadata.preprocessing_tools import html_parser
+
+
+@dataclass
+class AllTagsRules:
+    """Class containing rules common to all HTML tags to keep them or not"""
+
+    attributes_to_keep: List[str] = field(
+        default_factory=(lambda: []),
+        metadata={"help": "List of the html attributes that we wish to keep. If None we keep them all."},
+    )
+    txt_max_chr_len: float = field(
+        default=-float("inf"),
+        metadata={
+            "help": "A tag will not be added if its opening tag is spaced from its ending tag by a number of "
+            "characters between `txt_min_chr_len` and `txt_max_chr_len`."
+        },
+    )
+    txt_min_chr_len: float = field(
+        default=-float("inf"),
+        metadata={
+            "help": "A tag will not be added if its opening tag is spaced from its ending tag by a number of "
+            "characters between `txt_min_chr_len` and `txt_max_chr_len`."
+        },
+    )
+    tags_exceptions_to_txt_max_min_chr_len: List[str] = field(
+        default_factory=(lambda: []),
+        metadata={
+            "help": "A list of tags that would be excluded from the filter out rule using the values of "
+            "`txt_min_chr_len` and `txt_max_chr_len`."
+        },
+    )
+
+
+@dataclass
+class HTMLParserConfig:
+    """A class to store all hyperparameters for adding or not adding html metadata"""
+
+    all_tags_rules: AllTagsRules = AllTagsRules()
+    tags_to_remove_alone_tag_name: List[str] = field(
+        default_factory=(lambda: []),
+        metadata={
+            "help": "Lists of tags that are governed by a particular rule based on the spacing of their opening and "
+            "closing tags to be kept or not in the final list. A tag will not be added if its opening tag is spaced "
+            "from its ending tag by a number of characters between the value at the same index as it in the "
+            "`tags_to_remove_alone_txt_min_chr_len` list and the corresponding value in the "
+            "`tags_to_remove_alone_txt_max_chr_len` list."
+        },
+    )
+    tags_to_remove_alone_txt_max_chr_len: List[float] = field(
+        default_factory=(lambda: []),
+        metadata={"help": "Corresponding text length lower bound."},
+    )
+    tags_to_remove_alone_txt_min_chr_len: List[float] = field(
+        default_factory=(lambda: []),
+        metadata={"help": "Corresponding text length upper bound."},
+    )
+
 
 @dataclass
 class MetadataConfig:
@@ -78,6 +136,17 @@ class MetadataConfig:
     )
     max_seq_len: int = field(
         default=512, metadata={"help": "The maximum number of tokens to use for each training chunk."}
+    )
+    html_parser_config: Optional[HTMLParserConfig] = HTMLParserConfig(
+        AllTagsRules(
+            attributes_to_keep=None,
+            txt_max_chr_len=-float("inf"),
+            txt_min_chr_len=-float("inf"),
+            tags_exceptions_to_txt_max_min_chr_len=None,
+        ),
+        tags_to_remove_alone_tag_name=[],
+        tags_to_remove_alone_txt_max_chr_len=[],
+        tags_to_remove_alone_txt_min_chr_len=[],
     )
 
 
@@ -150,12 +219,63 @@ class EntityProcessor(MetadataProcessor):
 class HtmlProcessor(MetadataProcessor):
     """An example metadata processor for HTMl tags."""
 
+    def __init__(
+        self,
+        cfg: MetadataConfig,
+    ):
+        """
+        Args:
+            cfg: The data configuration to use.
+        """
+        super().__init__(cfg)
+        attributes_to_keep = cfg.html_parser_config.all_tags_rules.attributes_to_keep
+        txt_max_chr_len = cfg.html_parser_config.all_tags_rules.txt_max_chr_len
+        txt_min_chr_len = cfg.html_parser_config.all_tags_rules.txt_min_chr_len
+        tags_exceptions = cfg.html_parser_config.all_tags_rules.tags_exceptions_to_txt_max_min_chr_len
+        tags_to_remove_alone = [
+            html_parser.objects.TagToRemove(tag=tag, txt_max_chr_len=txt_max_chr_len, txt_min_chr_len=txt_min_chr_len)
+            for (tag, txt_max_chr_len, txt_min_chr_len) in zip(
+                cfg.html_parser_config.tags_to_remove_alone_tag_name,
+                cfg.html_parser_config.tags_to_remove_alone_txt_max_chr_len,
+                cfg.html_parser_config.tags_to_remove_alone_txt_min_chr_len,
+            )
+        ]
+
+        self._tag_filter = html_parser.filters_and_cleaners.TagFilter(
+            tags_to_remove_alone=tags_to_remove_alone,
+            txt_min_chr_len_alone=txt_min_chr_len,
+            txt_max_chr_len_alone=txt_max_chr_len,
+            tags_exceptions_alone=tags_exceptions,
+        )
+        self._attributes_to_keep = attributes_to_keep
+
     def process_local(self, metadata_attrs: Dict[str, Any]) -> Optional[Tuple[str, str]]:
         # We represent a html tag `T` by enclosing the corresponding text span with "<T>" and "</T>".
         # Example: An <b>apple</b> is an edible fruit.
+        html_node = html_parser.objects.Metadata(
+            char_start_idx=metadata_attrs["char_start_idx"],
+            value=html_parser.objects.HtmlTag(
+                tag=metadata_attrs["value"],
+                attrs={
+                    attr: attr_value
+                    for attr, attr_value in zip(
+                        metadata_attrs["html_attrs"]["attrs"], metadata_attrs["html_attrs"]["values"]
+                    )
+                },
+            ),
+            char_end_idx=metadata_attrs["char_end_idx"],
+            key=metadata_attrs["key"],
+            type=metadata_attrs["type"],
+            relative_start_pos=0,  # unused
+            relative_end_pos=0,  # unused
+        )
+        if self._tag_filter.drop_tag(html_node):
+            return None
+
         attributes = " ".join(
             f"{attr}:{value}"
             for attr, value in zip(metadata_attrs["html_attrs"]["attrs"], metadata_attrs["html_attrs"]["values"])
+            if (self._attributes_to_keep is None or attr in self._attributes_to_keep)
         )
         if attributes:
             attributes = " " + attributes

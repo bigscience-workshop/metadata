@@ -643,7 +643,14 @@ class PipelinePreprocessorTester(unittest.TestCase):
                     ]:
                         if potential_missing_key in metadata:
                             continue
-                        metadata[potential_missing_key] = None
+                        elif "html_attrs" == potential_missing_key:
+                            # pyarrow>=7 is more rigorous on this
+                            metadata[potential_missing_key] = {
+                                "attrs": [],
+                                "values": [],
+                            }
+                        else:
+                            metadata[potential_missing_key] = None
                     self.assertIn(metadata, ds[id][col_to_store_all_metadata])
 
     @mock.patch("bsmetadata.preprocessing_tools.wikipedia_desc_utils.DumpDB")
@@ -754,7 +761,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
                         "char_start_idx": None,
                         "relative_end_pos": None,
                         "relative_start_pos": None,
-                        "html_attrs": None,
+                        "html_attrs": {"attrs": [], "values": []},  # pyarrow>=7 is more rigorous on this
                     }
                 )
                 self.assertIn(metadata, ds[id][col_to_store_metadata_url])
@@ -767,7 +774,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
                         "char_start_idx": None,
                         "relative_end_pos": None,
                         "relative_start_pos": None,
-                        "html_attrs": None,
+                        "html_attrs": {"attrs": [], "values": []},  # pyarrow>=7 is more rigorous on this
                     }
                 )
                 self.assertIn(metadata, ds[id][col_to_store_metadata_timestamp])
@@ -780,7 +787,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
                         "char_start_idx": None,
                         "relative_end_pos": None,
                         "relative_start_pos": None,
-                        "html_attrs": None,
+                        "html_attrs": {"attrs": [], "values": []},  # pyarrow>=7 is more rigorous on this
                     }
                 )
                 self.assertIn(metadata, ds[id][col_to_store_metadata_website_desc])
@@ -791,7 +798,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
                     {
                         "relative_start_pos": None,
                         "relative_end_pos": None,
-                        "html_attrs": None,
+                        "html_attrs": {"attrs": [], "values": []},  # pyarrow>=7 is more rigorous on this
                     }
                 )
                 self.assertIn(metadata, ds[id][col_to_store_metadata_entities])
@@ -802,7 +809,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
                     {
                         "relative_end_pos": None,
                         "relative_start_pos": None,
-                        "html_attrs": None,
+                        "html_attrs": {"attrs": [], "values": []},  # pyarrow>=7 is more rigorous on this
                     }
                 )
                 self.assertIn(metadata, ds[id][col_to_store_metadata_generation_length_sentence])
@@ -815,7 +822,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
                         "char_start_idx": None,
                         "relative_end_pos": None,
                         "relative_start_pos": None,
-                        "html_attrs": None,
+                        "html_attrs": {"attrs": [], "values": []},  # pyarrow>=7 is more rigorous on this
                     }
                 )
                 self.assertIn(metadata, ds[id][col_to_store_metadata_generation_length_text])
@@ -828,7 +835,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
                         "char_start_idx": None,
                         "relative_end_pos": None,
                         "relative_start_pos": None,
-                        "html_attrs": None,
+                        "html_attrs": {"attrs": [], "values": []},  # pyarrow>=7 is more rigorous on this
                     }
                 )
                 self.assertIn(metadata, ds[id][col_to_store_metadata_datasource])

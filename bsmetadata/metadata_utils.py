@@ -71,7 +71,7 @@ def add_metadata_and_chunk_examples(
             # Get the global metadata prefix that is prepended to each training example.
             metadata_prefix = create_metadata_prefix(example, cfg)
             metadata_prefix_encoded = (
-                tokenizer.encode_plus(cfg.metadata_prefix_start_seq + metadata_prefix).input_ids
+                tokenizer.encode_plus(cfg.metadata_prefix_start_seq + metadata_prefix, truncation=True).input_ids
                 if metadata_prefix
                 else []
             )
@@ -89,7 +89,7 @@ def add_metadata_and_chunk_examples(
             text_with_local_metadata = " " + text_with_local_metadata
             char_level_metadata_mask = [False] + char_level_metadata_mask
 
-        text_with_local_metadata_encoded = tokenizer.encode_plus(text_with_local_metadata)
+        text_with_local_metadata_encoded = tokenizer.encode_plus(text_with_local_metadata, truncation=True)
 
         def is_metadata(idx: int) -> bool:
             char_span = text_with_local_metadata_encoded.token_to_chars(idx)

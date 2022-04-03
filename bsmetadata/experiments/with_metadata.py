@@ -1,9 +1,10 @@
 import functools
 import logging
 
+from accelerate import DistributedType
 from datasets import config, load_dataset
 from torch.utils.data import DataLoader
-from transformers import default_data_collator
+from transformers import DataCollatorWithPadding, default_data_collator
 
 from bsmetadata.metadata_utils import add_metadata_and_chunk_examples
 
@@ -152,15 +153,18 @@ def get_dataloaders(tokenizer, args):
     logger.info(f"  Num validation examples = {len(val_dataset)}")
 
     # DataLoaders creation:
+    data_collator = default_data_collator
+    if args.distributed_type == DistributedType.TPU:
+        data_collator = DataCollatorWithPadding(tokenizer, padding="max_length", max_length=args.max_seq_len)
     train_dataloader = DataLoader(
         train_dataset,
         shuffle=True,
-        collate_fn=default_data_collator,
+        collate_fn=data_collator,
         batch_size=args.per_device_train_batch_size,
     )
     val_dataloader1 = DataLoader(
         val_dataset,
-        collate_fn=default_data_collator,
+        collate_fn=data_collator,
         batch_size=args.per_device_eval_batch_size,
     )
     return train_dataloader, {"val1": val_dataloader1}

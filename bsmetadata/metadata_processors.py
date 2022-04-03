@@ -134,6 +134,22 @@ class MetadataConfig:
         default="",
         metadata={"help": "The character sequence to be concatenated at the beginning of the metadata prefix."},
     )
+    entity_setting: str = field(
+        default="normal",
+        metadata={"help": "The settings in which you want to use entites. Valid choices: (beg, end, normal)"},
+    )
+    local_metadata_special_token_start: Optional[Dict[str, str]] = field(
+        default=None,
+        metadata={
+            "help": "A dictionary whose keys correspond to a local metadata type and value to the associated key will be prepended to the corresponding local metadata token."
+        },
+    )
+    local_metadata_special_token_end: Optional[Dict[str, str]] = field(
+        default=None,
+        metadata={
+            "help": "A dictionary whose keys correspond to a local metadata type and value to the associated key will be appended to the corresponding local metadata token."
+        },
+    )
     max_seq_len: int = field(
         default=512, metadata={"help": "The maximum number of tokens to use for each training chunk."}
     )
@@ -213,7 +229,10 @@ class EntityProcessor(MetadataProcessor):
     def process_local(self, metadata_attrs: Dict[str, Any]) -> Optional[Tuple[str, str]]:
         # We represent an entity by adding the entity name after the entity mention in double square brackets.
         # Example: "Biden [[Joe Biden]] studied at ..."
-        return "", f" [[{metadata_attrs['value']}]]"
+        if self.cfg.entity_setting == "end" or self.cfg.entity_setting == "normal":
+            return "", f" [[{metadata_attrs['value']}]]"
+        elif self.cfg.entity_setting == "beg":
+            return f" [[{metadata_attrs['value']}]]", ""
 
 
 class HtmlProcessor(MetadataProcessor):

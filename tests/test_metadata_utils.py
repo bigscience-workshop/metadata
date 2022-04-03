@@ -256,6 +256,57 @@ class MetadataUtilsTester(unittest.TestCase):
                     },
                 ],
             },
+            {
+                "id": "6",  # To be used for entity_setting = "beg" and "end"
+                "text": "Hints and tips for media appearances, speaking and social media. This week; wall-to-wall politicians; Great Britain: Louis Vuitton condoms; Billy Connolly,; Lisa Dutton; Something in Common; What was I saying?: We’re all publishers; An interview with Lembit Opik; Music from The Good Suns.",
+                "metadata": [
+                    {
+                        "key": "entity",
+                        "type": "local",
+                        "char_start_idx": 0,
+                        "char_end_idx": 289,
+                        "value": "United_Kingdom",
+                        "relative_start_pos": 0,
+                        "relative_end_pos": 0,
+                    },
+                    {
+                        "key": "entity",
+                        "type": "local",
+                        "char_start_idx": 0,
+                        "char_end_idx": 289,
+                        "value": "Louis_Vuitton",
+                        "relative_start_pos": 1,
+                        "relative_end_pos": 1,
+                    },
+                    {
+                        "key": "entity",
+                        "type": "local",
+                        "char_start_idx": 0,
+                        "char_end_idx": 289,
+                        "value": "Billy_Connolly",
+                        "relative_start_pos": 2,
+                        "relative_end_pos": 2,
+                    },
+                    {
+                        "key": "entity",
+                        "type": "local",
+                        "char_start_idx": 0,
+                        "char_end_idx": 289,
+                        "value": "Something_in_Common",
+                        "relative_start_pos": 3,
+                        "relative_end_pos": 3,
+                    },
+                    {
+                        "key": "entity",
+                        "type": "local",
+                        "char_start_idx": 0,
+                        "char_end_idx": 289,
+                        "value": "Lembit_Öpik",
+                        "relative_start_pos": 4,
+                        "relative_end_pos": 4,
+                    },
+                ],
+            },
         ]
 
     def test_chunks(self):
@@ -293,6 +344,37 @@ class MetadataUtilsTester(unittest.TestCase):
         self.assertEqual(
             global_metadata_prefix_4,
             "Website Description: Amazon.com, Inc. ( AM-ə-zon) is an American multinational conglomerate which focuses on e-commerce, cloud computing, digital streaming, and artificial intelligence. |||",
+        )
+
+    def test_entity_settings(self):
+        cfg = MetadataConfig()
+        PROCESSORS["entity"] = EntityProcessor
+        cfg.metadata_list = ["entity"]
+
+        cfg.local_metadata_special_token_start = {"entity": " <ENTITY_CHAIN>"}
+        cfg.local_metadata_special_token_end = {"entity": " </ENTITY_CHAIN>"}
+        cfg.entity_setting = "end"
+        text3, mask3 = add_local_metadata_to_text(self.examples[6], cfg)
+
+        cfg.local_metadata_special_token_start = {"entity": "<ENTITY_CHAIN>"}
+        cfg.local_metadata_special_token_end = {"entity": " </ENTITY_CHAIN> "}
+        cfg.entity_setting = "beg"
+        text4, mask4 = add_local_metadata_to_text(self.examples[6], cfg)
+
+        cfg.entity_setting = "normal"
+        text5, mask5 = add_local_metadata_to_text(self.examples[0], cfg)
+        self.assertEqual(
+            text3,
+            "Hints and tips for media appearances, speaking and social media. This week; wall-to-wall politicians; Great Britain: Louis Vuitton condoms; Billy Connolly,; Lisa Dutton; Something in Common; What was I saying?: We’re all publishers; An interview with Lembit Opik; Music from The Good Suns. <ENTITY_CHAIN> [[United_Kingdom]] [[Louis_Vuitton]] [[Billy_Connolly]] [[Something_in_Common]] [[Lembit_Öpik]] </ENTITY_CHAIN>",
+        )
+
+        self.assertEqual(
+            text4,
+            "<ENTITY_CHAIN> [[United_Kingdom]] [[Louis_Vuitton]] [[Billy_Connolly]] [[Something_in_Common]] [[Lembit_Öpik]] </ENTITY_CHAIN> Hints and tips for media appearances, speaking and social media. This week; wall-to-wall politicians; Great Britain: Louis Vuitton condoms; Billy Connolly,; Lisa Dutton; Something in Common; What was I saying?: We’re all publishers; An interview with Lembit Opik; Music from The Good Suns.",
+        )
+        self.assertEqual(
+            text5,
+            "It was a brilliant first round. You have to break down the Cuban's rhythm you can't let them get into rhythm. The risk with that is Yafai [[Galal Yafai]] has got to go him.",
         )
 
     def test_add_local_metadata_to_text(self):

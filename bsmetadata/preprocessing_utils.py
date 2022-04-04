@@ -28,6 +28,7 @@ from REL.mention_detection import MentionDetection
 from REL.ner import load_flair_ner
 from REL.utils import process_results
 
+from bsmetadata.paragraph_by_metadata_html import get_paragraphs
 from bsmetadata.preprocessing_tools import html_parser
 from bsmetadata.preprocessing_tools.wikipedia_desc_utils import WikipediaDescUtils
 
@@ -659,6 +660,67 @@ class TitlePreprocessor(MetadataPreprocessor):
                 example_metadata.append({"key": "title", "type": "global", "value": title})
 
         examples[self.col_to_store_metadata] = example_metadata_list
+        return examples
+
+
+class ParagraphPreprocessor(MetadataPreprocessor):
+    """ParagraphPreprocessor _summary_
+
+    Args:
+        MetadataPreprocessor (_type_): _description_
+    """
+
+    def __init__(self, col_to_store_metadata="metadata") -> None:
+        """__init__ _summary_
+
+        Args:
+            col_to_store_metadata (str, optional): _description_. Defaults to "metadata".
+        """
+        super().__init__(col_to_store_metadata=col_to_store_metadata)
+        self._col_url = "url"
+        self._col_mtdt_html = "metadata_html"
+        self._col_text = "text"
+
+    @property
+    def new_columns_minimal_features(self) -> Dict[str, Any]:
+        """new_columns_minimal_features _summary_
+
+        Returns:
+            Dict[str, Any]: _description_
+        """
+        features = {
+            self.col_to_store_metadata: [
+                {
+                    "char_end_idx": Value("int64"),
+                    "char_start_idx": Value("int64"),
+                    "key": Value("string"),
+                    "type": Value("string"),
+                    "value": Value("string"),
+                    "marker": Value("string"),
+                }
+            ],
+        }
+        return features
+
+    def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
+        """preprocess _summary_
+
+        Args:
+            examples (Dict[str, List]): _description_
+
+        Returns:
+            Dict[str, List]: _description_
+        """
+        exmpl_mtdt_list = examples.get(self.col_to_store_metadata, [[] for _ in range(len(examples[self._col_url]))])
+        exmpl_mtdt_htmls = examples.get(self._col_mtdt_html)
+        exmpl_txts = examples.get(self._col_text)
+
+        if exmpl_txts and exmpl_mtdt_htmls:
+            for exmpl_txt, exmpl_mtdt_html, exmpl_mtdt in zip(exmpl_txts, exmpl_mtdt_htmls, exmpl_mtdt_list):
+                if exmpl_txt and exmpl_mtdt_html:
+                    exmpl_mtdt += get_paragraphs(exmpl_mtdt_html, exmpl_txt)
+
+        examples[self.col_to_store_metadata] = exmpl_mtdt_list
         return examples
 
 

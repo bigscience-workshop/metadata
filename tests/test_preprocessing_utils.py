@@ -13,6 +13,7 @@ from bsmetadata.preprocessing_utils import (
     GenerationLengthPreprocessor,
     HtmlPreprocessor,
     MetadataPreprocessor,
+    ParagraphPreprocessor,
     TimestampPreprocessor,
     TitlePreprocessor,
     UrlPreprocessor,
@@ -474,6 +475,67 @@ class PipelinePreprocessorTester(unittest.TestCase):
         ]
 
         self.target_metadata_title = [[{"key": "title", "type": "global", "value": "My test page"}], [], [], []]
+        self.target_metadata_paragraph = [
+            [
+                {
+                    "char_end_idx": 15,
+                    "char_start_idx": 0,
+                    "key": "paragraph",
+                    "type": "local",
+                    "value": "This is a title",
+                    "marker": "h1",
+                },
+                {
+                    "char_end_idx": 101,
+                    "char_start_idx": 15,
+                    "key": "paragraph",
+                    "type": "local",
+                    "value": "\nwith some additional text to reach 64 characters tidi tadada tidi tadada tidi tadada\n",
+                    "marker": "remainder",
+                },
+            ],
+            [
+                {
+                    "char_end_idx": 120,
+                    "char_start_idx": 0,
+                    "key": "paragraph",
+                    "type": "local",
+                    "value": (
+                        "this is a simple paragraph with Obama and Merkel mentioned. "
+                        "tidi tadada tidi tadada tidi tadada tidi tadada tidi tadada\n"
+                    ),
+                    "marker": "p",
+                },
+            ],
+            [
+                {
+                    "char_end_idx": 73,
+                    "char_start_idx": 0,
+                    "key": "paragraph",
+                    "type": "local",
+                    "value": "paragraph 1 tidi tadada tidi tadada tidi tadada tidi tadada tidi tadada.\n",
+                    "marker": "p",
+                },
+                {
+                    "char_end_idx": 146,
+                    "char_start_idx": 73,
+                    "key": "paragraph",
+                    "type": "local",
+                    "value": "paragraph 2 is in Paris tidi tadada tidi tadada tidi tadada tidi tadada.\n",
+                    "marker": "p",
+                },
+            ],
+            [
+                {
+                    "char_end_idx": 80,
+                    "char_start_idx": 0,
+                    "key": "paragraph",
+                    "type": "local",
+                    "value": "blablabla blablabla blablabla blablabla blablabla blablabla\ntidi tidi tidi tidi\n",
+                    "marker": "div",
+                },
+            ],
+        ]
 
         self.target_head = [['<head><meta charset="utf-8"/><title>My test page</title>\n    </head>'], [], [], []]
         self.target_footer = [
@@ -506,6 +568,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
         col_to_store_metadata_generation_length_sentence = "metadata_generation_length_sentence"
         col_to_store_metadata_datasource = "metadata_generation_datasource"
         col_to_store_metadata_title = "metadata_generation_title"
+        col_to_store_metadata_paragraph = "metadata_paragraph"
 
         html_processor = HtmlPreprocessor(
             col_to_store_metadata=col_to_store_metadata_html,
@@ -536,6 +599,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
         title_preprocessor = TitlePreprocessor(
             col_to_store_metadata=col_to_store_metadata_title, col_title=col_to_store_title
         )
+        paragraph_preprocessor = ParagraphPreprocessor(col_to_store_metadata=col_to_store_metadata_paragraph)
 
         # Apply function
         ds = Dataset.from_dict(self.init_dict)
@@ -562,6 +626,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
         ds = apply_processor(ds=ds, processor=generation_length_preprocessor_sentence)
         ds = apply_processor(ds=ds, processor=datasource_preprocessor)
         ds = apply_processor(ds=ds, processor=title_preprocessor)
+        ds = apply_processor(ds=ds, processor=paragraph_preprocessor)
 
         self.assertEqual(ds[:][col_to_store_text], self.target_texts)
         self.assertEqual(ds[:][col_to_store_head], self.target_head)
@@ -580,6 +645,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
         )
         self.assertEqual(ds[:][col_to_store_metadata_datasource], self.target_metadata_datasource)
         self.assertEqual(ds[:][col_to_store_metadata_title], self.target_metadata_title)
+        self.assertEqual(ds[:][col_to_store_metadata_paragraph], self.target_metadata_paragraph)
 
         col_to_store_all_metadata = "metadata"
         columns_names_to_concat = [
@@ -592,6 +658,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
             col_to_store_metadata_generation_length_sentence,
             col_to_store_metadata_datasource,
             col_to_store_metadata_title,
+            col_to_store_metadata_paragraph,
         ]
         concat_columns_fn = concat_columns(
             columns_names_to_concat=columns_names_to_concat,
@@ -610,6 +677,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
                         "relative_start_pos": Value("int64"),
                         "type": Value("string"),
                         "value": Value("string"),
+                        "marker": Value("string"),
                     }
                 ],
                 "text": Value("string"),
@@ -644,6 +712,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
             self.target_metadata_generation_length_sentence,
             self.target_metadata_datasource,
             self.target_metadata_title,
+            self.target_metadata_paragraph,
         ]:
             for id, metadata_example in enumerate(metadata_type):
                 for metadata in metadata_example:
@@ -653,15 +722,10 @@ class PipelinePreprocessorTester(unittest.TestCase):
                         "relative_end_pos",
                         "relative_start_pos",
                         "html_attrs",
+                        "marker",
                     ]:
                         if potential_missing_key in metadata:
                             continue
-                        elif "html_attrs" == potential_missing_key:
-                            # pyarrow>=7 is more rigorous on this
-                            metadata[potential_missing_key] = {
-                                "attrs": [],
-                                "values": [],
-                            }
                         else:
                             metadata[potential_missing_key] = None
                     self.assertIn(metadata, ds[id][col_to_store_all_metadata])
@@ -779,7 +843,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
                         "char_start_idx": None,
                         "relative_end_pos": None,
                         "relative_start_pos": None,
-                        "html_attrs": {"attrs": [], "values": []},  # pyarrow>=7 is more rigorous on this
+                        "html_attrs": None,
                     }
                 )
                 self.assertIn(metadata, ds[id][col_to_store_metadata_url])
@@ -792,7 +856,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
                         "char_start_idx": None,
                         "relative_end_pos": None,
                         "relative_start_pos": None,
-                        "html_attrs": {"attrs": [], "values": []},  # pyarrow>=7 is more rigorous on this
+                        "html_attrs": None,
                     }
                 )
                 self.assertIn(metadata, ds[id][col_to_store_metadata_timestamp])
@@ -805,7 +869,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
                         "char_start_idx": None,
                         "relative_end_pos": None,
                         "relative_start_pos": None,
-                        "html_attrs": {"attrs": [], "values": []},  # pyarrow>=7 is more rigorous on this
+                        "html_attrs": None,
                     }
                 )
                 self.assertIn(metadata, ds[id][col_to_store_metadata_website_desc])
@@ -816,7 +880,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
                     {
                         "relative_start_pos": None,
                         "relative_end_pos": None,
-                        "html_attrs": {"attrs": [], "values": []},  # pyarrow>=7 is more rigorous on this
+                        "html_attrs": None,
                     }
                 )
                 self.assertIn(metadata, ds[id][col_to_store_metadata_entities])
@@ -827,7 +891,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
                     {
                         "relative_end_pos": None,
                         "relative_start_pos": None,
-                        "html_attrs": {"attrs": [], "values": []},  # pyarrow>=7 is more rigorous on this
+                        "html_attrs": None,
                     }
                 )
                 self.assertIn(metadata, ds[id][col_to_store_metadata_generation_length_sentence])
@@ -840,7 +904,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
                         "char_start_idx": None,
                         "relative_end_pos": None,
                         "relative_start_pos": None,
-                        "html_attrs": {"attrs": [], "values": []},  # pyarrow>=7 is more rigorous on this
+                        "html_attrs": None,
                     }
                 )
                 self.assertIn(metadata, ds[id][col_to_store_metadata_generation_length_text])
@@ -853,7 +917,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
                         "char_start_idx": None,
                         "relative_end_pos": None,
                         "relative_start_pos": None,
-                        "html_attrs": {"attrs": [], "values": []},  # pyarrow>=7 is more rigorous on this
+                        "html_attrs": None,
                     }
                 )
                 self.assertIn(metadata, ds[id][col_to_store_metadata_datasource])
@@ -866,7 +930,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
                         "char_start_idx": None,
                         "relative_end_pos": None,
                         "relative_start_pos": None,
-                        "html_attrs": {"attrs": [], "values": []},  # pyarrow>=7 is more rigorous on this
+                        "html_attrs": None,
                     }
                 )
                 self.assertIn(metadata, ds[id][col_to_store_metadata_title])

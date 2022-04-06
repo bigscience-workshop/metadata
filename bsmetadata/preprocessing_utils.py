@@ -642,7 +642,7 @@ class TitlePreprocessor(MetadataPreprocessor):
         example_metadata_list = (
             examples[self.col_to_store_metadata]
             if self.col_to_store_metadata in examples
-            else [[] for _ in range(len(examples[self.col_text]))]
+            else [[] for _ in range(len(examples[self.col_title]))]
         )
 
         # Iterate through the metadata associated with all examples in this batch.
@@ -653,9 +653,10 @@ class TitlePreprocessor(MetadataPreprocessor):
                 continue
             title = example_title[0]
             title = re.search("<title>(.*)</title>", title)
-            title = title.group(1)
-
-            example_metadata.append({"key": "title", "type": "global", "value": title})
+            # If title is not None, we keep the first title retrieved.
+            if title:
+                title = title.group(1)
+                example_metadata.append({"key": "title", "type": "global", "value": title})
 
         examples[self.col_to_store_metadata] = example_metadata_list
         return examples

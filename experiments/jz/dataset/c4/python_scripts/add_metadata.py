@@ -76,12 +76,29 @@ class PreprocessingConfig:
         default=datasets.config.DEFAULT_MAX_BATCH_SIZE,
         metadata={"help": " Size of the batch to load in memory and write at once."},
     )
+    select_n_first_indices: Optional[int] = field(
+        default=None,
+        metadata={
+            "help": "The number of indices to process from the initial datasets. If None, the "
+            "whole dataset will be processed. Use for debugging purpose."
+        },
+    )
     use_load_from_disk: bool = field(
         default=False,
         metadata={
             "help": "If false, the program will load the dataset with `load_dataset` and if true, it will load it "
             "with `load_from_disk`."
         },
+    )
+    skip_if_save_file_already_exist: bool = field(
+        default=False,
+        metadata={
+            "help": "If true, the program will process the file if the path at which the final dataset will be saved already exist."
+        },
+    )
+    set_dataset: Optional[str] = field(
+        default=None,
+        metadata={"help": "Name of the dataset"},
     )
 
 
@@ -195,7 +212,10 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
         )
     logger.info("Processors initialization finished")
 
-    poss_files = sorted(os.listdir(args.dataset_name))
+    if args.set_dataset is not None:
+        poss_files = [args.set_dataset]
+    else:
+        poss_files = sorted(os.listdir(args.dataset_name))
 
     if args.use_load_from_disk:
         poss_files = [file_name for file_name in poss_files if file_name.startswith("c4-en-html")]
@@ -207,6 +227,21 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
         ]
 
     def process_file(file_name: str):
+        if file_name.endswith(".jsonl.gz"):
+            out_file_name = file_name[: -len(".jsonl.gz")]
+        elif file_name.endswith(".jsonl"):
+            out_file_name = file_name[: -len(".jsonl")]
+        else:
+            out_file_name = file_name
+        out_file_name_tmp = f"tmp-{out_file_name}"
+
+        saving_path = os.path.join(args.out_dir, out_file_name)
+        saving_path_tmp = os.path.join(args.out_dir, out_file_name_tmp)
+
+        if args.skip_if_save_file_already_exist:
+            if os.path.isfile(os.path.join(saving_path, "dataset.arrow")):
+                logger.warning(f"Skipping the processing of {file_name} as the saved processed dataset already exist")
+                return
 
         logger.info(config.HF_DATASETS_CACHE)
         processing_name = (
@@ -236,6 +271,10 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
 
         metrics_logger.log({"load_dataset": 1})
 
+        if args.select_n_first_indices:
+            logger.info(f"Extract the {args.select_n_first_indices} first indices from the dataset")
+            ds = ds.select([i for i in range(args.select_n_first_indices)])
+
         features_dict = dict(ds.features)
         logger.info(f"the initial features of the dataset are: {features_dict}")
 
@@ -247,6 +286,7 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
 
             logger.info(f"Start {extraction_name}")
             metrics_logger.log({extraction_name: 0})
+            logger.info(f"   Example of 1st example 100 first characters:\n    {repr(ds[0][col_to_store_text][:100])}")
             ds = ds.map(
                 processor.preprocess,
                 batched=True,
@@ -285,17 +325,6 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
         if "datasource" in args.metadata_to_include:
             ds = apply_processor(ds=ds, processor=datasource_preprocessor)
 
-        if file_name.endswith(".jsonl.gz"):
-            out_file_name = file_name[: -len(".jsonl.gz")]
-        elif file_name.endswith(".jsonl"):
-            out_file_name = file_name[: -len(".jsonl")]
-        else:
-            out_file_name = file_name
-        out_file_name_tmp = f"tmp-{out_file_name}"
-
-        saving_path = os.path.join(args.out_dir, out_file_name)
-        saving_path_tmp = os.path.join(args.out_dir, out_file_name_tmp)
-
         logger.info(f"Save resulting dataset {ds} at {saving_path_tmp}")
         metrics_logger.log({"save_result": 0})
         ds.save_to_disk(saving_path_tmp)
@@ -305,9 +334,12 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
         logger.info(f"Processing of {file_name} ended successfully")
         metrics_logger.log({processing_name: 1})
 
-    for file_name in poss_files[
-        args.task_id * args.num_files_to_process : args.task_id * args.num_files_to_process + args.num_files_to_process
-    ]:
+    if args.set_dataset is None:
+        poss_files = poss_files[
+            args.task_id * args.num_files_to_process : args.task_id * args.num_files_to_process
+            + args.num_files_to_process
+        ]
+    for file_name in poss_files:
         logger.info(f"Start to process {file_name}")
         process_file(file_name=file_name)
 

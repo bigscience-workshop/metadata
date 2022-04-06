@@ -649,6 +649,7 @@ class TitlePreprocessor(MetadataPreprocessor):
         # Iterate through the metadata associated with all examples in this batch.
         for example_title, example_metadata in zip(examples[self.col_title], example_metadata_list):
 
+            # The number of titles retrieved on a page is not necessarily equal to 1. Here the choice is made to keep only the first title retrieved when there is one.
             if not example_title:
                 continue
             title = example_title[0]

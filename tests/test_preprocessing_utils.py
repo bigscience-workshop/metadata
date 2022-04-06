@@ -63,137 +63,139 @@ class WebsiteDescPreprocessorTester(unittest.TestCase):
         self.assertEqual(ds[:]["metadata"], target_metadata)
 
 
+class HtmlToyData:
+    # Define toy data
+    my_dict = {
+        "doc_html": [
+            "\n    <html>\n    <head>\n    </head>\n    <body>\n    <h1>This is a title</h1>\n   with some additional text to reach 64 characters tidi tadada tidi tadada tidi tadada </body>\n    </html>\n",
+            "<html><body><p>this is a simple paragraph with Obama and Merkel mentioned. tidi tadada tidi tadada tidi tadada tidi tadada tidi tadada</p></body></html>",
+            "<html><body><p id=1>paragraph 1 tidi tadada tidi tadada tidi tadada tidi tadada tidi tadada.</p><p id=2>paragraph 2 is in Paris tidi tadada tidi tadada tidi tadada tidi tadada.</p></body></html>",
+            '<html><body><div class="div-level-1">blablabla blablabla blablabla blablabla blablabla blablabla<div class="div-level-2">tidi tidi tidi tidi</div></div></body></html>',
+        ],
+        "metadata": [[], [], [], []],
+    }
+
+    # Define target values
+    target_texts = [
+        "This is a title\nwith some additional text to reach 64 characters tidi tadada tidi tadada tidi tadada\n",
+        "this is a simple paragraph with Obama and Merkel mentioned. tidi tadada tidi tadada tidi tadada tidi tadada tidi tadada\n",
+        "paragraph 1 tidi tadada tidi tadada tidi tadada tidi tadada tidi tadada.\nparagraph 2 is in Paris tidi tadada tidi tadada tidi tadada tidi tadada.\n",
+        "blablabla blablabla blablabla blablabla blablabla blablabla\ntidi tidi tidi tidi\n",
+    ]
+
+    target_metadata = [
+        [
+            {
+                "char_end_idx": 15,
+                "char_start_idx": 0,
+                "html_attrs": {"attrs": [], "values": []},
+                "key": "html",
+                "relative_end_pos": 0,
+                "relative_start_pos": 1,
+                "type": "local",
+                "value": "h1",
+            },
+            {
+                "char_end_idx": 101,
+                "char_start_idx": 0,
+                "html_attrs": {"attrs": [], "values": []},
+                "key": "html",
+                "relative_end_pos": 0,
+                "relative_start_pos": 0,
+                "type": "local",
+                "value": "body",
+            },
+        ],
+        [
+            {
+                "char_end_idx": 119,
+                "char_start_idx": 0,
+                "html_attrs": {"attrs": [], "values": []},
+                "key": "html",
+                "relative_end_pos": 0,
+                "relative_start_pos": 1,
+                "type": "local",
+                "value": "p",
+            },
+            {
+                "char_end_idx": 120,
+                "char_start_idx": 0,
+                "html_attrs": {"attrs": [], "values": []},
+                "key": "html",
+                "relative_end_pos": 0,
+                "relative_start_pos": 0,
+                "type": "local",
+                "value": "body",
+            },
+        ],
+        [
+            {
+                "char_end_idx": 72,
+                "char_start_idx": 0,
+                "html_attrs": {"attrs": ["id"], "values": ["1"]},
+                "key": "html",
+                "relative_end_pos": 0,
+                "relative_start_pos": 1,
+                "type": "local",
+                "value": "p",
+            },
+            {
+                "char_end_idx": 145,
+                "char_start_idx": 73,
+                "html_attrs": {"attrs": ["id"], "values": ["2"]},
+                "key": "html",
+                "relative_end_pos": 0,
+                "relative_start_pos": 0,
+                "type": "local",
+                "value": "p",
+            },
+            {
+                "char_end_idx": 146,
+                "char_start_idx": 0,
+                "html_attrs": {"attrs": [], "values": []},
+                "key": "html",
+                "relative_end_pos": 0,
+                "relative_start_pos": 0,
+                "type": "local",
+                "value": "body",
+            },
+        ],
+        [
+            {
+                "char_end_idx": 80,
+                "char_start_idx": 0,
+                "html_attrs": {"attrs": ["class"], "values": ["div-level-1 div-level-2"]},
+                "key": "html",
+                "relative_end_pos": 0,
+                "relative_start_pos": 1,
+                "type": "local",
+                "value": "div",
+            },
+            {
+                "char_end_idx": 80,
+                "char_start_idx": 0,
+                "html_attrs": {"attrs": [], "values": []},
+                "key": "html",
+                "relative_end_pos": 1,
+                "relative_start_pos": 0,
+                "type": "local",
+                "value": "body",
+            },
+        ],
+    ]
+
+
 class HtmlPreprocessorTester(unittest.TestCase):
     def setUp(self) -> None:
         self.html_processor = HtmlPreprocessor()
 
     def test_toy_dataset(self):
-        # Define toy data
-        my_dict = {
-            "doc_html": [
-                "\n    <html>\n    <head>\n    </head>\n    <body>\n    <h1>This is a title</h1>\n   with some additional text to reach 64 characters tidi tadada tidi tadada tidi tadada </body>\n    </html>\n",
-                "<html><body><p>this is a simple paragraph with Obama and Merkel mentioned. tidi tadada tidi tadada tidi tadada tidi tadada tidi tadada</p></body></html>",
-                "<html><body><p id=1>paragraph 1 tidi tadada tidi tadada tidi tadada tidi tadada tidi tadada.</p><p id=2>paragraph 2 is in Paris tidi tadada tidi tadada tidi tadada tidi tadada.</p></body></html>",
-                '<html><body><div class="div-level-1">blablabla blablabla blablabla blablabla blablabla blablabla<div class="div-level-2">tidi tidi tidi tidi</div></div></body></html>',
-            ],
-            "metadata": [[], [], [], []],
-        }
-
-        # Define target values
-        target_texts = [
-            "This is a title\nwith some additional text to reach 64 characters tidi tadada tidi tadada tidi tadada\n",
-            "this is a simple paragraph with Obama and Merkel mentioned. tidi tadada tidi tadada tidi tadada tidi tadada tidi tadada\n",
-            "paragraph 1 tidi tadada tidi tadada tidi tadada tidi tadada tidi tadada.\nparagraph 2 is in Paris tidi tadada tidi tadada tidi tadada tidi tadada.\n",
-            "blablabla blablabla blablabla blablabla blablabla blablabla\ntidi tidi tidi tidi\n",
-        ]
-
-        target_metadata = [
-            [
-                {
-                    "char_end_idx": 15,
-                    "char_start_idx": 0,
-                    "html_attrs": {"attrs": [], "values": []},
-                    "key": "html",
-                    "relative_end_pos": 0,
-                    "relative_start_pos": 1,
-                    "type": "local",
-                    "value": "h1",
-                },
-                {
-                    "char_end_idx": 101,
-                    "char_start_idx": 0,
-                    "html_attrs": {"attrs": [], "values": []},
-                    "key": "html",
-                    "relative_end_pos": 0,
-                    "relative_start_pos": 0,
-                    "type": "local",
-                    "value": "body",
-                },
-            ],
-            [
-                {
-                    "char_end_idx": 119,
-                    "char_start_idx": 0,
-                    "html_attrs": {"attrs": [], "values": []},
-                    "key": "html",
-                    "relative_end_pos": 0,
-                    "relative_start_pos": 1,
-                    "type": "local",
-                    "value": "p",
-                },
-                {
-                    "char_end_idx": 120,
-                    "char_start_idx": 0,
-                    "html_attrs": {"attrs": [], "values": []},
-                    "key": "html",
-                    "relative_end_pos": 0,
-                    "relative_start_pos": 0,
-                    "type": "local",
-                    "value": "body",
-                },
-            ],
-            [
-                {
-                    "char_end_idx": 72,
-                    "char_start_idx": 0,
-                    "html_attrs": {"attrs": ["id"], "values": ["1"]},
-                    "key": "html",
-                    "relative_end_pos": 0,
-                    "relative_start_pos": 1,
-                    "type": "local",
-                    "value": "p",
-                },
-                {
-                    "char_end_idx": 145,
-                    "char_start_idx": 73,
-                    "html_attrs": {"attrs": ["id"], "values": ["2"]},
-                    "key": "html",
-                    "relative_end_pos": 0,
-                    "relative_start_pos": 0,
-                    "type": "local",
-                    "value": "p",
-                },
-                {
-                    "char_end_idx": 146,
-                    "char_start_idx": 0,
-                    "html_attrs": {"attrs": [], "values": []},
-                    "key": "html",
-                    "relative_end_pos": 0,
-                    "relative_start_pos": 0,
-                    "type": "local",
-                    "value": "body",
-                },
-            ],
-            [
-                {
-                    "char_end_idx": 80,
-                    "char_start_idx": 0,
-                    "html_attrs": {"attrs": ["class"], "values": ["div-level-1 div-level-2"]},
-                    "key": "html",
-                    "relative_end_pos": 0,
-                    "relative_start_pos": 1,
-                    "type": "local",
-                    "value": "div",
-                },
-                {
-                    "char_end_idx": 80,
-                    "char_start_idx": 0,
-                    "html_attrs": {"attrs": [], "values": []},
-                    "key": "html",
-                    "relative_end_pos": 1,
-                    "relative_start_pos": 0,
-                    "type": "local",
-                    "value": "body",
-                },
-            ],
-        ]
-
         # Apply function
-        ds = Dataset.from_dict(my_dict)
+        ds = Dataset.from_dict(HtmlToyData.my_dict)
         ds = ds.map(lambda ex: self.html_processor.preprocess(ex), batched=True, batch_size=3)
 
-        self.assertEqual(ds[:]["text"], target_texts)
-        self.assertEqual(ds[:]["metadata"], target_metadata)
+        self.assertEqual(ds[:]["text"], HtmlToyData.target_texts)
+        self.assertEqual(ds[:]["metadata"], HtmlToyData.target_metadata)
 
 
 def mock_fetch_mention_predictions(self, examples):
@@ -419,7 +421,6 @@ class PipelinePreprocessorTester(unittest.TestCase):
                     "key": "entity",
                     "type": "local",
                     "value": "Barack_Obama",
-                    "ent_desc": "Barack Hussein Obama II is an American politician.",
                 },
                 {
                     "char_end_idx": 48,
@@ -427,7 +428,6 @@ class PipelinePreprocessorTester(unittest.TestCase):
                     "key": "entity",
                     "type": "local",
                     "value": "Angela_Merkel",
-                    "ent_desc": "",
                 },
             ],
             [
@@ -437,7 +437,6 @@ class PipelinePreprocessorTester(unittest.TestCase):
                     "key": "entity",
                     "type": "local",
                     "value": "Paris",
-                    "ent_desc": "",
                 }
             ],
             [],
@@ -601,7 +600,6 @@ class PipelinePreprocessorTester(unittest.TestCase):
                         "relative_start_pos": Value("int64"),
                         "type": Value("string"),
                         "value": Value("string"),
-                        "ent_desc": Value("string"),
                     }
                 ],
                 "text": Value("string"),
@@ -644,11 +642,17 @@ class PipelinePreprocessorTester(unittest.TestCase):
                         "relative_end_pos",
                         "relative_start_pos",
                         "html_attrs",
-                        "ent_desc",
                     ]:
                         if potential_missing_key in metadata:
                             continue
-                        metadata[potential_missing_key] = None
+                        elif "html_attrs" == potential_missing_key:
+                            # pyarrow>=7 is more rigorous on this
+                            metadata[potential_missing_key] = {
+                                "attrs": [],
+                                "values": [],
+                            }
+                        else:
+                            metadata[potential_missing_key] = None
                     self.assertIn(metadata, ds[id][col_to_store_all_metadata])
 
     @mock.patch("bsmetadata.preprocessing_tools.wikipedia_desc_utils.DumpDB")
@@ -711,7 +715,6 @@ class PipelinePreprocessorTester(unittest.TestCase):
                         "relative_start_pos": Value("int64"),
                         "type": Value("string"),
                         "value": Value("string"),
-                        "ent_desc": Value("string"),
                     }
                 ],
                 "text": Value("string"),
@@ -750,11 +753,6 @@ class PipelinePreprocessorTester(unittest.TestCase):
 
         for id, metadata_example in enumerate(self.target_metadata_html):
             for metadata in metadata_example:
-                metadata.update(
-                    {
-                        "ent_desc": None,
-                    }
-                )
                 self.assertIn(metadata, ds[id][col_to_store_metadata_html])
 
         for id, metadata_example in enumerate(self.target_metadata_url):
@@ -765,8 +763,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
                         "char_start_idx": None,
                         "relative_end_pos": None,
                         "relative_start_pos": None,
-                        "html_attrs": None,
-                        "ent_desc": None,
+                        "html_attrs": {"attrs": [], "values": []},  # pyarrow>=7 is more rigorous on this
                     }
                 )
                 self.assertIn(metadata, ds[id][col_to_store_metadata_url])
@@ -779,8 +776,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
                         "char_start_idx": None,
                         "relative_end_pos": None,
                         "relative_start_pos": None,
-                        "html_attrs": None,
-                        "ent_desc": None,
+                        "html_attrs": {"attrs": [], "values": []},  # pyarrow>=7 is more rigorous on this
                     }
                 )
                 self.assertIn(metadata, ds[id][col_to_store_metadata_timestamp])
@@ -793,8 +789,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
                         "char_start_idx": None,
                         "relative_end_pos": None,
                         "relative_start_pos": None,
-                        "html_attrs": None,
-                        "ent_desc": None,
+                        "html_attrs": {"attrs": [], "values": []},  # pyarrow>=7 is more rigorous on this
                     }
                 )
                 self.assertIn(metadata, ds[id][col_to_store_metadata_website_desc])
@@ -805,7 +800,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
                     {
                         "relative_start_pos": None,
                         "relative_end_pos": None,
-                        "html_attrs": None,
+                        "html_attrs": {"attrs": [], "values": []},  # pyarrow>=7 is more rigorous on this
                     }
                 )
                 self.assertIn(metadata, ds[id][col_to_store_metadata_entities])
@@ -816,8 +811,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
                     {
                         "relative_end_pos": None,
                         "relative_start_pos": None,
-                        "html_attrs": None,
-                        "ent_desc": None,
+                        "html_attrs": {"attrs": [], "values": []},  # pyarrow>=7 is more rigorous on this
                     }
                 )
                 self.assertIn(metadata, ds[id][col_to_store_metadata_generation_length_sentence])
@@ -830,8 +824,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
                         "char_start_idx": None,
                         "relative_end_pos": None,
                         "relative_start_pos": None,
-                        "html_attrs": None,
-                        "ent_desc": None,
+                        "html_attrs": {"attrs": [], "values": []},  # pyarrow>=7 is more rigorous on this
                     }
                 )
                 self.assertIn(metadata, ds[id][col_to_store_metadata_generation_length_text])
@@ -844,8 +837,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
                         "char_start_idx": None,
                         "relative_end_pos": None,
                         "relative_start_pos": None,
-                        "html_attrs": None,
-                        "ent_desc": None,
+                        "html_attrs": {"attrs": [], "values": []},  # pyarrow>=7 is more rigorous on this
                     }
                 )
                 self.assertIn(metadata, ds[id][col_to_store_metadata_datasource])

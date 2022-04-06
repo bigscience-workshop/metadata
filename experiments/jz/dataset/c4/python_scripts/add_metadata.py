@@ -34,7 +34,7 @@ class PreprocessingConfig:
     task_id: int = field(metadata={"help": "The id of the task"})
     out_dir: str = field(metadata={"help": "where to save the resulting dataset."})
     num_files_to_process: int = field(metadata={"help": "the number of files to process"})
-    path_wiki_db: str = field(
+    path_wiki_db: Optional[str] = field(
         metadata={"help": "The path to the wikipedia database file necessary for the website descriptions"}
     )
     entity_path_data_dir: str = field(
@@ -79,7 +79,7 @@ class PreprocessingConfig:
     use_load_from_disk: bool = field(
         default=False,
         metadata={
-            "help": "If false, the program will load the dataset with `load_dataset` and if false, it will load it "
+            "help": "If false, the program will load the dataset with `load_dataset` and if true, it will load it "
             "with `load_from_disk`."
         },
     )
@@ -171,7 +171,6 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
         logger.info("   Entity...")
         entity_processor = EntityPreprocessor(
             base_url=args.entity_path_data_dir,
-            path_wiki_db=args.path_wiki_db,
             path_or_url_flair_ner_model=args.path_or_url_flair_ner_model,
             col_to_store_metadata=col_to_store_metadata_entities,
             col_text=col_to_store_text,

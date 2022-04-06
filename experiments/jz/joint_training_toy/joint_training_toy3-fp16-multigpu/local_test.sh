@@ -1,6 +1,6 @@
 echo "compute_environment: LOCAL_MACHINE
 deepspeed_config: {}
-distributed_type: 'NO'
+distributed_type: MULTI_GPU
 fp16: true
 machine_rank: 0
 main_process_ip: null

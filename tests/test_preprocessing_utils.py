@@ -534,7 +534,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
             col_to_store_metadata=col_to_store_metadata_datasource, col_url="url"
         )
         title_preprocessor = TitlePreprocessor(
-            col_to_store_metadata=col_to_store_metadata_title, col_text=col_to_store_text, col_title=col_to_store_title
+            col_to_store_metadata=col_to_store_metadata_title, col_title=col_to_store_title
         )
 
         # Apply function
@@ -714,7 +714,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
             col_to_store_metadata=col_to_store_metadata_datasource, col_url="url"
         )
         title_preprocessor = TitlePreprocessor(
-            col_to_store_metadata=col_to_store_metadata_title, col_text=col_to_store_text, col_title=col_to_store_title
+            col_to_store_metadata=col_to_store_metadata_title, col_title=col_to_store_title
         )
 
         features = Features(

@@ -621,9 +621,8 @@ class UrlPreprocessor(MetadataPreprocessor):
 class TitlePreprocessor(MetadataPreprocessor):
     """An exemplary metadata preprocessor for adding titles information."""
 
-    def __init__(self, col_to_store_metadata="metadata", col_text="text", col_title="html_title") -> None:
+    def __init__(self, col_to_store_metadata="metadata", col_title="html_title") -> None:
         self.col_title = col_title
-        self.col_text = col_text
         super().__init__(col_to_store_metadata=col_to_store_metadata)
 
     @property

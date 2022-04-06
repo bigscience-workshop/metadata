@@ -482,8 +482,8 @@ class MetadataUtilsTester(unittest.TestCase):
         self.assertEqual(mapped_ds[5]["metadata_mask"], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ])
         
         self.assertEqual(self.tokenizer.convert_ids_to_tokens(mapped_ds[6]["input_ids"]), ["title", ":", "ĠMy", "ĠThoughts", "ĠOn", "ĠIt", "ĠÂ»", "ĠDad", ",", "ĠI", "Ġwant", "Ġto", "Ġbe", "Ġan", "Ġinventor", "Ġ||", "|", "ĠYour", "Ġarticle", "Ġstruck", "Ġa", "Ġcord", ",", "Ġas", "Ġa", "Ġchild", "ĠI", "Ġwould", "Ġimagine", "Ġbeing", "Ġan", "Ġinventor", ".", "Ġ.", "ĠAs", "Ġan", "Ġadult", "ĠI", "Ġstill", "Ġlove", "Ġit", "Ġwhen", "Ġan", "Ġinsight", "Ġto", "Ġa", "Ġnew", "Ġproduct", "Ġor", "Ġprocess", "Ġreveals", "Ġitself", "Ġ.", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", ])
-        self.assertEqual(mapped_ds[6]["attention_mask"], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ])
-        self.assertEqual(mapped_ds[6]["metadata_mask"], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ])
+        self.assertEqual(mapped_ds[6]["attention_mask"], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ])
+        self.assertEqual(mapped_ds[6]["metadata_mask"], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ])
         # fmt: on
 
     def test_add_metadata_and_chunk_examples_with_true_processor(self):

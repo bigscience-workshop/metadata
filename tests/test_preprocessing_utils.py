@@ -866,7 +866,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
                         "char_start_idx": None,
                         "relative_end_pos": None,
                         "relative_start_pos": None,
-                        "html_attrs": None,
+                        "html_attrs": {"attrs": [], "values": []},  # pyarrow>=7 is more rigorous on this
                     }
                 )
                 self.assertIn(metadata, ds[id][col_to_store_metadata_title])

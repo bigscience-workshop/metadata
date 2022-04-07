@@ -618,6 +618,92 @@ class UrlPreprocessor(MetadataPreprocessor):
         return examples
 
 
+class EntityParagraphPreprocessor(MetadataPreprocessor):
+    """An exemplary metadata preprocessor for updating entity information based on paragraphs."""
+
+    def __init__(
+        self, col_to_store_metadata="metadata", col_entity="metadata_entity", col_paragraph="metadata_paragraph"
+    ) -> None:
+        self.col_entity = col_entity
+        self.col_paragraph = col_paragraph
+        super().__init__(col_to_store_metadata=col_to_store_metadata)
+
+    @property
+    def new_columns_minimal_features(self) -> Dict[str, Any]:
+        features = {
+            self.col_to_store_metadata: [
+                {
+                    "char_end_idx": Value("int64"),
+                    "char_start_idx": Value("int64"),
+                    "key": Value("string"),
+                    "relative_end_pos": Value("int64"),
+                    "relative_start_pos": Value("int64"),
+                    "type": Value("string"),
+                    "value": Value("string"),
+                }
+            ],
+        }
+        return features
+
+    def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
+        example_metadata_list = (
+            examples[self.col_to_store_metadata]
+            if self.col_to_store_metadata in examples
+            else [[] for _ in range(len(examples[self.col_entity]))]
+        )
+
+        # Iterate through the metadata associated with all examples in this batch.
+        for example_entity, example_paragraph, example_metadata in zip(
+            examples[self.col_entity], examples[self.col_paragraph], example_metadata_list
+        ):
+
+            if not example_entity or not example_paragraph:
+                continue
+
+            # Iterate through the entities associated with this example.
+            for entity in example_entity:
+                # Initialize the start and end index of an entity
+                start_index = entity["char_start_idx"]
+                end_index = entity["char_end_idx"]
+
+                # Search the start and end index of paragraph in between which the entity is present without any duplicate entity values.
+                for paragraph in example_paragraph:
+                    if start_index >= paragraph["char_start_idx"] and end_index <= paragraph["char_end_idx"]:
+                        # Update the start and end index of an entity
+                        start_index = paragraph["char_start_idx"]
+                        end_index = paragraph["char_end_idx"]
+                        break
+
+                en = {
+                    "key": "entity_paragraph",
+                    "type": "local",
+                    "char_start_idx": start_index,
+                    "char_end_idx": end_index,
+                    "value": entity["value"],
+                }
+                # Add the entity paragraph information to the example metadata if it is not already present.
+                if en not in example_metadata:
+                    example_metadata.append(en)
+
+            # Add relative start and end position information to the example metadata.
+            for index, entity in enumerate(example_metadata):
+                if (
+                    index > 0
+                    and example_metadata[index]["char_start_idx"] == example_metadata[index - 1]["char_start_idx"]
+                ):
+                    example_metadata[index].update(
+                        {
+                            "relative_start_pos": (example_metadata[index - 1]["relative_start_pos"] + 1),
+                            "relative_end_pos": (example_metadata[index - 1]["relative_end_pos"] + 1),
+                        }
+                    )
+                else:
+                    example_metadata[index].update({"relative_start_pos": 0, "relative_end_pos": 0})
+
+        examples[self.col_to_store_metadata] = example_metadata_list
+        return examples
+
+
 class ErrorWrapperPreprocessor:
     def __init__(
         self, metadata_preprocessor: MetadataPreprocessor, output_keys: Dict[str, Any], verbose: bool = True

@@ -618,6 +618,50 @@ class UrlPreprocessor(MetadataPreprocessor):
         return examples
 
 
+class TitlePreprocessor(MetadataPreprocessor):
+    """An exemplary metadata preprocessor for adding titles information."""
+
+    def __init__(self, col_to_store_metadata="metadata", col_title="html_title") -> None:
+        self.col_title = col_title
+        super().__init__(col_to_store_metadata=col_to_store_metadata)
+
+    @property
+    def new_columns_minimal_features(self) -> Dict[str, Any]:
+        features = {
+            self.col_to_store_metadata: [
+                {
+                    "key": Value("string"),
+                    "type": Value("string"),
+                    "value": Value("string"),
+                }
+            ]
+        }
+        return features
+
+    def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
+        example_metadata_list = (
+            examples[self.col_to_store_metadata]
+            if self.col_to_store_metadata in examples
+            else [[] for _ in range(len(examples[self.col_title]))]
+        )
+
+        # Iterate through the metadata associated with all examples in this batch.
+        for example_title, example_metadata in zip(examples[self.col_title], example_metadata_list):
+
+            # The number of titles retrieved on a page is not necessarily equal to 1. Here the choice is made to keep only the first title retrieved when there is one.
+            if not example_title:
+                continue
+            title = example_title[0]
+            title = re.search("<title>(.*)</title>", title)
+            # If title is not None, we keep the first title retrieved.
+            if title:
+                title = title.group(1)
+                example_metadata.append({"key": "title", "type": "global", "value": title})
+
+        examples[self.col_to_store_metadata] = example_metadata_list
+        return examples
+
+
 class ErrorWrapperPreprocessor:
     def __init__(
         self, metadata_preprocessor: MetadataPreprocessor, output_keys: Dict[str, Any], verbose: bool = True

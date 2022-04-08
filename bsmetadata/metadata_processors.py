@@ -155,10 +155,10 @@ class MetadataConfig:
     )
     html_parser_config: Optional[HTMLParserConfig] = HTMLParserConfig(
         AllTagsRules(
-            attributes_to_keep=None,
+            attributes_to_keep=[],
             txt_max_chr_len=-float("inf"),
             txt_min_chr_len=-float("inf"),
-            tags_exceptions_to_txt_max_min_chr_len=None,
+            tags_exceptions_to_txt_max_min_chr_len=[],
         ),
         tags_to_remove_alone_tag_name=[],
         tags_to_remove_alone_txt_max_chr_len=[],

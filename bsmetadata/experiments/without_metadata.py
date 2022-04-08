@@ -8,24 +8,13 @@ from transformers import default_data_collator
 logger = logging.getLogger(__name__)
 
 
-def get_dataloaders(tokenizer, args):
+def build_dataset(tokenizer, args):
     """
     Args:
         tokenizer: a huggingface/transformers tokenizer
         args: a DataConfig
     Returns:
-        a training dataloader and one or more validation dataloaders
-        validation dataloaders should be in a dictionary
-        each dataloader should yield  {str: torch.Tensor(cpu) }
-        dictionary keys may have 'metadata_mask'
-        other fields will be passed to model
-        note: metadata_mask should be padded
-    Example:
-       train_dataloader, val_dataloaders = get_dataloaders(...)
-       for batch in train_dataloader:
-           metadata_mask = batch.get('metadata_mask', None)
-           outputs = model(**batch)
-           metrics = loss_fn(batch, outputs, metadata_mask)
+        a dataset
     """
     # Mostly copy/paste from https://github.com/huggingface/transformers/blob/master/examples/pytorch/language-modeling/run_clm_no_trainer.py
     # Get the datasets: you can either provide your own CSV/JSON/TXT training and evaluation files (see below)
@@ -171,6 +160,29 @@ def get_dataloaders(tokenizer, args):
         batch_size=args.map_batch_size,
     )
     logger.info("Group texts finished")
+    return datasets
+
+
+def get_dataloaders(tokenizer, args):
+    """
+    Args:
+        tokenizer: a huggingface/transformers tokenizer
+        args: a DataConfig
+    Returns:
+        a training dataloader and one or more validation dataloaders
+        validation dataloaders should be in a dictionary
+        each dataloader should yield  {str: torch.Tensor(cpu) }
+        dictionary keys may have 'metadata_mask'
+        other fields will be passed to model
+        note: metadata_mask should be padded
+    Example:
+       train_dataloader, val_dataloaders = get_dataloaders(...)
+       for batch in train_dataloader:
+           metadata_mask = batch.get('metadata_mask', None)
+           outputs = model(**batch)
+           metrics = loss_fn(batch, outputs, metadata_mask)
+    """
+    datasets = build_dataset(tokenizer, args)
 
     train_dataset = datasets["train"]
     val_dataset = datasets["validation"]

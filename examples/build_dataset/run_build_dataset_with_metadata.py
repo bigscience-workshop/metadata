@@ -8,8 +8,8 @@ from hydra.core.config_store import ConfigStore
 from omegaconf import OmegaConf
 from transformers import AutoTokenizer
 
-from bsmetadata.input_pipeline import DataConfig
 from bsmetadata.experiments.with_metadata import build_dataset
+from bsmetadata.input_pipeline import DataConfig
 
 
 cs = ConfigStore.instance()

@@ -26,8 +26,8 @@ from bsmetadata.preprocessing_tools import html_parser
 class AllTagsRules:
     """Class containing rules common to all HTML tags to keep them or not"""
 
-    attributes_to_keep: List[str] = field(
-        default_factory=(lambda: []),
+    attributes_to_keep: Optional[List[str]] = field(
+        default=None,
         metadata={"help": "List of the html attributes that we wish to keep. If None we keep them all."},
     )
     txt_max_chr_len: float = field(
@@ -155,7 +155,7 @@ class MetadataConfig:
     )
     html_parser_config: Optional[HTMLParserConfig] = HTMLParserConfig(
         AllTagsRules(
-            attributes_to_keep=[],
+            attributes_to_keep=None,
             txt_max_chr_len=-float("inf"),
             txt_min_chr_len=-float("inf"),
             tags_exceptions_to_txt_max_min_chr_len=[],

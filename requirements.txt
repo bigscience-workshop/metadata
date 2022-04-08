@@ -10,3 +10,5 @@ wandb>=0.10.32,<1       # pip will likely update it to 0.12.11, but it is probab
 gensim>=3.8.3,<4        # Technically secondary, but gensim>=4 breaks wikipedia2vec.
 wikipedia2vec==1.0.5    # wikipedia2vec doesn't support Python 3.9.
 nltk==3.6.7
+lxml==4.6.5
+htmlmin==0.1.12

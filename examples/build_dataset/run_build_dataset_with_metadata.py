@@ -8,7 +8,8 @@ from hydra.core.config_store import ConfigStore
 from omegaconf import OmegaConf
 from transformers import AutoTokenizer
 
-from bsmetadata.input_pipeline import DataConfig, get_dataloaders
+from bsmetadata.input_pipeline import DataConfig
+from bsmetadata.experiments.with_metadata import build_dataset
 
 
 cs = ConfigStore.instance()
@@ -40,13 +41,10 @@ def show_help(cls, context=""):
 @hydra.main(config_path=None, config_name="config")
 def main(args: DataConfig) -> None:
     print(OmegaConf.to_yaml(args))
-    config_dict = OmegaConf.to_container(args)
 
-    # The dataset library use the hash of the arguments to create the cache
-    # name. Without this transformation the hash of args is not deterministic
     args = OmegaConf.to_object(args)
     tokenizer = AutoTokenizer.from_pretrained("gpt2")
-    get_dataloaders(tokenizer, args)
+    build_dataset(tokenizer, args)
 
 
 if __name__ == "__main__":

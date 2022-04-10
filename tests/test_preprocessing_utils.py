@@ -599,7 +599,9 @@ class PipelinePreprocessorTester(unittest.TestCase):
         title_preprocessor = TitlePreprocessor(
             col_to_store_metadata=col_to_store_metadata_title, col_title=col_to_store_title
         )
-        paragraph_preprocessor = ParagraphPreprocessor(col_to_store_metadata=col_to_store_metadata_paragraph)
+        paragraph_preprocessor = ParagraphPreprocessor(
+            col_to_store_metadata=col_to_store_metadata_paragraph, col_metadata_html=col_to_store_metadata_html
+        )
 
         # Apply function
         ds = Dataset.from_dict(self.init_dict)
@@ -750,6 +752,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
         col_to_store_metadata_generation_length_sentence = "metadata"
         col_to_store_metadata_datasource = "metadata"
         col_to_store_metadata_title = "metadata"
+        col_to_store_metadata_paragraph = "metadata"
 
         html_processor = HtmlPreprocessor(
             col_to_store_metadata=col_to_store_metadata_html,
@@ -779,6 +782,9 @@ class PipelinePreprocessorTester(unittest.TestCase):
         )
         title_preprocessor = TitlePreprocessor(
             col_to_store_metadata=col_to_store_metadata_title, col_title=col_to_store_title
+        )
+        paragraph_preprocessor = ParagraphPreprocessor(
+            col_to_store_metadata=col_to_store_metadata_paragraph, col_metadata_html=col_to_store_metadata_html
         )
 
         features = Features(
@@ -934,6 +940,26 @@ class PipelinePreprocessorTester(unittest.TestCase):
                     }
                 )
                 self.assertIn(metadata, ds[id][col_to_store_metadata_title])
+
+        """
+        Secondary Metadata
+        ------------------
+
+        Metadata depending on metadata paragraph, such as paragraph,
+        should always be the last step with its own management of `Features`.
+        """
+        features[col_to_store_metadata_paragraph][0]["marker"] = Value("string")
+        ds = ds.map(lambda ex: paragraph_preprocessor.preprocess(ex), batched=True, batch_size=3, features=features)
+        for id, metadata_example in enumerate(self.target_metadata_paragraph):
+            for metadata in metadata_example:
+                metadata.update(
+                    {
+                        "relative_end_pos": None,
+                        "relative_start_pos": None,
+                        "html_attrs": None,
+                    }
+                )
+                self.assertIn(metadata, ds[id][col_to_store_metadata_paragraph])
 
 
 if __name__ == "__main__":

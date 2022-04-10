@@ -11,10 +11,15 @@ repository  = "https://github.com/bigscience-workshop/metadata.git"
 
 [tool.poetry.dependencies]
 python        = ">=3.7.11,<3.9"                                                                    # wikipedia2vec doesn't support Python 3.9.
+setuptools    = "^62.0.0"                                                                          # For `setup.py`
+wheel         = "^0.37.1"                                                                          # For `setup.py`
 pyarrow       = "^7.0.0"                                                                           # Our custom `Features` need >=6, yet 7 is probably better for bugfixes.
 pandas        = [{ version = "<1.4", python = "<3.8" }, { version = ">=1.4", python = ">=3.8" }]
 datasets      = ">=1.18.4"                                                                         # Our custom `Features` need this; pip will likely update it to 2.0.0 and it's ok.
+lxml          = "4.6.5"
+htmlmin       = "0.1.12"
 torch         = { version = "1.9.0", optional = true }                                             # Techincally an extra, but flair for REL only works with torch != 1.8.
+tokenizers    = "!=0.12.0"                                                                         # A yanked version
 transformers  = "^4.6.0"                                                                           # Poetry will likely update it to 4.17.0, but it is probably ok and good for bugfixes.
 accelerate    = ">=0.4.0,<1"                                                                       # Poetry will likely update it to 0.5.1, but it is probably ok and good for bugfixes.
 hydra-core    = ">=1.1,<1.2"                                                                       # Poetry will likely update it to 1.1.1, but it is probably ok and good for bugfixes.
@@ -23,8 +28,6 @@ REL           = { git = "https://github.com/manandey/REL.git", branch = "main", 
 gensim        = { version = "^3.8.3", optional = true }                                            # Technically secondary, but gensim>=4 breaks wikipedia2vec.
 wikipedia2vec = { version = "1.0.5", optional = true }
 nltk          = { version = "3.6.7", optional = true }
-lxml          = { version = "4.6.5", optional = true }
-htmlmin       = { version = "0.1.12", optional = true }
 bs-dateutil   = { git = "https://github.com/cccntu/dateutil.git", rev = "2.8.5", optional = true }
 
 [tool.poetry.extras]
@@ -36,8 +39,8 @@ isort           = ">=5.5.4"
 black           = "^22.3.0" # For `"click>=8.1.0"`
 flake8          = ">=3.8.3"
 pytest          = "6.2.4"
-huggingface-hub = "^0.4.0"
+huggingface-hub = "^0.5.1"
 
 [build-system]
-requires      = ["poetry-core>=1.0.0", "setuptools", "wheel"]
+requires      = ["poetry-core>=1.1.0a7", "setuptools>=62.0.0", "wheel>=0.37.1"]
 build-backend = "poetry.core.masonry.api"

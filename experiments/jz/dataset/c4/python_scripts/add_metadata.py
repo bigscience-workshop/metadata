@@ -1,8 +1,9 @@
+import json
 import logging
 import os
 import shutil
 import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields, is_dataclass
 from pprint import pformat
 from typing import Optional, Tuple
 
@@ -24,9 +25,6 @@ from bsmetadata.preprocessing_utils import (
     UrlPreprocessor,
     WebsiteDescPreprocessor,
 )
-
-
-# from bsmetadata.train import show_help
 
 
 logger = logging.getLogger(__name__)
@@ -149,6 +147,19 @@ class Logger:
 
 cs = ConfigStore.instance()
 cs.store(name="preprocessing_config", node=PreprocessingConfig)
+
+
+# Replicated from ~`bsmetadata.train.show_help``to avoid the import.
+def show_help(context="", cls=PreprocessingConfig):
+    default_instance = cls()
+    for field_ in fields(cls):
+        if is_dataclass(field_.type):
+            show_help(context=f"{context}{field_.name}.", cls=field_.type)
+        else:
+            kwargs = field_.metadata.copy()
+            help = kwargs.get("help", "")
+            default = getattr(default_instance, field_.name)  # init and tell the default
+            print(f"{context}{field_.name}: {help} (default={json.dumps(default)})")
 
 
 col_html = "html"
@@ -311,7 +322,7 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
 
             def _try_to_get_ds() -> Dataset:
                 # For `load_dataset()` to cast `null` of `metadata_timestamp`.
-                # For `map()` to have `metadata_paragraph`'s `Feature``, `apply_processor()` will do it.
+                # For `map()` to have `metadata_paragraph`'s `Feature``, ~`apply_processor` will do it.
                 _feature_dic = {
                     "c4_shard": Value(dtype="int64", id=None),
                     "c4_timestamp": Value(dtype="string", id=None),
@@ -336,6 +347,9 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
                     "html_footer": [Value(dtype="string", id=None)],
                     "html_head": [Value(dtype="string", id=None)],
                     "html_title": [Value(dtype="string", id=None)],
+                    # See ~`bsmetadata.preprocessing_utils.ErrorWrapperPreprocessor.new_columns_minimal_features`
+                    # for a `Value` vs. `List[Value]` situation.
+                    # Not sure what happened.
                     "HtmlPreprocessor_error": Value(dtype="int64", id=None),
                     "HtmlPreprocessor_error_comment": Value(dtype="string", id=None),
                     "metadata_url": [
@@ -385,6 +399,9 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
                 }
                 _ve: ValueError = None
                 try:
+                    # For unknown reasons, this occationally hang after the HF's message
+                    # "Extracting data files: 100%" without any error.
+                    # Restarting the script always fixes it, mysteriously.
                     return load_dataset(
                         args.dataset_name,
                         args.dataset_config_name,
@@ -527,6 +544,6 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
 
 if __name__ == "__main__":
     if "--help" in sys.argv or "-h" in sys.argv:
-        # show_help()
+        show_help()
         sys.exit()
     main()

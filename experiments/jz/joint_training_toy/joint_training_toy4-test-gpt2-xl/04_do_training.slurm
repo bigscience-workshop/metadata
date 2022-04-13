@@ -60,6 +60,7 @@ num_processes: 1
 
 # 16
 accelerate launch --config_file accelerate_config.yaml bsmetadata/train.py \
+    max_train_steps=50 \
     model_name=gpt2-xl \
     data_config.per_device_train_batch_size=1 \
     data_config.per_device_eval_batch_size=1 \
@@ -79,6 +80,7 @@ accelerate launch --config_file accelerate_config.yaml bsmetadata/train.py \
     gradient_accumulation_steps=1
 # 128
 accelerate launch --config_file accelerate_config.yaml bsmetadata/train.py \
+    max_train_steps=50 \
     model_name=gpt2-xl \
     data_config.per_device_train_batch_size=1 \
     data_config.per_device_eval_batch_size=1 \
@@ -99,6 +101,7 @@ accelerate launch --config_file accelerate_config.yaml bsmetadata/train.py \
 
 # 256
 accelerate launch --config_file accelerate_config.yaml bsmetadata/train.py \
+    max_train_steps=50 \
     model_name=gpt2-xl \
     data_config.per_device_train_batch_size=1 \
     data_config.per_device_eval_batch_size=1 \
@@ -118,6 +121,7 @@ accelerate launch --config_file accelerate_config.yaml bsmetadata/train.py \
     gradient_accumulation_steps=1
 # 512
 accelerate launch --config_file accelerate_config.yaml bsmetadata/train.py \
+    max_train_steps=50 \
     model_name=gpt2-xl \
     data_config.per_device_train_batch_size=1 \
     data_config.per_device_eval_batch_size=1 \
@@ -137,6 +141,7 @@ accelerate launch --config_file accelerate_config.yaml bsmetadata/train.py \
     gradient_accumulation_steps=1
 # 1024
 accelerate launch --config_file accelerate_config.yaml bsmetadata/train.py \
+    max_train_steps=50 \
     model_name=gpt2-xl \
     data_config.per_device_train_batch_size=1 \
     data_config.per_device_eval_batch_size=1 \

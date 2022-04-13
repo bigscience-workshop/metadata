@@ -702,8 +702,22 @@ class ParagraphPreprocessor(MetadataPreprocessor):
         }
         return features
 
-    class EntityParagraphPreprocessor(MetadataPreprocessor):
-    """An exemplary metadata preprocessor for updating entity information based on paragraphs."""
+    def preprocess(self, examples: Dict[str, List]) -> Dict[str, List[OneToOneFeature]]:
+        exmpl_mtdt_list = examples.get(self.col_to_store_metadata, [[] for _ in range(len(examples[self._col_url]))])
+        exmpl_mtdt_htmls = examples.get(self._col_mtdt_html)
+        exmpl_txts = examples.get(self._col_text)
+
+        if exmpl_txts and exmpl_mtdt_htmls:
+            for exmpl_txt, exmpl_mtdt_html, exmpl_mtdt in zip(exmpl_txts, exmpl_mtdt_htmls, exmpl_mtdt_list):
+                if exmpl_txt and exmpl_mtdt_html:
+                    exmpl_mtdt += get_paragraphs(exmpl_mtdt_html, exmpl_txt)
+
+        examples[self.col_to_store_metadata] = exmpl_mtdt_list
+        return examples
+
+
+class EntityParagraphPreprocessor(MetadataPreprocessor):
+    """A metadata preprocessor for updating entity information based on paragraphs."""
 
     def __init__(
         self, col_to_store_metadata="metadata", col_entity="metadata_entity", col_paragraph="metadata_paragraph"
@@ -785,19 +799,6 @@ class ParagraphPreprocessor(MetadataPreprocessor):
                     example_metadata[index].update({"relative_start_pos": 0, "relative_end_pos": 0})
 
         examples[self.col_to_store_metadata] = example_metadata_list
-        return examples
-
-    def preprocess(self, examples: Dict[str, List]) -> Dict[str, List[OneToOneFeature]]:
-        exmpl_mtdt_list = examples.get(self.col_to_store_metadata, [[] for _ in range(len(examples[self._col_url]))])
-        exmpl_mtdt_htmls = examples.get(self._col_mtdt_html)
-        exmpl_txts = examples.get(self._col_text)
-
-        if exmpl_txts and exmpl_mtdt_htmls:
-            for exmpl_txt, exmpl_mtdt_html, exmpl_mtdt in zip(exmpl_txts, exmpl_mtdt_htmls, exmpl_mtdt_list):
-                if exmpl_txt and exmpl_mtdt_html:
-                    exmpl_mtdt += get_paragraphs(exmpl_mtdt_html, exmpl_txt)
-
-        examples[self.col_to_store_metadata] = exmpl_mtdt_list
         return examples
 
 

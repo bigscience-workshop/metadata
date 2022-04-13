@@ -1013,6 +1013,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
                 )
                 self.assertIn(metadata, ds[id][col_to_store_metadata_paragraph])
 
+        ds = ds.map(lambda ex: entity_paragraph_preprocessor.preprocess(ex), batched=True, batch_size=3, features=features)
         for id, metadata_example in enumerate(self.target_metadata_entity_paragraph):
             for metadata in metadata_example:
                 metadata.update(

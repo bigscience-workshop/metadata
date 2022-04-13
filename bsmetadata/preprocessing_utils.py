@@ -727,7 +727,7 @@ class EntityParagraphPreprocessor(MetadataPreprocessor):
         super().__init__(col_to_store_metadata=col_to_store_metadata)
 
     @property
-    def new_columns_minimal_features(self) -> Dict[str, Any]:
+    def new_columns_minimal_features(self) -> Dict[str, List[OneToOneFeature]]:
         features = {
             self.col_to_store_metadata: [
                 {
@@ -743,7 +743,7 @@ class EntityParagraphPreprocessor(MetadataPreprocessor):
         }
         return features
 
-    def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
+    def preprocess(self, examples: Dict[str, List]) -> Dict[str, List[OneToOneFeature]]:
         example_metadata_list = (
             examples[self.col_to_store_metadata]
             if self.col_to_store_metadata in examples

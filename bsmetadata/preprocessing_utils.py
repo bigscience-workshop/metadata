@@ -18,7 +18,7 @@ import copy
 import logging
 import re
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Union
 from urllib.parse import unquote, urlparse, urlsplit
 
 from bs_dateutil.parser import ParserError, parse
@@ -28,6 +28,7 @@ from REL.mention_detection import MentionDetection
 from REL.ner import load_flair_ner
 from REL.utils import process_results
 
+from bsmetadata.paragraph_by_metadata_html import get_paragraphs
 from bsmetadata.preprocessing_tools import html_parser
 from bsmetadata.preprocessing_tools.wikipedia_desc_utils import WikipediaDescUtils
 
@@ -62,6 +63,12 @@ def remove_improbable_date(x):
     return x
 
 
+OneToOneFeature = Dict[str, Value]
+OneToManyToListFeature = Dict[str, Dict[str, List[Value]]]
+RawFeatures = Union[Value, List[Value]]
+ComplexFeatures = Union[List[Union[OneToOneFeature, OneToManyToListFeature]], RawFeatures]
+
+
 class MetadataPreprocessor(ABC):
     """A metadata processor can be used for preprocessing text and adding or extracting metadata information."""
 
@@ -71,13 +78,13 @@ class MetadataPreprocessor(ABC):
 
     @property
     @abstractmethod
-    def new_columns_minimal_features(self) -> Dict[str, Any]:
+    def new_columns_minimal_features(self) -> Dict[str, ComplexFeatures]:
         """Returns a dictionary whose key corresponds to the name of a new column / a column modified by this processor
         and whose value corresponds to the minimal format of this column"""
         pass
 
     @abstractmethod
-    def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
+    def preprocess(self, examples: Dict[str, List]) -> Dict[str, ComplexFeatures]:
         """Process a batch of examples and add or extract corresponding metadata."""
         pass
 
@@ -90,7 +97,7 @@ class TimestampPreprocessor(MetadataPreprocessor):
         super().__init__(col_to_store_metadata=col_to_store_metadata)
 
     @property
-    def new_columns_minimal_features(self) -> Dict[str, Any]:
+    def new_columns_minimal_features(self) -> Dict[str, List[OneToOneFeature]]:
         features = {
             self.col_to_store_metadata: [
                 {
@@ -102,7 +109,7 @@ class TimestampPreprocessor(MetadataPreprocessor):
         }
         return features
 
-    def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
+    def preprocess(self, examples: Dict[str, List]) -> Dict[str, List[OneToOneFeature]]:
         example_metadata_list = (
             examples[self.col_to_store_metadata]
             if self.col_to_store_metadata in examples
@@ -158,7 +165,7 @@ class HtmlPreprocessor(MetadataPreprocessor):
         super().__init__(col_to_store_metadata=col_to_store_metadata)
 
     @property
-    def new_columns_minimal_features(self) -> Dict[str, Any]:
+    def new_columns_minimal_features(self) -> Dict[str, ComplexFeatures]:
         features = {
             self.col_to_store_metadata: [
                 {
@@ -179,7 +186,7 @@ class HtmlPreprocessor(MetadataPreprocessor):
         }
         return features
 
-    def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
+    def preprocess(self, examples: Dict[str, List]) -> Dict[str, ComplexFeatures]:
         tags_to_remove_with_content = [
             html_parser.objects.TagToRemoveWithContent(tag="script"),
             html_parser.objects.TagToRemoveWithContent(tag="style"),
@@ -251,7 +258,7 @@ class WebsiteDescPreprocessor(MetadataPreprocessor):
         super().__init__(col_to_store_metadata=col_to_store_metadata)
 
     @property
-    def new_columns_minimal_features(self) -> Dict[str, Any]:
+    def new_columns_minimal_features(self) -> Dict[str, List[OneToOneFeature]]:
         features = {
             self.col_to_store_metadata: [
                 {
@@ -263,7 +270,7 @@ class WebsiteDescPreprocessor(MetadataPreprocessor):
         }
         return features
 
-    def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
+    def preprocess(self, examples: Dict[str, List]) -> Dict[str, List[OneToOneFeature]]:
 
         example_metadata_list = (
             examples[self.col_to_store_metadata]
@@ -320,7 +327,7 @@ class EntityPreprocessor(
         super().__init__(col_to_store_metadata=col_to_store_metadata)
 
     @property
-    def new_columns_minimal_features(self) -> Dict[str, Any]:
+    def new_columns_minimal_features(self) -> Dict[str, List[OneToOneFeature]]:
         features = {
             self.col_to_store_metadata: [
                 {
@@ -347,7 +354,7 @@ class EntityPreprocessor(
         result = process_results(mentions_dataset, predictions, input_text)
         return result
 
-    def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
+    def preprocess(self, examples: Dict[str, List]) -> Dict[str, List[OneToOneFeature]]:
         # process all the examples in a particular batch and all the metadata extracted for entities for those examples
         mentions_predicted = self.fetch_mention_predictions(examples)
 
@@ -402,7 +409,7 @@ class GenerationLengthPreprocessor(MetadataPreprocessor):
         super().__init__(col_to_store_metadata=col_to_store_metadata)
 
     @property
-    def new_columns_minimal_features(self) -> Dict[str, Any]:
+    def new_columns_minimal_features(self) -> Dict[str, List[OneToOneFeature]]:
 
         if self.mode == "text":
             features = {
@@ -431,7 +438,7 @@ class GenerationLengthPreprocessor(MetadataPreprocessor):
 
         return features
 
-    def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
+    def preprocess(self, examples: Dict[str, List]) -> Dict[str, List[OneToOneFeature]]:
         """
         Iterate through all the examples retrieve the length meta information.
         """
@@ -503,7 +510,7 @@ class DatasourcePreprocessor(MetadataPreprocessor):
         super().__init__(col_to_store_metadata=col_to_store_metadata)
 
     @property
-    def new_columns_minimal_features(self) -> Dict[str, Any]:
+    def new_columns_minimal_features(self) -> Dict[str, List[OneToOneFeature]]:
         features = {
             self.col_to_store_metadata: [
                 {
@@ -563,7 +570,7 @@ class DatasourcePreprocessor(MetadataPreprocessor):
 
         return parts.netloc + " > " + " > ".join(directories_parts)
 
-    def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
+    def preprocess(self, examples: Dict[str, List]) -> Dict[str, List[OneToOneFeature]]:
         example_metadata_list = (
             examples[self.col_to_store_metadata]
             if self.col_to_store_metadata in examples
@@ -590,7 +597,7 @@ class UrlPreprocessor(MetadataPreprocessor):
         super().__init__(col_to_store_metadata=col_to_store_metadata)
 
     @property
-    def new_columns_minimal_features(self) -> Dict[str, Any]:
+    def new_columns_minimal_features(self) -> Dict[str, List[OneToOneFeature]]:
         features = {
             self.col_to_store_metadata: [
                 {
@@ -602,7 +609,7 @@ class UrlPreprocessor(MetadataPreprocessor):
         }
         return features
 
-    def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
+    def preprocess(self, examples: Dict[str, List]) -> Dict[str, List[OneToOneFeature]]:
         example_metadata_list = (
             examples[self.col_to_store_metadata]
             if self.col_to_store_metadata in examples
@@ -626,7 +633,7 @@ class TitlePreprocessor(MetadataPreprocessor):
         super().__init__(col_to_store_metadata=col_to_store_metadata)
 
     @property
-    def new_columns_minimal_features(self) -> Dict[str, Any]:
+    def new_columns_minimal_features(self) -> Dict[str, List[OneToOneFeature]]:
         features = {
             self.col_to_store_metadata: [
                 {
@@ -638,7 +645,7 @@ class TitlePreprocessor(MetadataPreprocessor):
         }
         return features
 
-    def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
+    def preprocess(self, examples: Dict[str, List]) -> Dict[str, List[OneToOneFeature]]:
         example_metadata_list = (
             examples[self.col_to_store_metadata]
             if self.col_to_store_metadata in examples
@@ -662,89 +669,50 @@ class TitlePreprocessor(MetadataPreprocessor):
         return examples
 
 
-class EntityParagraphPreprocessor(MetadataPreprocessor):
-    """An exemplary metadata preprocessor for updating entity information based on paragraphs."""
+class ParagraphPreprocessor(MetadataPreprocessor):
+    """ParagraphPreprocessor Extract paragraphs based on HTML and line-breaking markers."""
 
-    def __init__(
-        self, col_to_store_metadata="metadata", col_entity="metadata_entity", col_paragraph="metadata_paragraph"
-    ) -> None:
-        self.col_entity = col_entity
-        self.col_paragraph = col_paragraph
+    def __init__(self, col_to_store_metadata: str = "metadata", col_metadata_html: str = "metadata_html") -> None:
         super().__init__(col_to_store_metadata=col_to_store_metadata)
+        self._col_url = "url"
+        self._col_mtdt_html = col_metadata_html
+        self._col_text = "text"
 
     @property
-    def new_columns_minimal_features(self) -> Dict[str, Any]:
+    def new_columns_minimal_features(self) -> Dict[str, List[OneToOneFeature]]:
+        """new_columns_minimal_features Paragraph's `Features`.
+
+        Note:
+            Added a new string field "marker".
+
+        Returns:
+            Dict[str, List[OneToOneFeature]]: Paragraph-specific `Features`.
+        """
         features = {
             self.col_to_store_metadata: [
                 {
                     "char_end_idx": Value("int64"),
                     "char_start_idx": Value("int64"),
                     "key": Value("string"),
-                    "relative_end_pos": Value("int64"),
-                    "relative_start_pos": Value("int64"),
                     "type": Value("string"),
                     "value": Value("string"),
+                    "marker": Value("string"),
                 }
             ],
         }
         return features
 
-    def preprocess(self, examples: Dict[str, List]) -> Dict[str, List]:
-        example_metadata_list = (
-            examples[self.col_to_store_metadata]
-            if self.col_to_store_metadata in examples
-            else [[] for _ in range(len(examples[self.col_entity]))]
-        )
+    def preprocess(self, examples: Dict[str, List]) -> Dict[str, List[OneToOneFeature]]:
+        exmpl_mtdt_list = examples.get(self.col_to_store_metadata, [[] for _ in range(len(examples[self._col_url]))])
+        exmpl_mtdt_htmls = examples.get(self._col_mtdt_html)
+        exmpl_txts = examples.get(self._col_text)
 
-        # Iterate through the metadata associated with all examples in this batch.
-        for example_entity, example_paragraph, example_metadata in zip(
-            examples[self.col_entity], examples[self.col_paragraph], example_metadata_list
-        ):
+        if exmpl_txts and exmpl_mtdt_htmls:
+            for exmpl_txt, exmpl_mtdt_html, exmpl_mtdt in zip(exmpl_txts, exmpl_mtdt_htmls, exmpl_mtdt_list):
+                if exmpl_txt and exmpl_mtdt_html:
+                    exmpl_mtdt += get_paragraphs(exmpl_mtdt_html, exmpl_txt)
 
-            if not example_entity or not example_paragraph:
-                continue
-
-            # Iterate through the entities associated with this example.
-            for entity in example_entity:
-                # Initialize the start and end index of an entity
-                start_index = entity["char_start_idx"]
-                end_index = entity["char_end_idx"]
-
-                # Search the start and end index of paragraph in between which the entity is present without any duplicate entity values.
-                for paragraph in example_paragraph:
-                    if start_index >= paragraph["char_start_idx"] and end_index <= paragraph["char_end_idx"]:
-                        # Update the start and end index of an entity
-                        start_index = paragraph["char_start_idx"]
-                        end_index = paragraph["char_end_idx"]
-                        break
-
-                en = {
-                    "key": "entity_paragraph",
-                    "type": "local",
-                    "char_start_idx": start_index,
-                    "char_end_idx": end_index,
-                    "value": entity["value"],
-                }
-                # Add the entity paragraph information to the example metadata if it is not already present.
-                if en not in example_metadata:
-                    example_metadata.append(en)
-
-            # Add relative start and end position information to the example metadata.
-            for index, entity in enumerate(example_metadata):
-                if (
-                    index > 0
-                    and example_metadata[index]["char_start_idx"] == example_metadata[index - 1]["char_start_idx"]
-                ):
-                    example_metadata[index].update(
-                        {
-                            "relative_start_pos": (example_metadata[index - 1]["relative_start_pos"] + 1),
-                            "relative_end_pos": (example_metadata[index - 1]["relative_end_pos"] + 1),
-                        }
-                    )
-                else:
-                    example_metadata[index].update({"relative_start_pos": 0, "relative_end_pos": 0})
-
-        examples[self.col_to_store_metadata] = example_metadata_list
+        examples[self.col_to_store_metadata] = exmpl_mtdt_list
         return examples
 
 
@@ -760,17 +728,18 @@ class ErrorWrapperPreprocessor:
         self.error_comment_column_name = f"{type(metadata_preprocessor).__name__}_error_comment"
 
     @property
-    def new_columns_minimal_features(self) -> Dict[str, Any]:
+    def new_columns_minimal_features(self) -> Dict[str, ComplexFeatures]:
         features = self.metadata_preprocessor.new_columns_minimal_features
         features.update(
             {
+                # Types below are are different than ~`preprocess`'s.
                 self.error_column_name: Value("int64"),
                 self.error_comment_column_name: Value("string"),
             }
         )
         return features
 
-    def preprocess(self, examples: Dict[str, List]) -> Tuple[Dict[str, List], int]:
+    def preprocess(self, examples: Dict[str, List]) -> Dict[str, ComplexFeatures]:
         """Process a batch of examples and add or extract corresponding metadata."""
         num_errors = 0
 
@@ -785,9 +754,11 @@ class ErrorWrapperPreprocessor:
             random_key = list(processed_examples)[0]
             num_examples = len(processed_examples[random_key])
             if self.error_column_name not in processed_examples:
+                # `List[Value]`, cf. ~`new_columns_minimal_features`
                 processed_examples[self.error_column_name] = [0 for _ in range(num_examples)]
 
             if self.error_comment_column_name not in processed_examples:
+                # `List[Value]`, cf. ~`new_columns_minimal_features`
                 processed_examples[self.error_comment_column_name] = ["" for _ in range(num_examples)]
         except:  # noqa
             # we try the example one by one to find the culprit(s) and strore the error

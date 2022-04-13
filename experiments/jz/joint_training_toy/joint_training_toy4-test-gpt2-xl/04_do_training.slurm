@@ -4,7 +4,7 @@
 #SBATCH --constraint=v100-32g
 #SBATCH --cpus-per-task=8                                              # (change me! between 0 and 40) number of cores per tasks
 #SBATCH --hint=nomultithread                                           # we get physical cores not logical
-#SBATCH --time 01:00:00                                                # (change me! between 0 and 20h) maximum execution time (HH:MM:SS) 
+#SBATCH --time 20:00:00                                                # (change me! between 0 and 20h) maximum execution time (HH:MM:SS) 
 #SBATCH --gres=gpu:1                                                    # (change me! between 0 and 1) number of gpus 
 #SBATCH --output=/gpfsdswork/projects/rech/six/uue59kq/logs/test-gpt2-xl/%x-%j.out  # output file name
 #SBATCH --account=six@gpu                                              # account

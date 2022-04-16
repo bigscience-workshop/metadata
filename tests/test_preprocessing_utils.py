@@ -1021,6 +1021,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
                 metadata.update(
                     {
                         "html_attrs": None,
+                        "marker": None,
                     }
                 )
                 self.assertIn(metadata, ds[id][col_to_store_metadata_entity_paragraph])

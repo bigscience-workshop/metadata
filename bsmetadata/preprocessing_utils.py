@@ -760,12 +760,20 @@ class EntityParagraphPreprocessor(MetadataPreprocessor):
 
             # Iterate through the entities associated with this example.
             for entity in example_entity:
+                # If entity["key"] != "entity", we skip this entity. Added this check since tests were failing.
+                if entity["key"] != "entity":
+                    continue
                 # Initialize the start and end index of an entity
                 start_index = entity["char_start_idx"]
                 end_index = entity["char_end_idx"]
+                check = True
 
                 # Search the start and end index of paragraph in between which the entity is present without any duplicate entity values.
                 for paragraph in example_paragraph:
+                    # If paragraph["key"] != "paragraph", we skip this paragraph. Added this check since tests were failing.
+                    if paragraph["key"] != "paragraph":
+                        check == False
+                        continue
                     if start_index >= paragraph["char_start_idx"] and end_index <= paragraph["char_end_idx"]:
                         # Update the start and end index of an entity
                         start_index = paragraph["char_start_idx"]
@@ -780,13 +788,17 @@ class EntityParagraphPreprocessor(MetadataPreprocessor):
                     "value": entity["value"],
                 }
                 # Add the entity paragraph information to the example metadata if it is not already present.
-                if en not in example_metadata:
+                if en not in example_metadata and check:
                     example_metadata.append(en)
 
             # Add relative start and end position information to the example metadata.
             for index, entity in enumerate(example_metadata):
                 if (
                     index > 0
+                    and example_metadata[index - 1]["key"]
+                    == "entity_paragraph"  # Added this check since tests were failing.
+                    and example_metadata[index]["key"]
+                    == "entity_paragraph"  # Added this check since tests were failing.
                     and example_metadata[index]["char_start_idx"] == example_metadata[index - 1]["char_start_idx"]
                 ):
                     example_metadata[index].update(

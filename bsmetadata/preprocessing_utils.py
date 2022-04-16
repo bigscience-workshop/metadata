@@ -771,17 +771,14 @@ class EntityParagraphPreprocessor(MetadataPreprocessor):
                 # Search the start and end index of paragraph in between which the entity is present without any duplicate entity values.
                 for paragraph in example_paragraph:
                     # If paragraph["key"] != "paragraph", we skip this paragraph. Added this check since tests were failing.
-                    if (
-                        paragraph["key"] == "paragraph"
-                        and start_index >= paragraph["char_start_idx"]
-                        and end_index <= paragraph["char_end_idx"]
-                    ):
+                    if paragraph["key"] != "paragraph":
+                        check is False
+                        continue
+                    if start_index >= paragraph["char_start_idx"] and end_index <= paragraph["char_end_idx"]:
                         # Update the start and end index of an entity
                         start_index = paragraph["char_start_idx"]
                         end_index = paragraph["char_end_idx"]
                         break
-                    else:
-                        check == False
                 en = {
                     "key": "entity_paragraph",
                     "type": "local",

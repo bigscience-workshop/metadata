@@ -772,7 +772,7 @@ class EntityParagraphPreprocessor(MetadataPreprocessor):
                 for paragraph in example_paragraph:
                     # If paragraph["key"] != "paragraph", we skip this paragraph. Added this check since tests were failing.
                     if paragraph["key"] != "paragraph":
-                        check is False
+                        check = False
                         continue
                     if start_index >= paragraph["char_start_idx"] and end_index <= paragraph["char_end_idx"]:
                         # Update the start and end index of an entity

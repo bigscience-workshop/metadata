@@ -778,6 +778,7 @@ class EntityParagraphPreprocessor(MetadataPreprocessor):
                         # Update the start and end index of an entity
                         start_index = paragraph["char_start_idx"]
                         end_index = paragraph["char_end_idx"]
+                        check = True
                         break
                 en = {
                     "key": "entity_paragraph",

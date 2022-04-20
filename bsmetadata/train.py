@@ -17,7 +17,7 @@ from accelerate import Accelerator
 from hydra.core.config_store import ConfigStore
 from omegaconf import OmegaConf
 from tqdm.auto import tqdm as original_tqdm
-from transformers import AdamW, AutoModelForCausalLM, AutoTokenizer, get_scheduler, set_seed
+from transformers import AdamW, AutoModelForCausalLM, AutoTokenizer, get_scheduler, set_seed, AutoConfig
 from transformers.trainer_utils import IntervalStrategy
 
 from bsmetadata.input_pipeline import DataConfig, get_dataloaders
@@ -150,13 +150,15 @@ def main(args: CFG) -> None:
 
     os.makedirs(args.out_dir, exist_ok=True)
 
+    config = AutoConfig.from_pretrained(args.model_name)
+    #config.gradient_checkpointing=True
     # get dataloaders
     tokenizer = AutoTokenizer.from_pretrained(args.model_name)
     tokenizer.pad_token = tokenizer.eos_token
     train_dataloader, eval_dataloaders = get_dataloaders(tokenizer, args.data_config)
 
     # get model
-    model = AutoModelForCausalLM.from_pretrained(args.model_name)
+    model = AutoModelForCausalLM.from_pretrained(args.model_name, config=config)
 
     # Optimizer
     # Split weights in two groups, one with weight decay and the other not.

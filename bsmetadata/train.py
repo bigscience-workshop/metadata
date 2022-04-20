@@ -317,4 +317,12 @@ if __name__ == "__main__":
     if "--help" in sys.argv or "-h" in sys.argv:
         show_help()
         sys.exit()
+    newargv = []
+    for arg in sys.argv:
+        if arg.startswith("--local_rank"):
+            pass
+        else:
+            newargv.append(arg)
+    sys.argv = newargv
+
     main()

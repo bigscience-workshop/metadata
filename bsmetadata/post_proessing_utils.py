@@ -16,14 +16,13 @@ This script provides functions for adding different kinds of metadata to a pretr
 
 import logging
 import re
-from datasets import Value
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List
 
+from datasets import Value
+
+
 logger = logging.getLogger(__name__)
-
-
-
 
 
 class MetadataPostProcessor(ABC):
@@ -53,7 +52,7 @@ class WebsiteDescPostProcessor(MetadataPostProcessor):
         self,
         col_to_process="metadata",
     ) -> None:
-        
+
         super().__init__(col_to_process=col_to_process)
 
     @property
@@ -73,23 +72,20 @@ class WebsiteDescPostProcessor(MetadataPostProcessor):
 
         example_metadata_list = examples[self.col_to_process]
         # Iterate through the metadata associated with all examples in this batch.
-   
-        for example_metadata in  example_metadata_list:
-            if example_metadata and (self.is_noisy_data(example_metadata[0]["value"]) or self.is_outlier(example_metadata[0]["value"])):
+
+        for example_metadata in example_metadata_list:
+            if example_metadata and (
+                self.is_noisy_data(example_metadata[0]["value"]) or self.is_outlier(example_metadata[0]["value"])
+            ):
                 example_metadata = []
-                
-                
 
         examples[self.col_to_process] = example_metadata_list
         return examples
 
-    
     def is_noisy_data(self, data):
-        corrupt_regex = ['.* refer(|s) to.?:', '\[\[\w*:']
-        corrupt_regex_str = '|'.join('({0})'.format(x) for x in corrupt_regex)
+        corrupt_regex = [".* refer(|s) to.?:", "\[\[\w*:"]
+        corrupt_regex_str = "|".join("({0})".format(x) for x in corrupt_regex)
         return re.match(corrupt_regex_str, data)
-    
+
     def is_outlier(self, data):
-        return len(data.split()) < 5 or len(data.split()) > 50 #caps tbd
-
-
+        return len(data.split()) < 5 or len(data.split()) > 50  # caps tbd

@@ -12,10 +12,7 @@ from datasets import Dataset, Features, config, load_dataset, load_from_disk
 from hydra.core.config_store import ConfigStore
 from omegaconf import OmegaConf
 
-from bsmetadata.post_processing_utils import (
-    MetadataPostProcessor,
-    WebsiteDescPostProcessor,
-)
+from bsmetadata.post_processing_utils import MetadataPostProcessor, WebsiteDescPostProcessor
 from bsmetadata.train import show_help
 
 
@@ -96,14 +93,11 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
     metrics_logger = Logger(project=args.project_name, config=config_dict)
 
     logger.info("Initialize the post processors:")
-    
+
     if "website_description" in args.metadata_to_process:
         logger.info("   Website description...")
-        website_processor = WebsiteDescPostProcessor(
-            col_to_process=col_for_metadata_website_desc
-        )
+        website_processor = WebsiteDescPostProcessor(col_to_process=col_for_metadata_website_desc)
 
-        
     logger.info("Processors initialization finished")
 
     poss_files = sorted(os.listdir(args.dataset_name))
@@ -164,7 +158,7 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
                 batch_size=args.map_batch_size,
                 num_proc=args.preprocessing_num_workers,
                 load_from_cache_file=not args.overwrite_cache,
-                desc=f"Running {extraction_name} on dataset",   
+                desc=f"Running {extraction_name} on dataset",
                 features=Features(features_dict),
                 remove_columns=remove_columns,
             )
@@ -172,11 +166,8 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
             logger.info(f"End {extraction_name}")
             return ds
 
-       
-
         if "website_description" in args.metadata_to_include:
             ds = apply_processor(ds=ds, processor=website_processor)
-
 
         if file_name.endswith(".jsonl.gz"):
             out_file_name = file_name[: -len(".jsonl.gz")]

@@ -144,7 +144,7 @@ def main(args: PostProcessingConfig) -> None:  # Setup logging
         features_dict = dict(ds.features)
 
         def apply_processor(ds: Dataset, processor: MetadataPostProcessor, remove_columns=None) -> Dataset:
-            
+
             extraction_name = processor.__class__.__name__
 
             logger.info(f"Start {extraction_name}")

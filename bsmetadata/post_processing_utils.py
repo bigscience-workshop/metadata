@@ -32,13 +32,6 @@ class MetadataPostProcessor(ABC):
         self.col_to_process = col_to_process
         super().__init__()
 
-    @property
-    @abstractmethod
-    def new_columns_minimal_features(self) -> Dict[str, Any]:
-        """Returns a dictionary whose key corresponds to the name of a new column / a column modified by this processor
-        and whose value corresponds to the minimal format of this column"""
-        pass
-
     @abstractmethod
     def post_process(self, examples: Dict[str, List]) -> Dict[str, List]:
         """Post process a batch of examples for their extracted metadata."""
@@ -55,19 +48,6 @@ class WebsiteDescPostProcessor(MetadataPostProcessor):
 
         super().__init__(col_to_process=col_to_process)
 
-    @property
-    def new_columns_minimal_features(self) -> Dict[str, Any]:
-        features = {
-            self.col_to_process: [
-                {
-                    "key": Value("string"),
-                    "type": Value("string"),
-                    "value": Value("string"),
-                }
-            ]
-        }
-        return features
-
     def post_process(self, examples: Dict[str, List]) -> Dict[str, List]:
 
         example_metadata_list = examples[self.col_to_process]
@@ -75,9 +55,9 @@ class WebsiteDescPostProcessor(MetadataPostProcessor):
 
         for example_metadata in example_metadata_list:
             if example_metadata and (
-                self.is_noisy_data(example_metadata[0]["value"]) or self.is_outlier(example_metadata[0]["value"])
+                self.is_noisy_data(example_metadata["value"]) or self.is_outlier(example_metadata["value"])
             ):
-                example_metadata = []
+                example_metadata = []  # remove website description with empty list if metadata is invalid
 
         examples[self.col_to_process] = example_metadata_list
         return examples

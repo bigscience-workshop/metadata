@@ -31,7 +31,7 @@ class TestWebsitePostProcessor(unittest.TestCase):
 
         target_metadata = [
             [],
-            [{"key": "metadata", "type": "global", "value": "This is a valid website and should be retained"}],
+            [{"key": "website_description", "type": "global", "value": "This is a valid website and should be retained"}],
             [],
         ]
 

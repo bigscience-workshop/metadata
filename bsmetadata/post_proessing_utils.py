@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 
 class MetadataPostProcessor(ABC):
-    """A metadata processor can be used for preprocessing text and adding or extracting metadata information."""
+    """A metadata post processor can be used for post processing extracted metadata from a corpus."""
 
     def __init__(self, col_to_process: str) -> None:
         self.col_to_process = col_to_process
@@ -41,12 +41,12 @@ class MetadataPostProcessor(ABC):
 
     @abstractmethod
     def post_process(self, examples: Dict[str, List]) -> Dict[str, List]:
-        """Process a batch of examples and process the corresponding extracted metadata."""
+        """Post process a batch of examples for their extracted metadata."""
         pass
 
 
 class WebsiteDescPostProcessor(MetadataPostProcessor):
-    """Metadata preprocessor for adding website description based on URLs."""
+    """website metadata post processor to remove noisy data"""
 
     def __init__(
         self,

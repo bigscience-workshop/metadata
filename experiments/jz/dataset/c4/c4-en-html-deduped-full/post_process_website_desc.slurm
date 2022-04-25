@@ -29,7 +29,7 @@ export HF_DATASETS_OFFLINE=1
 export WANDB_MODE=offline
 export WANDB_DIR=$SCRATCH
 
-METADATA_TO_PROCESS'["website_description"]'
+METADATA_TO_POST_PROCESS'["website_description"]'
 
 PROCESS_DIR=$SCRATCH/new_dataset/c4-en-html-deduped-processed
 DATASET_FILES_DIR=$PROCESS_DIR/c4-en-reduced-with-metadata-url-html-timestamp-datasource-length_sentence-length_text-website-desc
@@ -49,13 +49,13 @@ echo "    map_batch_size=$MAP_BATCH_SIZE"
 echo "    preprocessing_num_workers=$PREPROCESSING_NUM_WORKERS"
 echo "    out_dir=$OUT_DIR"
 echo "    dataset_name=$DATASET_FILES_DIR"
-echo "    metadata_to_process=$METADATA_TO_PROCESS"
+echo "    metadata_to_post_process=$METADATA_TO_POST_PROCESS"
 
-python experiments/jz/dataset/c4/python_scripts/add_metadata.py \
+python experiments/jz/dataset/c4/python_scripts/post_process.py \
     task_id=${SLURM_ARRAY_TASK_ID}\
     out_dir=$OUT_DIR \
     dataset_name=$DATASET_FILES_DIR \
-    metadata_to_include="$METADATA_TO_INCLUDE" \
+    metadata_to_post_process="$METADATA_TO_POST_PROCESS" \
     map_batch_size=$MAP_BATCH_SIZE \
     preprocessing_num_workers=$PREPROCESSING_NUM_WORKERS\
     num_files_to_process=$NUM_FILES_TO_PROCESS\

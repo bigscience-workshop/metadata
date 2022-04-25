@@ -20,11 +20,11 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
-class PreprocessingConfig:
+class PostProcessingConfig:
     task_id: int = field(metadata={"help": "The id of the task"})
     out_dir: str = field(metadata={"help": "where to save the resulting dataset."})
     num_files_to_process: int = field(metadata={"help": "the number of files to process"})
-    metadata_to_process: Optional[list] = field(
+    metadata_to_post_process: Optional[list] = field(
         default_factory=lambda: ["website_description", "entity", "timestamp"],
         metadata={"help": "The list of metadata to extract"},
     )
@@ -40,7 +40,7 @@ class PreprocessingConfig:
     cache_dir: Optional[str] = field(
         default=None, metadata={"help": "Where do you want to store the pretrained models downloaded from s3?"}
     )
-    preprocessing_num_workers: Optional[int] = field(
+    post_processing_num_workers: Optional[int] = field(
         default=None, metadata={"help": "The number of processes to use for the preprocessing."}
     )
     map_batch_size: Optional[int] = field(
@@ -76,13 +76,13 @@ class Logger:
 
 
 cs = ConfigStore.instance()
-cs.store(name="preprocessing_config", node=PreprocessingConfig)
+cs.store(name="post_processing_config", node=PostProcessingConfig)
 
 col_for_metadata_website_desc = "metadata_website_desc"
 
 
-@hydra.main(config_name="preprocessing_config")
-def main(args: PreprocessingConfig) -> None:  # Setup logging
+@hydra.main(config_name="post_processing_config")
+def main(args: PostProcessingConfig) -> None:  # Setup logging
     logging.basicConfig(
         format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
         datefmt="%m/%d/%Y %H:%M:%S",
@@ -94,11 +94,11 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
 
     logger.info("Initialize the post processors:")
 
-    if "website_description" in args.metadata_to_process:
-        logger.info("   Website description...")
+    if "website_description" in args.metadata_to_post_process:
+        logger.info("Post Processing Website description...")
         website_processor = WebsiteDescPostProcessor(col_to_process=col_for_metadata_website_desc)
 
-    logger.info("Processors initialization finished")
+    logger.info("Post Processors initialization finished")
 
     poss_files = sorted(os.listdir(args.dataset_name))
 
@@ -111,11 +111,11 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
             if (file_name.endswith("jsonl.gz") or file_name.endswith("jsonl")) and file_name.startswith("c4-en-html")
         ]
 
-    def process_file(file_name: str):
+    def post_process_file(file_name: str):
 
         logger.info(config.HF_DATASETS_CACHE)
         processing_name = (
-            "-".join(args.metadata_to_process) if args.metadata_to_process is not None else "full-process"
+            "-".join(args.metadata_to_post_process) if args.metadata_to_post_process is not None else "full-process"
         )
         metrics_logger.log({processing_name: 0})
 
@@ -142,12 +142,9 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
         metrics_logger.log({"load_dataset": 1})
 
         features_dict = dict(ds.features)
-        logger.info(f"the initial features of the dataset are: {features_dict}")
 
         def apply_processor(ds: Dataset, processor: MetadataPostProcessor, remove_columns=None) -> Dataset:
-            for col_name, feature_type in processor.new_columns_minimal_features.items():
-                assert col_name not in features_dict
-                features_dict[col_name] = feature_type
+            
             extraction_name = processor.__class__.__name__
 
             logger.info(f"Start {extraction_name}")
@@ -156,7 +153,7 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
                 processor.post_process,
                 batched=True,
                 batch_size=args.map_batch_size,
-                num_proc=args.preprocessing_num_workers,
+                num_proc=args.post_processing_num_workers,
                 load_from_cache_file=not args.overwrite_cache,
                 desc=f"Running {extraction_name} on dataset",
                 features=Features(features_dict),
@@ -166,7 +163,7 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
             logger.info(f"End {extraction_name}")
             return ds
 
-        if "website_description" in args.metadata_to_include:
+        if "website_description" in args.metadata_to_post_process:
             ds = apply_processor(ds=ds, processor=website_processor)
 
         if file_name.endswith(".jsonl.gz"):
@@ -186,14 +183,14 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
         metrics_logger.log({"save_result": 1})
         logger.info(f"Moving the saved dataset to {saving_path}")
         subprocess.run(["mv", saving_path_tmp, saving_path])
-        logger.info(f"Processing of {file_name} ended successfully")
+        logger.info(f"Post Processing of {file_name} ended successfully")
         metrics_logger.log({processing_name: 1})
 
     for file_name in poss_files[
         args.task_id * args.num_files_to_process : args.task_id * args.num_files_to_process + args.num_files_to_process
     ]:
         logger.info(f"Start to process {file_name}")
-        process_file(file_name=file_name)
+        post_process_file(file_name=file_name)
 
     metrics_logger.close()
 

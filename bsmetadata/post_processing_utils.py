@@ -17,9 +17,7 @@ This script provides functions for adding different kinds of metadata to a pretr
 import logging
 import re
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List
-
-from datasets import Value
+from typing import Dict, List
 
 
 logger = logging.getLogger(__name__)

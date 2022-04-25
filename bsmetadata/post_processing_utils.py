@@ -55,10 +55,9 @@ class WebsiteDescPostProcessor(MetadataPostProcessor):
 
         for example_metadata in example_metadata_list:
             if example_metadata and (
-                self.is_noisy_data(example_metadata["value"]) or self.is_outlier(example_metadata["value"])
+                self.is_noisy_data(example_metadata[0]["value"]) or self.is_outlier(example_metadata[0]["value"])
             ):
-                example_metadata = []  # remove website description with empty list if metadata is invalid
-
+                example_metadata.clear()  # remove website description with empty list if metadata is invalid
         examples[self.col_to_process] = example_metadata_list
         return examples
 

@@ -9,6 +9,7 @@ from mocks.mock_dump_db import MockDumpDB
 from bsmetadata.preprocessing_tools.wikipedia_desc_utils import WikipediaDescUtils
 from bsmetadata.preprocessing_utils import (
     DatasourcePreprocessor,
+    EntityParagraphPreprocessor,
     EntityPreprocessor,
     GenerationLengthPreprocessor,
     HtmlPreprocessor,
@@ -536,6 +537,41 @@ class PipelinePreprocessorTester(unittest.TestCase):
                 },
             ],
         ]
+        self.target_metadata_entity_paragraph = [
+            [],
+            [
+                {
+                    "char_end_idx": 120,
+                    "char_start_idx": 0,
+                    "key": "entity_paragraph",
+                    "relative_end_pos": 0,
+                    "relative_start_pos": 0,
+                    "type": "local",
+                    "value": "Barack_Obama",
+                },
+                {
+                    "char_end_idx": 120,
+                    "char_start_idx": 0,
+                    "key": "entity_paragraph",
+                    "relative_end_pos": 1,
+                    "relative_start_pos": 1,
+                    "type": "local",
+                    "value": "Angela_Merkel",
+                },
+            ],
+            [
+                {
+                    "char_end_idx": 146,
+                    "char_start_idx": 73,
+                    "key": "entity_paragraph",
+                    "relative_end_pos": 0,
+                    "relative_start_pos": 0,
+                    "type": "local",
+                    "value": "Paris",
+                }
+            ],
+            [],
+        ]
 
         self.target_head = [['<head><meta charset="utf-8"/><title>My test page</title>\n    </head>'], [], [], []]
         self.target_footer = [
@@ -569,6 +605,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
         col_to_store_metadata_datasource = "metadata_generation_datasource"
         col_to_store_metadata_title = "metadata_generation_title"
         col_to_store_metadata_paragraph = "metadata_paragraph"
+        col_to_store_metadata_entity_paragraph = "metadata_entity_paragraph"
 
         html_processor = HtmlPreprocessor(
             col_to_store_metadata=col_to_store_metadata_html,
@@ -602,6 +639,11 @@ class PipelinePreprocessorTester(unittest.TestCase):
         paragraph_preprocessor = ParagraphPreprocessor(
             col_to_store_metadata=col_to_store_metadata_paragraph, col_metadata_html=col_to_store_metadata_html
         )
+        entity_paragraph_preprocessor = EntityParagraphPreprocessor(
+            col_to_store_metadata=col_to_store_metadata_entity_paragraph,
+            col_entity=col_to_store_metadata_entities,
+            col_paragraph=col_to_store_metadata_paragraph,
+        )
 
         # Apply function
         ds = Dataset.from_dict(self.init_dict)
@@ -629,6 +671,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
         ds = apply_processor(ds=ds, processor=datasource_preprocessor)
         ds = apply_processor(ds=ds, processor=title_preprocessor)
         ds = apply_processor(ds=ds, processor=paragraph_preprocessor)
+        ds = apply_processor(ds=ds, processor=entity_paragraph_preprocessor)
 
         self.assertEqual(ds[:][col_to_store_text], self.target_texts)
         self.assertEqual(ds[:][col_to_store_head], self.target_head)
@@ -648,6 +691,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
         self.assertEqual(ds[:][col_to_store_metadata_datasource], self.target_metadata_datasource)
         self.assertEqual(ds[:][col_to_store_metadata_title], self.target_metadata_title)
         self.assertEqual(ds[:][col_to_store_metadata_paragraph], self.target_metadata_paragraph)
+        self.assertEqual(ds[:][col_to_store_metadata_entity_paragraph], self.target_metadata_entity_paragraph)
 
         col_to_store_all_metadata = "metadata"
         columns_names_to_concat = [
@@ -661,6 +705,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
             col_to_store_metadata_datasource,
             col_to_store_metadata_title,
             col_to_store_metadata_paragraph,
+            col_to_store_metadata_entity_paragraph,
         ]
         concat_columns_fn = concat_columns(
             columns_names_to_concat=columns_names_to_concat,
@@ -715,6 +760,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
             self.target_metadata_datasource,
             self.target_metadata_title,
             self.target_metadata_paragraph,
+            self.target_metadata_entity_paragraph,
         ]:
             for id, metadata_example in enumerate(metadata_type):
                 for metadata in metadata_example:
@@ -753,6 +799,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
         col_to_store_metadata_datasource = "metadata"
         col_to_store_metadata_title = "metadata"
         col_to_store_metadata_paragraph = "metadata"
+        col_to_store_metadata_entity_paragraph = "metadata"
 
         html_processor = HtmlPreprocessor(
             col_to_store_metadata=col_to_store_metadata_html,
@@ -785,6 +832,11 @@ class PipelinePreprocessorTester(unittest.TestCase):
         )
         paragraph_preprocessor = ParagraphPreprocessor(
             col_to_store_metadata=col_to_store_metadata_paragraph, col_metadata_html=col_to_store_metadata_html
+        )
+        entity_paragraph_preprocessor = EntityParagraphPreprocessor(
+            col_to_store_metadata=col_to_store_metadata_entity_paragraph,
+            col_entity=col_to_store_metadata_entities,
+            col_paragraph=col_to_store_metadata_paragraph,
         )
 
         features = Features(
@@ -960,6 +1012,19 @@ class PipelinePreprocessorTester(unittest.TestCase):
                     }
                 )
                 self.assertIn(metadata, ds[id][col_to_store_metadata_paragraph])
+
+        ds = ds.map(
+            lambda ex: entity_paragraph_preprocessor.preprocess(ex), batched=True, batch_size=3, features=features
+        )
+        for id, metadata_example in enumerate(self.target_metadata_entity_paragraph):
+            for metadata in metadata_example:
+                metadata.update(
+                    {
+                        "html_attrs": None,
+                        "marker": None,
+                    }
+                )
+                self.assertIn(metadata, ds[id][col_to_store_metadata_entity_paragraph])
 
 
 if __name__ == "__main__":

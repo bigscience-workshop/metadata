@@ -75,6 +75,14 @@ def add_metadata_and_chunk_examples(
                 if metadata_prefix
                 else []
             )
+            # NOTE: this is added when testing very short input length
+            # limit how much length is used in prefix
+            # to suppress error when prefix is longer than max len
+            prefix_len = len(metadata_prefix_encoded)
+            max_prefix_len = cfg.max_seq_len // 2
+            if prefix_len > max_prefix_len:
+                metadata_prefix_encoded = metadata_prefix_encoded[:max_prefix_len]
+
         else:
             metadata_prefix_encoded = []
 

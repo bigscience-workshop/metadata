@@ -13,3 +13,4 @@ wikipedia2vec==1.0.5    # wikipedia2vec doesn't support Python 3.9.
 nltk==3.6.7
 lxml==4.6.5
 htmlmin==0.1.12
+deepspeed>=0.6.1

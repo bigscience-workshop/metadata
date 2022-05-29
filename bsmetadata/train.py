@@ -12,14 +12,14 @@ from typing import Optional
 import hydra
 import torch
 import torch.nn.functional as F
-import wandb
 from accelerate import Accelerator
 from hydra.core.config_store import ConfigStore
 from omegaconf import OmegaConf
 from tqdm.auto import tqdm as original_tqdm
-from transformers import AdamW, AutoModelForCausalLM, AutoTokenizer, get_scheduler, set_seed
+from transformers import AdamW, AutoConfig, AutoModelForCausalLM, AutoTokenizer, get_scheduler, set_seed
 from transformers.trainer_utils import IntervalStrategy
 
+import wandb
 from bsmetadata.input_pipeline import DataConfig, get_dataloaders
 
 
@@ -76,6 +76,9 @@ class CFG:
     save_steps: int = field(default=500, metadata={"help": "Save checkpoint every X update steps."})
     do_train: bool = field(default=True, metadata={"help": "Whether to run training."})
     do_eval: bool = field(default=True, metadata={"help": "Whether to run eval on the dev set."})
+    gradient_checkpointing: bool = field(
+        default=False, metadata={"help": "Whether to use gradient_checkpointing to save memory."}
+    )
 
 
 cs = ConfigStore.instance()
@@ -150,13 +153,16 @@ def main(args: CFG) -> None:
 
     os.makedirs(args.out_dir, exist_ok=True)
 
+    config = AutoConfig.from_pretrained(args.model_name)
+    config.gradient_checkpointing = args.gradient_checkpointing
+    config.use_cache = not args.gradient_checkpointing  # to disable warning
     # get dataloaders
     tokenizer = AutoTokenizer.from_pretrained(args.model_name)
     tokenizer.pad_token = tokenizer.eos_token
     train_dataloader, eval_dataloaders = get_dataloaders(tokenizer, args.data_config)
 
     # get model
-    model = AutoModelForCausalLM.from_pretrained(args.model_name)
+    model = AutoModelForCausalLM.from_pretrained(args.model_name, config=config)
 
     # Optimizer
     # Split weights in two groups, one with weight decay and the other not.
@@ -315,4 +321,12 @@ if __name__ == "__main__":
     if "--help" in sys.argv or "-h" in sys.argv:
         show_help()
         sys.exit()
+    newargv = []
+    for arg in sys.argv:
+        if arg.startswith("--local_rank"):
+            pass
+        else:
+            newargv.append(arg)
+    sys.argv = newargv
+
     main()

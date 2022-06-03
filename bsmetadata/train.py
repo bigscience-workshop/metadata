@@ -137,7 +137,7 @@ def loss_fn(batch, outputs, metadata_mask=None):
     return loss
 
 
-@hydra.main(config_path=None, config_name="config")
+@hydra.main(config_path="hydra_configs", config_name="config")
 def main(args: CFG) -> None:
     print(OmegaConf.to_yaml(args))
     config_dict = OmegaConf.to_container(args)
@@ -146,6 +146,8 @@ def main(args: CFG) -> None:
     # name. Without this transformation the hash of args is not deterministic
     args = OmegaConf.to_object(args)
 
+    if not dataclasses.is_dataclass(args):
+        args = hydra.utils.instantiate({"_target_": "__main__.CFG", **args})
     set_seed(args.seed)
     accelerator = Accelerator()
     is_local_main_process = accelerator.is_local_main_process

@@ -139,7 +139,7 @@ def convert_v2_dataset_to_v1_format(example):
     metadata_list = []
     key_prefix = "metadata_"
     for key, value in example.items():
-        if key.startswith(key_prefix):
+        if key.startswith(key_prefix) and value is not None:
             key = key[len(key_prefix) :]
             for metadata in value:
                 metadata = deepcopy(metadata)

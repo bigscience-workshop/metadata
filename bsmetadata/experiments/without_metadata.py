@@ -1,5 +1,6 @@
 import logging
 
+import datasets
 from datasets import config, load_dataset
 from torch.utils.data import DataLoader
 from transformers import default_data_collator

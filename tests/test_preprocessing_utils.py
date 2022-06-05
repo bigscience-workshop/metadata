@@ -13,7 +13,7 @@ from bsmetadata.preprocessing_utils import (
     EntityPreprocessor,
     GenerationLengthPreprocessor,
     HtmlPreprocessor,
-    MetadataPreprocessor,
+    MetadataTagger,
     ParagraphPreprocessor,
     TimestampPreprocessor,
     TitlePreprocessor,
@@ -47,7 +47,7 @@ class WebsiteDescPreprocessorTester(unittest.TestCase):
     @mock.patch("bsmetadata.preprocessing_tools.wikipedia_desc_utils.nltk.sent_tokenize", new=mock_sent_tokenize)
     def test_website_metadata_processor(self):
         ds = Dataset.from_dict(self.example_dict)
-        ds = ds.map(lambda ex: self.website_processor.preprocess(ex), batched=True)
+        ds = ds.map(lambda ex: self.website_processor.tag(ex), batched=True)
         target_metadata = [
             [
                 {"key": "url", "type": "global", "value": "https://www.xyz.com"},
@@ -195,7 +195,7 @@ class HtmlPreprocessorTester(unittest.TestCase):
     def test_toy_dataset(self):
         # Apply function
         ds = Dataset.from_dict(HtmlToyData.my_dict)
-        ds = ds.map(lambda ex: self.html_processor.preprocess(ex), batched=True, batch_size=3)
+        ds = ds.map(lambda ex: self.html_processor.tag(ex), batched=True, batch_size=3)
 
         self.assertEqual(ds[:]["text"], HtmlToyData.target_texts)
         self.assertEqual(ds[:]["metadata"], HtmlToyData.target_metadata)
@@ -649,12 +649,12 @@ class PipelinePreprocessorTester(unittest.TestCase):
         ds = Dataset.from_dict(self.init_dict)
         features_dict = dict(ds.features)
 
-        def apply_processor(ds: Dataset, processor: MetadataPreprocessor):
+        def apply_processor(ds: Dataset, processor: MetadataTagger):
             for col_name, feature_type in processor.new_columns_minimal_features.items():
                 assert col_name not in features_dict
                 features_dict[col_name] = feature_type
             return ds.map(
-                processor.preprocess,
+                processor.tag,
                 batched=True,
                 batch_size=2,
                 num_proc=2,
@@ -864,25 +864,25 @@ class PipelinePreprocessorTester(unittest.TestCase):
 
         # Apply function
         ds = Dataset.from_dict(self.init_dict)
-        ds = ds.map(lambda ex: html_processor.preprocess(ex), batched=True, batch_size=3, features=features)
-        ds = ds.map(lambda ex: url_processor.preprocess(ex), batched=True, batch_size=3, features=features)
-        ds = ds.map(lambda ex: timestamp_processor.preprocess(ex), batched=True, batch_size=3, features=features)
-        ds = ds.map(lambda ex: website_processor.preprocess(ex), batched=True, batch_size=3, features=features)
-        ds = ds.map(lambda ex: entity_processor.preprocess(ex), batched=True, batch_size=3, features=features)
+        ds = ds.map(lambda ex: html_processor.tag(ex), batched=True, batch_size=3, features=features)
+        ds = ds.map(lambda ex: url_processor.tag(ex), batched=True, batch_size=3, features=features)
+        ds = ds.map(lambda ex: timestamp_processor.tag(ex), batched=True, batch_size=3, features=features)
+        ds = ds.map(lambda ex: website_processor.tag(ex), batched=True, batch_size=3, features=features)
+        ds = ds.map(lambda ex: entity_processor.tag(ex), batched=True, batch_size=3, features=features)
         ds = ds.map(
-            lambda ex: generation_length_preprocessor_text.preprocess(ex),
+            lambda ex: generation_length_preprocessor_text.tag(ex),
             batched=True,
             batch_size=3,
             features=features,
         )
         ds = ds.map(
-            lambda ex: generation_length_preprocessor_sentence.preprocess(ex),
+            lambda ex: generation_length_preprocessor_sentence.tag(ex),
             batched=True,
             batch_size=3,
             features=features,
         )
-        ds = ds.map(lambda ex: datasource_preprocessor.preprocess(ex), batched=True, batch_size=3, features=features)
-        ds = ds.map(lambda ex: title_preprocessor.preprocess(ex), batched=True, batch_size=3, features=features)
+        ds = ds.map(lambda ex: datasource_preprocessor.tag(ex), batched=True, batch_size=3, features=features)
+        ds = ds.map(lambda ex: title_preprocessor.tag(ex), batched=True, batch_size=3, features=features)
 
         self.assertEqual(ds[:][col_to_store_text], self.target_texts)
         self.assertEqual(ds[:][col_to_store_head], self.target_head)
@@ -1001,7 +1001,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
         should always be the last step with its own management of `Features`.
         """
         features[col_to_store_metadata_paragraph][0]["marker"] = Value("string")
-        ds = ds.map(lambda ex: paragraph_preprocessor.preprocess(ex), batched=True, batch_size=3, features=features)
+        ds = ds.map(lambda ex: paragraph_preprocessor.tag(ex), batched=True, batch_size=3, features=features)
         for id, metadata_example in enumerate(self.target_metadata_paragraph):
             for metadata in metadata_example:
                 metadata.update(
@@ -1013,9 +1013,7 @@ class PipelinePreprocessorTester(unittest.TestCase):
                 )
                 self.assertIn(metadata, ds[id][col_to_store_metadata_paragraph])
 
-        ds = ds.map(
-            lambda ex: entity_paragraph_preprocessor.preprocess(ex), batched=True, batch_size=3, features=features
-        )
+        ds = ds.map(lambda ex: entity_paragraph_preprocessor.tag(ex), batched=True, batch_size=3, features=features)
         for id, metadata_example in enumerate(self.target_metadata_entity_paragraph):
             for metadata in metadata_example:
                 metadata.update(

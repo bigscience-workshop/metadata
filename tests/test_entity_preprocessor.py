@@ -40,7 +40,7 @@ class TestEntityPreprocessor(unittest.TestCase):
         )
 
         ds = Dataset.from_dict(my_dict)
-        ds = ds.map(lambda ex: processor.preprocess(ex), batched=True, batch_size=3)
+        ds = ds.map(lambda ex: processor.tag(ex), batched=True, batch_size=3)
 
         self.assertEqual(ds[:]["text"], target_text)
         self.assertEqual(ds[:]["metadata"], target_metadata)

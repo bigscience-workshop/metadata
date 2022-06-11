@@ -146,8 +146,17 @@ def main(args: CFG) -> None:
     # name. Without this transformation the hash of args is not deterministic
     args = OmegaConf.to_object(args)
 
+    # if the yaml file is used to create the config, the args are not dataclass up to this step
+    # need to convert them back to dataclass via OmegaConf
     if not dataclasses.is_dataclass(args):
-        args = hydra.utils.instantiate({"_target_": "__main__.CFG", **args})
+        schema = OmegaConf.structured(CFG)
+        args = OmegaConf.merge(schema, args)
+        config_dict = OmegaConf.to_container(args)
+        args = OmegaConf.to_object(args)
+        assert dataclasses.is_dataclass(args)
+        assert dataclasses.is_dataclass(args.data_config)
+        assert dataclasses.is_dataclass(args.data_config.metadata_config)
+
     set_seed(args.seed)
     accelerator = Accelerator()
     is_local_main_process = accelerator.is_local_main_process

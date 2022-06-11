@@ -466,6 +466,7 @@ def my_load_dataset(args):
             tmp.append(file)
     train_files = tmp
 
+    # log number of train & val files before downloading
     logger.info(f"{len(train_files)} train files, starting with {train_files[0]}")
     logger.info(f"{len(validation_files)} validation files, starting with {validation_files[0]}")
     train_dataset = load_dataset_by_files(train_files)

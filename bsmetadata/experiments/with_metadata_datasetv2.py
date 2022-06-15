@@ -585,6 +585,7 @@ def get_dataloaders(tokenizer, args):
             batch_size=args.per_device_eval_batch_size,
         )
         for key, val_dataset in datasets.items()
-        if key.startswith("validation_")
+        if key.startswith("validation")
     }
+    logger.info(f"validation dataloaders: {val_dataloaders.keys()}")
     return train_dataloader, val_dataloaders

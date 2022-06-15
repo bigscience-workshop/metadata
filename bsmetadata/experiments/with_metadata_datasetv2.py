@@ -476,6 +476,17 @@ def my_load_dataset(args):
     return datasets
 
 
+def copy_dataset_for_each_metadata_type(dataset):
+    d = dataset
+    new_datasets = DatasetDict()
+    for col in dataset.column_names:
+        if col.startswith("metadata_"):
+            logger.info(f"Copying dataset for {col}")
+            new_dataset = d.remove_columns([x for x in d.column_names if x.startswith("metadata_") and x != col])
+            new_datasets[col] = new_dataset
+    return new_datasets
+
+
 def build_dataset(tokenizer, args):
     """
     Args:
@@ -485,6 +496,9 @@ def build_dataset(tokenizer, args):
         a dataset
     """
     datasets = my_load_dataset(args)
+    single_metadata_datasets = copy_dataset_for_each_metadata_type(datasets["validation"])
+    for key, value in single_metadata_datasets.items():
+        datasets[f"validation_{key}"] = value
 
     logger.info(f"Dataset loaded: {datasets}")
     # See more about loading any type of standard or custom dataset (from files, python dict, pandas DataFrame, etc) at
@@ -496,32 +510,36 @@ def build_dataset(tokenizer, args):
     logger.info("Start to add metadata and chunk examples")
 
     # First we pre-process our text and metadata
-    datasets = datasets.map(
-        functools.partial(add_metadata_and_chunk_examples, tokenizer=tokenizer, cfg=args.metadata_config),
-        batched=True,
-        num_proc=args.preprocessing_num_workers,
-        load_from_cache_file=not args.overwrite_cache,
-        desc="Pre-process the text and metadata to create new samples",
-        remove_columns=column_names,
-        batch_size=args.map_batch_size,
-    )
+    # note: chunking data in batches reqires remove_columns, see https://github.com/huggingface/datasets/issues/1817#issuecomment-774066254
+    # but each subset has different columns, so call .map() separately on each subset
+    newdatasetsdict = DatasetDict()
+    for key, d in datasets.items():
+        logger.info(f"Processing dataset subset {key}")
+        print(d)
+        d = d.map(
+            functools.partial(add_metadata_and_chunk_examples, tokenizer=tokenizer, cfg=args.metadata_config),
+            batched=True,
+            num_proc=args.preprocessing_num_workers,
+            load_from_cache_file=not args.overwrite_cache,
+            desc="Pre-process the text and metadata to create new samples",
+            # remove_columns=column_names, # cannot remove columns here, because each validation has different column
+            remove_columns=d.column_names,  # cannot remove columns here, because each validation has different column
+            batch_size=args.map_batch_size,
+        )
+        logger.info(f"Dataset {key} pre-processed: {d}, length: {len(d)}")
+        newdatasetsdict[key] = d
+    datasets = newdatasetsdict
     logger.info("Add metadata and chunk examples finished")
 
     def create_labels_column(examples):
+        # remove columns
+        examples = {key: value for key, value in examples.items() if key not in column_names}
         examples["labels"] = examples["input_ids"].copy()
         return examples
 
     logger.info("Create labels column")
-    # Then we add the column containing the labels
-    datasets = datasets.map(
-        create_labels_column,
-        batched=True,
-        num_proc=args.preprocessing_num_workers,
-        load_from_cache_file=not args.overwrite_cache,
-        desc="Create labels column",
-        batch_size=args.map_batch_size,
-    )
-    logger.info("Creating labels column finished")
+    # labels column will be generated from input_ids on the fly
+    datasets = datasets.with_transform(create_labels_column)
     return datasets
 
 
@@ -558,10 +576,15 @@ def get_dataloaders(tokenizer, args):
         shuffle=True,
         collate_fn=default_data_collator,
         batch_size=args.per_device_train_batch_size,
+        drop_last=True,
     )
-    val_dataloader1 = DataLoader(
-        val_dataset,
-        collate_fn=default_data_collator,
-        batch_size=args.per_device_eval_batch_size,
-    )
-    return train_dataloader, {"val1": val_dataloader1}
+    val_dataloaders = {
+        key: DataLoader(
+            val_dataset,
+            collate_fn=default_data_collator,
+            batch_size=args.per_device_eval_batch_size,
+        )
+        for key, val_dataset in datasets.items()
+        if key.startswith("validation_")
+    }
+    return train_dataloader, val_dataloaders

@@ -496,6 +496,7 @@ def build_dataset(tokenizer, args):
         a dataset
     """
     datasets = my_load_dataset(args)
+    datasets = datasets.filter(lambda x: x["text"])
     single_metadata_datasets = copy_dataset_for_each_metadata_type(datasets["validation"])
     for key, value in single_metadata_datasets.items():
         datasets[f"validation_{key}"] = value

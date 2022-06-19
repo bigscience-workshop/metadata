@@ -111,8 +111,8 @@ class MetadataConfig:
     treat_local_metadata_as_regular_text: bool = field(
         default=False,
         metadata={
-            "help": "If True, local metadata token will be associated to a `0` int the metadata_mask list. If False, "
-            "local metadata token will be associated to a `1` int the metadata_mask list"
+            "help": "If True, local metadata token will be associated to a `0` in the metadata_mask list. If False, "
+            "local metadata token will be associated to a `1` in the metadata_mask list"
         },
     )
     add_local_metadata_special_tokens_in_prefix: bool = field(
@@ -229,10 +229,17 @@ class EntityProcessor(MetadataProcessor):
     def process_local(self, metadata_attrs: Dict[str, Any]) -> Optional[Tuple[str, str]]:
         # We represent an entity by adding the entity name after the entity mention in double square brackets.
         # Example: "Biden [[Joe Biden]] studied at ..."
-        if self.cfg.entity_setting == "end" or self.cfg.entity_setting == "normal":
-            return "", f" [[{metadata_attrs['value']}]]"
-        elif self.cfg.entity_setting == "beg":
-            return f" [[{metadata_attrs['value']}]]", ""
+        return "", f" [[{metadata_attrs['value'].replace('_', ' ')}]]"
+
+
+class EntityParagraphProcessor(MetadataProcessor):
+    def process_local(self, metadata_attrs: Dict[str, Any]) -> Optional[Tuple[str, str]]:
+        # We represent an entity_paragraph by adding the entity name in double square brackets at the beginning or end of the paragraph an entity resides.
+        # Example: [[Joe Biden]] "Biden studied at ..."
+        if self.cfg.entity_setting == "beg":
+            return f" |{metadata_attrs['value'].replace('_', ' ')}|", ""
+        elif self.cfg.entity_setting == "end":
+            return "", f" |{metadata_attrs['value'].replace('_', ' ')}|"
 
 
 class HtmlProcessor(MetadataProcessor):
@@ -358,8 +365,10 @@ PROCESSORS = {
     "source": DatasourceProcessor,
     "length": GenerationLengthProcessor,
     "entity": EntityProcessor,
+    "entity_paragraph": EntityParagraphProcessor,
     "html": HtmlProcessor,
     "url": UrlProcessor,
     "website_description": WebsiteDescriptionProcessor,
+    "title": TitleProcessor,
     "basic_start_local": BasicStartLocalProcessor,
 }

@@ -7,6 +7,7 @@ from transformers import GPT2TokenizerFast
 from bsmetadata.metadata_processors import (
     PROCESSORS,
     AllTagsRules,
+    EntityParagraphProcessor,
     EntityProcessor,
     HTMLParserConfig,
     HtmlProcessor,
@@ -268,7 +269,7 @@ class MetadataUtilsTester(unittest.TestCase):
                 "text": "Hints and tips for media appearances, speaking and social media. This week; wall-to-wall politicians; Great Britain: Louis Vuitton condoms; Billy Connolly,; Lisa Dutton; Something in Common; What was I saying?: We’re all publishers; An interview with Lembit Opik; Music from The Good Suns.",
                 "metadata": [
                     {
-                        "key": "entity",
+                        "key": "entity_paragraph",
                         "type": "local",
                         "char_start_idx": 0,
                         "char_end_idx": 289,
@@ -277,7 +278,7 @@ class MetadataUtilsTester(unittest.TestCase):
                         "relative_end_pos": 0,
                     },
                     {
-                        "key": "entity",
+                        "key": "entity_paragraph",
                         "type": "local",
                         "char_start_idx": 0,
                         "char_end_idx": 289,
@@ -286,7 +287,7 @@ class MetadataUtilsTester(unittest.TestCase):
                         "relative_end_pos": 1,
                     },
                     {
-                        "key": "entity",
+                        "key": "entity_paragraph",
                         "type": "local",
                         "char_start_idx": 0,
                         "char_end_idx": 289,
@@ -295,7 +296,7 @@ class MetadataUtilsTester(unittest.TestCase):
                         "relative_end_pos": 2,
                     },
                     {
-                        "key": "entity",
+                        "key": "entity_paragraph",
                         "type": "local",
                         "char_start_idx": 0,
                         "char_end_idx": 289,
@@ -304,13 +305,48 @@ class MetadataUtilsTester(unittest.TestCase):
                         "relative_end_pos": 3,
                     },
                     {
-                        "key": "entity",
+                        "key": "entity_paragraph",
                         "type": "local",
                         "char_start_idx": 0,
                         "char_end_idx": 289,
                         "value": "Lembit_Öpik",
                         "relative_start_pos": 4,
                         "relative_end_pos": 4,
+                    },
+                    {
+                        "key": "entity",
+                        "type": "local",
+                        "char_start_idx": 103,
+                        "char_end_idx": 115,
+                        "value": "United_Kingdom",
+                    },
+                    {
+                        "key": "entity",
+                        "type": "local",
+                        "char_start_idx": 118,
+                        "char_end_idx": 130,
+                        "value": "Louis_Vuitton",
+                    },
+                    {
+                        "key": "entity",
+                        "type": "local",
+                        "char_start_idx": 141,
+                        "char_end_idx": 154,
+                        "value": "Billy_Connolly",
+                    },
+                    {
+                        "key": "entity",
+                        "type": "local",
+                        "char_start_idx": 171,
+                        "char_end_idx": 189,
+                        "value": "Something_in_Common",
+                    },
+                    {
+                        "key": "entity",
+                        "type": "local",
+                        "char_start_idx": 252,
+                        "char_end_idx": 262,
+                        "value": "Lembit_Öpik",
                     },
                 ],
             },
@@ -356,34 +392,66 @@ class MetadataUtilsTester(unittest.TestCase):
         self.assertEqual(global_metadata_prefix_5, "title: My Thoughts On It » Dad, I want to be an inventor |||")
 
     def test_entity_settings(self):
+        from transformers import AddedToken
+
         cfg = MetadataConfig()
         PROCESSORS["entity"] = EntityProcessor
-        cfg.metadata_list = ["entity"]
-
-        cfg.local_metadata_special_token_start = {"entity": " <ENTITY_CHAIN>"}
-        cfg.local_metadata_special_token_end = {"entity": " </ENTITY_CHAIN>"}
+        PROCESSORS["entity_paragraph"] = EntityParagraphProcessor
+        cfg.metadata_list = ["entity", "entity_paragraph"]
+        cfg.add_local_metadata_special_tokens_in_prefix = True
+        cfg.metadata_prefix_start_seq = " "
+        cfg.local_metadata_special_tokens = {
+            "entity": "EntityOn",
+            "entity_paragraph": "EntityParagraphOn",
+        }
+        cfg.treat_local_metadata_as_regular_text = True
+        cfg.max_seq_len = 142
+        cfg.local_metadata_special_token_start = {"entity_paragraph": " <ENTITY_CHAIN>"}
+        cfg.local_metadata_special_token_end = {"entity_paragraph": " </ENTITY_CHAIN>"}
         cfg.entity_setting = "end"
         text3, mask3 = add_local_metadata_to_text(self.examples[7], cfg)
 
-        cfg.local_metadata_special_token_start = {"entity": "<ENTITY_CHAIN>"}
-        cfg.local_metadata_special_token_end = {"entity": " </ENTITY_CHAIN> "}
+        cfg.local_metadata_special_token_start = {"entity_paragraph": "<ENTITY_CHAIN>"}
+        cfg.local_metadata_special_token_end = {"entity_paragraph": " </ENTITY_CHAIN> "}
         cfg.entity_setting = "beg"
         text4, mask4 = add_local_metadata_to_text(self.examples[7], cfg)
 
-        cfg.entity_setting = "normal"
         text5, mask5 = add_local_metadata_to_text(self.examples[0], cfg)
+
         self.assertEqual(
             text3,
-            "Hints and tips for media appearances, speaking and social media. This week; wall-to-wall politicians; Great Britain: Louis Vuitton condoms; Billy Connolly,; Lisa Dutton; Something in Common; What was I saying?: We’re all publishers; An interview with Lembit Opik; Music from The Good Suns. <ENTITY_CHAIN> [[United_Kingdom]] [[Louis_Vuitton]] [[Billy_Connolly]] [[Something_in_Common]] [[Lembit_Öpik]] </ENTITY_CHAIN>",
+            "Hints and tips for media appearances, speaking and social media. This week; wall-to-wall politicians; Great Britain [[United Kingdom]]: Louis Vuitton [[Louis Vuitton]] condoms; Billy Connolly [[Billy Connolly]],; Lisa Dutton; Something in Common [[Something in Common]]; What was I saying?: We’re all publishers; An interview with Lembit Opik [[Lembit Öpik]]; Music from The Good Suns. <ENTITY_CHAIN> |United Kingdom| |Louis Vuitton| |Billy Connolly| |Something in Common| |Lembit Öpik| </ENTITY_CHAIN>",
         )
 
         self.assertEqual(
             text4,
-            "<ENTITY_CHAIN> [[United_Kingdom]] [[Louis_Vuitton]] [[Billy_Connolly]] [[Something_in_Common]] [[Lembit_Öpik]] </ENTITY_CHAIN> Hints and tips for media appearances, speaking and social media. This week; wall-to-wall politicians; Great Britain: Louis Vuitton condoms; Billy Connolly,; Lisa Dutton; Something in Common; What was I saying?: We’re all publishers; An interview with Lembit Opik; Music from The Good Suns.",
+            "<ENTITY_CHAIN> |United Kingdom| |Louis Vuitton| |Billy Connolly| |Something in Common| |Lembit Öpik| </ENTITY_CHAIN> Hints and tips for media appearances, speaking and social media. This week; wall-to-wall politicians; Great Britain [[United Kingdom]]: Louis Vuitton [[Louis Vuitton]] condoms; Billy Connolly [[Billy Connolly]],; Lisa Dutton; Something in Common [[Something in Common]]; What was I saying?: We’re all publishers; An interview with Lembit Opik [[Lembit Öpik]]; Music from The Good Suns.",
         )
         self.assertEqual(
             text5,
             "It was a brilliant first round. You have to break down the Cuban's rhythm you can't let them get into rhythm. The risk with that is Yafai [[Galal Yafai]] has got to go him.",
+        )
+
+        tokenizer = GPT2TokenizerFast.from_pretrained("gpt2-xl")
+        tokenizer.add_tokens(
+            [AddedToken(special_token, lstrip=True) for special_token in cfg.local_metadata_special_tokens.values()]
+        )
+
+        ds_dict = {key: [self.examples[7][key]] for key in self.examples[0].keys()}
+        ds = Dataset.from_dict(ds_dict)
+
+        mapped_ds = ds.map(
+            functools.partial(add_metadata_and_chunk_examples, tokenizer=tokenizer, cfg=cfg),
+            batched=True,
+            remove_columns=ds.column_names,
+            load_from_cache_file=False,
+        )
+
+        self.maxDiff = None
+
+        self.assertEqual(
+            tokenizer.decode(mapped_ds[0]["input_ids"]),
+            "EntityOn |EntityParagraphOn ||| <ENTITY_CHAIN> |United Kingdom| |Louis Vuitton| |Billy Connolly| |Something in Common| |Lembit Öpik| </ENTITY_CHAIN> Hints and tips for media appearances, speaking and social media. This week; wall-to-wall politicians; Great Britain [[United Kingdom]]: Louis Vuitton [[Louis Vuitton]] condoms; Billy Connolly [[Billy Connolly]],; Lisa Dutton; Something in Common [[Something in Common]]; What was I saying?: We’re all publishers; An interview with Lembit Opik [[Lembit Öpik]]; Music from The Good Suns",
         )
 
     def test_add_local_metadata_to_text(self):

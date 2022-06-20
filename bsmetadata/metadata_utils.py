@@ -18,6 +18,7 @@ from collections import defaultdict
 from dataclasses import asdict, dataclass, field
 from typing import Any, DefaultDict, Dict, List, Optional, Tuple
 
+import numpy as np
 from transformers import PreTrainedTokenizerFast
 
 from bsmetadata.metadata_processors import PROCESSORS, MetadataConfig, MetadataProcessor
@@ -122,6 +123,44 @@ def add_metadata_and_chunk_examples(
             linearized_examples["metadata_mask"].append(metadata_mask)
 
     return linearized_examples
+
+
+def get_metadata_types(metadata_list):
+    return list(set(m["key"] for m in metadata_list))
+
+
+def random_sample_metadata(
+    examples: Dict[str, List],
+    metadata_type_sample_weights=None,
+) -> Dict[str, List]:
+    """Randomly drop some of the metadata from the provided examples.
+    Uniformly decide the number of metadata types to keep. And sample the metadata types to keep.
+
+    Args:
+        examples: The examples to process, with required "metadata".
+
+    Returns:
+        A new collection of examples, with some metadata dropped.
+    """
+    new_metadata = []
+    for example_metadata_list in examples["metadata"]:
+        if not example_metadata_list:
+            new_metadata.append([])
+            continue
+
+        metadata_types = get_metadata_types(example_metadata_list)
+        num_metadata_to_keep = random.randint(1, len(metadata_types))
+        vec = np.arange(len(metadata_types))
+        if metadata_type_sample_weights is not None:
+            weights = np.array([metadata_type_sample_weights[m] for m in metadata_types])
+            weights = weights / weights.sum()
+        else:
+            weights = None
+        metadata_types_ids = np.random.choice(vec, num_metadata_to_keep, replace=False, p=weights)
+        metadata_types = [metadata_types[i] for i in metadata_types_ids]
+        new_metadata.append([m for m in example_metadata_list if m["key"] in metadata_types])
+    examples["metadata"] = new_metadata
+    return examples
 
 
 def create_metadata_prefix(example: Dict[str, Any], cfg: MetadataConfig) -> str:

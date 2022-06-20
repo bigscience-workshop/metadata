@@ -131,7 +131,9 @@ def loss_fn(batch, outputs, metadata_mask=None):
         shift_labels.view(-1),
         reduction="none",
     ).view(b, -1)
-    loss = (loss * shift_mask).sum() / shift_mask.sum()
+    # normalize first, so it doesn't overflow when there are many tokens
+    normed_loss_weights = shift_mask / shift_mask.sum()
+    loss = (loss * normed_loss_weights).sum()
     # per-example ppl
     # ppl = torch.exp((loss * shift_mask).sum(-1) / shift_mask.sum(-1))
     return loss

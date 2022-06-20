@@ -15,8 +15,9 @@ import torch.nn.functional as F
 from accelerate import Accelerator
 from hydra.core.config_store import ConfigStore
 from omegaconf import OmegaConf
+from torch.optim import AdamW
 from tqdm.auto import tqdm as original_tqdm
-from transformers import AdamW, AutoConfig, AutoModelForCausalLM, AutoTokenizer, get_scheduler, set_seed
+from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer, get_scheduler, set_seed
 from transformers.trainer_utils import IntervalStrategy
 
 import wandb
@@ -190,7 +191,7 @@ def main(args: CFG) -> None:
             "weight_decay": 0.0,
         },
     ]
-    optimizer = AdamW(optimizer_grouped_parameters, lr=args.learning_rate)
+    optimizer = AdamW(optimizer_grouped_parameters, lr=args.learning_rate, betas=(0.9, 0.98), eps=1e-6)
 
     # Prepare everything
     model, optimizer, train_dataloader = accelerator.prepare(model, optimizer, train_dataloader)
@@ -272,19 +273,21 @@ def main(args: CFG) -> None:
         f"  Saving will be done every {save_per_n_step} steps, "
         f"for a total of {args.max_train_steps//save_per_n_step} times."
     )
+    step_loss = 0
+    step = 0
+    model.train()
     for epoch in range(args.num_train_epochs):
-        model.train()
-        for step, batch in enumerate(train_dataloader):
+        for batch in train_dataloader:
+            step += 1
             # pop labels because we want to calculate loss ourselves
             labels = batch.pop("labels")
             metadata_mask = batch.pop("metadata_mask", None)
             outputs = model(**batch)
             batch["labels"] = labels
             loss = loss_fn(batch, outputs, metadata_mask)
-
-            metrics_logger.log({"loss": loss})
             loss = loss / args.gradient_accumulation_steps
             accelerator.backward(loss)
+            step_loss += loss.detach()
 
             do_step = step % args.gradient_accumulation_steps == 0 or step == len(train_dataloader) - 1
             if do_step:
@@ -294,7 +297,14 @@ def main(args: CFG) -> None:
                 optimizer.zero_grad()
                 progress_bar.update(1)
                 completed_steps += 1
-                metrics_logger.log({"gradient_step": completed_steps})
+                metrics_logger.log(
+                    {
+                        "loss": step_loss,
+                        "lr": optimizer.param_groups[0]["lr"],
+                        "gradient_step": completed_steps,
+                    }
+                )
+                step_loss = 0
             else:
                 continue
 

@@ -15,9 +15,11 @@ This script provides utility functions for linearizing, encoding and chunking a 
 """
 import random
 from collections import defaultdict
+from copy import deepcopy
 from dataclasses import asdict, dataclass, field
 from typing import Any, DefaultDict, Dict, List, Optional, Tuple
 
+import numpy as np
 from transformers import PreTrainedTokenizerFast
 
 from bsmetadata.metadata_processors import PROCESSORS, MetadataConfig, MetadataProcessor
@@ -132,9 +134,6 @@ def add_metadata_and_chunk_examples(
     return linearized_examples
 
 
-from copy import deepcopy
-
-
 def convert_v2_dataset_to_v1_format(example):
     metadata_list = []
     key_prefix = "metadata_"
@@ -153,6 +152,70 @@ def convert_v2_dataset_to_v1_format_v1_compatible(example):
     if "metadata" in example:
         return example
     return convert_v2_dataset_to_v1_format(example=example)
+
+
+def get_metadata_types(metadata_list):
+    return list(set(m["key"] for m in metadata_list))
+
+
+def random_sample_metadata(
+    examples: Dict[str, List],
+    metadata_type_sample_weights: Dict[str, float],
+) -> Dict[str, List]:
+    """Randomly drop some of the metadata from the provided examples.
+    Uniformly decide the number of metadata types to keep. And sample the metadata types to keep.
+
+    Args:
+        examples: The examples to process, with required "metadata".
+
+    Returns:
+        A new collection of examples, with some metadata dropped.
+    """
+    new_metadata = []
+    for example_metadata_list in examples["metadata"]:
+        if not example_metadata_list:
+            new_metadata.append([])
+            continue
+
+        metadata_types = get_metadata_types(example_metadata_list)
+        num_metadata_to_keep = random.randint(1, len(metadata_types))
+        vec = np.arange(len(metadata_types))
+        weights = np.array([metadata_type_sample_weights[m] for m in metadata_types])
+        weights = weights / weights.sum()
+        metadata_types_ids = np.random.choice(vec, num_metadata_to_keep, replace=False, p=weights)
+        metadata_types = [metadata_types[i] for i in metadata_types_ids]
+        new_metadata.append([m for m in example_metadata_list if m["key"] in metadata_types])
+    examples["metadata"] = new_metadata
+    return examples
+
+
+def random_sample_metadata_v2(
+    examples: Dict[str, List],
+    metadata_type_sample_weights: Dict[str, float],
+) -> Dict[str, List]:
+    """Randomly drop some of the metadata from the provided examples.
+    Uniformly decide the number of metadata types to keep. And sample the metadata types to keep.
+
+    Args:
+        examples: The examples to process, with required "metadata".
+
+    Returns:
+        A new collection of examples, with some metadata dropped.
+    """
+    only_metadata_types = list(metadata_type_sample_weights.keys())
+    for i in range(len(examples["text"])):
+        example = {k: v[i] for k, v in examples.items()}
+        metadata_types = [key for key in only_metadata_types if example[f"metadata_{key}"]]
+        num_metadata_to_keep = random.randint(1, len(metadata_types))
+        weights = np.array([metadata_type_sample_weights[m] for m in metadata_types])
+        weights = weights / weights.sum()
+        ids = np.arange(len(metadata_types))
+        metadata_types_ids = np.random.choice(ids, num_metadata_to_keep, replace=False, p=weights)
+        metadata_types = set([metadata_types[i] for i in metadata_types_ids])
+        for key in only_metadata_types:
+            if key not in metadata_types:
+                examples[f"metadata_{key}"][i] = []
+    return examples
 
 
 def create_metadata_prefix(example: Dict[str, Any], cfg: MetadataConfig) -> str:

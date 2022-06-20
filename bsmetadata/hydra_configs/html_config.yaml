@@ -1,5 +1,6 @@
 data_config:
   metadata_config:
+    random_sample_metadata: true
     metadata_list: []
     local_metadata_special_tokens: null
     metadata_sep: ' | '

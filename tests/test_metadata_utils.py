@@ -441,6 +441,10 @@ class MetadataUtilsTester(unittest.TestCase):
         cfg.metadata_probability = 1
 
         PROCESSORS["timestamp"] = MetadataProcessor
+        # :func:`~test_add_local_metadata_to_text` as of writing can cause inconsistent outcome if not reset.
+        PROCESSORS["entity"] = MetadataProcessor
+        PROCESSORS["html"] = MetadataProcessor
+
         ds_dict = {
             key: [self.examples[0][key], self.examples[1][key], self.examples[3][key], self.examples[6][key]]
             for key in self.examples[0].keys()
@@ -455,7 +459,7 @@ class MetadataUtilsTester(unittest.TestCase):
             load_from_cache_file=False,
         )
 
-        assert 6 == len(mapped_ds)
+        self.assertEqual(len(mapped_ds), 6)
 
         # fmt: off
         pad_tkn = self.tokenizer.eos_token
@@ -475,23 +479,33 @@ class MetadataUtilsTester(unittest.TestCase):
             "ĠIt", "Ġwas", "Ġa", "Ġbrilliant", "Ġfirst", "Ġround", ".", "ĠYou",
             "Ġhave", "Ġto", "Ġbreak", "Ġdown", "Ġthe", "ĠCuban", "'s", "Ġrhythm",
             "Ġyou", "Ġcan", "'t", "Ġlet", "Ġthem", "Ġget", "Ġinto", "Ġrhythm",
-            ".", "ĠThe", "Ġrisk", "Ġwith", "Ġthat", "Ġis", "ĠY", "af"
+            ".", "ĠThe", "Ġrisk", "Ġwith", "Ġthat", "Ġis", "Ġ[", "entity",
         ]
         actual_tkns00 = self.tokenizer.convert_ids_to_tokens(mapped_ds[0]["input_ids"])
         self.assertEqual(actual_tkns00, expected_tkns00, actual_tkns00)
         self.assertEqual(mapped_ds[0]["attention_mask"], [1] * cfg.max_seq_len)
-        self.assertEqual(mapped_ds[0]["metadata_mask"], [1] * 32 + [0] * (cfg.max_seq_len - 32))
+        self.assertEqual(mapped_ds[0]["metadata_mask"], [1] * 32 + [0] * (cfg.max_seq_len - 32 - 2) + [1] * 2)
 
         expected_tkns01 = expected_g_mtdt0 + [
-            "ai", "Ġ[[", "Gal", "al", "ĠY", "af", "ai", "]]",
-            "Ġhas", "Ġgot", "Ġto", "Ġgo", "Ġhim", ".",
+            ":", "ĠGal", "al", "ĠY", "af", "ai", "]", "Y",
+            "af", "ai", "[/", "entity", ":", "ĠGal", "al", "ĠY",
+            "af", "ai", "]", "Ġhas", "Ġgot", "Ġto", "Ġgo", "Ġhim",
+            ".",
         ]
         pad_len01 = cfg.max_seq_len - len(expected_tkns01)
         expected_tkns01 += [pad_tkn] * pad_len01
         actual_tkns01 = self.tokenizer.convert_ids_to_tokens(mapped_ds[1]["input_ids"])
         self.assertEqual(actual_tkns01, expected_tkns01, actual_tkns01)
         self.assertEqual(mapped_ds[1]["attention_mask"], [1] * (cfg.max_seq_len - pad_len01) + [0] * pad_len01)
-        self.assertEqual(mapped_ds[1]["metadata_mask"], [1] * len(expected_g_mtdt0) + [0] + [1] * 7 + [0] * 24)
+        self.assertEqual(
+            mapped_ds[1]["metadata_mask"],
+            [1] * len(expected_g_mtdt0)
+            + [1] * 7 + [0]
+            + [0] * 2 + [1] * 6
+            + [1] * 3 + [0] * 5
+            + [0]
+            + [0] * pad_len01
+        )
 
         """
         example[1]
@@ -500,15 +514,15 @@ class MetadataUtilsTester(unittest.TestCase):
         expected_g_mtdt1 = [
             "url", ":", "Ġhttps", "://", "en", ".", "wikipedia", ".",
             "org", "/", "wiki", "/", "Apple", "Ġ||", "|",
-        ]  # 15 tokens
+        ]
 
         expected_tkns10 = expected_g_mtdt1 + [
-            "ĠAn", "Ġ<", "b", ">", "apple", "Ġ[[", "Mal", "us",
-            "Ġdomest", "ica", "]]", "</", "b", ">", "Ġis", "Ġan",
-            "Ġedible", "Ġfruit", "Ġproduced", "Ġby", "Ġan", "Ġ<", "b", "Ġclass",
-            ":", "level", "1", "Ġid", ":", "4", "Ġhref", ":",
-            "https", "://", "test", ".", "org", "><", "i", "Ġclass",
-            ":", "level", "2", ">", "apple", "</", "i", ">",
+            "ĠAn", "Ġ[", "html", ":", "Ġb", "][", "entity", ":",
+            "ĠMal", "us", "Ġdomest", "ica", "]", "apple", "[/", "entity",
+            ":", "ĠMal", "us", "Ġdomest", "ica", "][/", "html", ":",
+            "Ġb", "]", "Ġis", "Ġan", "Ġedible", "Ġfruit", "Ġproduced", "Ġby",
+            "Ġan", "Ġ[", "html", ":", "Ġb", "][", "html", ":",
+            "Ġi", "]", "apple", "[/", "html", ":", "Ġi", "]",
             "Ġtree",
         ]
         actual_tkns10 = self.tokenizer.convert_ids_to_tokens(mapped_ds[2]["input_ids"])
@@ -516,19 +530,19 @@ class MetadataUtilsTester(unittest.TestCase):
         self.assertEqual(mapped_ds[2]["attention_mask"], [1] * cfg.max_seq_len)
         self.assertEqual(
             mapped_ds[2]["metadata_mask"],
-            [1] * 15
-            + [0, 1, 1, 1, 0, 1, 1, 1]
-            + [1, 1, 1, 1, 1, 1, 0, 0]
-            + [0, 0, 0, 0, 0, 1, 1, 1]
+            [1] * len(expected_g_mtdt1)
+            + [0] + [1] * 7
+            + [1] * 5 + [0] + [1] * 2
             + [1] * 8
-            + [1] * 8
-            + [1, 1, 1, 1, 0, 1, 1, 1]
-            + [0],
+            + [1] * 2 + [0] * 6
+            + [0] + [1] * 7
+            + [1] * 2 + [0] + [1] * 5
+            + [0]
         )
 
         expected_tkns11 = expected_g_mtdt1 + [
-            "</", "b", ">", "Ġ(", "Mal", "us", "Ġdomest", "ica",
-            ").",
+            "[/", "html", ":", "Ġb", "]", "Ġ(", "Mal", "us",
+            "Ġdomest", "ica", ").",
         ]
         pad_len11 = cfg.max_seq_len - len(expected_tkns11)
         expected_tkns11 += [pad_tkn] * pad_len11
@@ -537,9 +551,10 @@ class MetadataUtilsTester(unittest.TestCase):
         self.assertEqual(mapped_ds[3]["attention_mask"], [1] * (cfg.max_seq_len - pad_len11) + [0] * pad_len11)
         self.assertEqual(
             mapped_ds[3]["metadata_mask"],
-            [1] * 15
-            + [1] * 3
-            + [0] * (cfg.max_seq_len - 15 - 3)
+            [1] * len(expected_g_mtdt1)
+            + [1] * 5 + [0] * 3
+            + [0] * 3
+            + [0] * pad_len11
         )
 
         """

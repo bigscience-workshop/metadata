@@ -83,7 +83,7 @@ def add_metadata_and_chunk_examples(
             prefix_len = len(metadata_prefix_encoded)
             max_prefix_len = cfg.max_seq_len // 2
             if prefix_len > max_prefix_len:
-                # `-2`'s are for preseving "|||"; it can be wrong if a tokenizer sometimes output different tokens.
+                # `-2`'s are for preseving "|||"; it can be wrong if a tokenizer sometimes outputs different tokens.
                 metadata_prefix_encoded = metadata_prefix_encoded[: max_prefix_len - 2] + metadata_prefix_encoded[-2:]
 
         else:

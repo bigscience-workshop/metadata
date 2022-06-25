@@ -16,3 +16,4 @@ nltk==3.6.7
 lxml==4.6.5
 htmlmin==0.1.12
 loguru>=0.6.0
+deepspeed>=0.6.1

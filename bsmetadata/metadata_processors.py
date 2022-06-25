@@ -13,6 +13,7 @@
 """
 This script provides functions for processing different kinds of metadata.
 """
+import datetime
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import unquote_plus
@@ -221,7 +222,9 @@ class TimestampProcessor(MetadataProcessor):
     def process_global(self, metadata_attrs: Dict[str, Any]) -> Optional[str]:
         # We represent a timestamp using only the year and month.
         # Example: "Year: 2020 | Month: September".
-        formatted_datetime = parse(metadata_attrs["value"])
+        formatted_datetime = metadata_attrs["value"]
+        if not isinstance(formatted_datetime, datetime.datetime):
+            formatted_datetime = parse(metadata_attrs["value"])
         year_str = f"Year: {formatted_datetime.year}"
         month_str = f"Month: {formatted_datetime.strftime('%B')}"
         return self.cfg.metadata_sep.join((year_str, month_str))

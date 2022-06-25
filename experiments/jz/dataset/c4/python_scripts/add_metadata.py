@@ -8,11 +8,11 @@ from pprint import pformat
 from typing import Optional, Tuple
 
 import hydra
+import wandb
 from datasets import Dataset, Features, Value, config, load_dataset, load_from_disk
 from hydra.core.config_store import ConfigStore
 from omegaconf import OmegaConf
 
-import wandb
 from bsmetadata.preprocessing_utils import (
     DatasourcePreprocessor,
     EntityPreprocessor,

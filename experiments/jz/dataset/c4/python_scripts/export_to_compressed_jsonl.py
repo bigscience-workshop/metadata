@@ -9,11 +9,11 @@ from typing import Optional
 
 import datasets
 import hydra
+import wandb
 from datasets import config, load_dataset, load_from_disk
 from hydra.core.config_store import ConfigStore
 from omegaconf import OmegaConf
 
-import wandb
 from bsmetadata.train import show_help
 
 

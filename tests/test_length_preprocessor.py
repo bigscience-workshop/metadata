@@ -33,7 +33,7 @@ class TestGenerationLengthPreprocessor(unittest.TestCase):
         processor = GenerationLengthPreprocessor("text")
 
         ds = Dataset.from_dict(my_dict)
-        ds = ds.map(lambda ex: processor.preprocess(ex), batched=True, batch_size=3)
+        ds = ds.map(lambda ex: processor.tag(ex), batched=True, batch_size=3)
 
         self.assertEqual(ds[:]["id"], target_id)
         self.assertEqual(ds[:]["text"], target_text)
@@ -76,7 +76,7 @@ class TestGenerationLengthPreprocessor(unittest.TestCase):
         processor = GenerationLengthPreprocessor("sentence")
 
         ds = Dataset.from_dict(my_dict)
-        ds = ds.map(lambda ex: processor.preprocess(ex), batched=True, batch_size=3)
+        ds = ds.map(lambda ex: processor.tag(ex), batched=True, batch_size=3)
 
         self.assertEqual(ds[:]["id"], target_id)
         self.assertEqual(ds[:]["text"], target_text)

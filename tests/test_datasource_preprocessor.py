@@ -33,7 +33,7 @@ class TestDatasourcePreprocessor(unittest.TestCase):
         processor = DatasourcePreprocessor()
 
         ds = Dataset.from_dict(my_dict)
-        ds = ds.map(lambda ex: processor.preprocess(ex), batched=True, batch_size=3)
+        ds = ds.map(lambda ex: processor.tag(ex), batched=True, batch_size=3)
 
         self.assertEqual(ds[:]["id"], target_id)
         self.assertEqual(ds[:]["url"], target_url)

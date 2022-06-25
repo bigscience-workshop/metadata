@@ -69,7 +69,7 @@ RawFeatures = Union[Value, List[Value]]
 ComplexFeatures = Union[List[Union[OneToOneFeature, OneToManyToListFeature]], RawFeatures]
 
 
-class MetadataPreprocessor(ABC):
+class MetadataTagger(ABC):
     """A metadata processor can be used for preprocessing text and adding or extracting metadata information."""
 
     def __init__(self, col_to_store_metadata: str) -> None:
@@ -84,12 +84,12 @@ class MetadataPreprocessor(ABC):
         pass
 
     @abstractmethod
-    def preprocess(self, examples: Dict[str, List]) -> Dict[str, ComplexFeatures]:
+    def tag(self, examples: Dict[str, List]) -> Dict[str, ComplexFeatures]:
         """Process a batch of examples and add or extract corresponding metadata."""
         pass
 
 
-class TimestampPreprocessor(MetadataPreprocessor):
+class TimestampPreprocessor(MetadataTagger):
     """An exemplary metadata preprocessor for adding timestamp information based on URLs."""
 
     def __init__(self, col_to_store_metadata="metadata", col_metadata_url="metadata") -> None:
@@ -109,7 +109,7 @@ class TimestampPreprocessor(MetadataPreprocessor):
         }
         return features
 
-    def preprocess(self, examples: Dict[str, List]) -> Dict[str, List[OneToOneFeature]]:
+    def tag(self, examples: Dict[str, List]) -> Dict[str, List[OneToOneFeature]]:
         example_metadata_list = (
             examples[self.col_to_store_metadata]
             if self.col_to_store_metadata in examples
@@ -141,7 +141,7 @@ class TimestampPreprocessor(MetadataPreprocessor):
         return date
 
 
-class HtmlPreprocessor(MetadataPreprocessor):
+class HtmlPreprocessor(MetadataTagger):
     """Metadata preprocessor for extracting metadata from html text.
 
     Specifically, it separates the html text contained in the `col_html`` column into a text and a list of
@@ -186,7 +186,7 @@ class HtmlPreprocessor(MetadataPreprocessor):
         }
         return features
 
-    def preprocess(self, examples: Dict[str, List]) -> Dict[str, ComplexFeatures]:
+    def tag(self, examples: Dict[str, List]) -> Dict[str, ComplexFeatures]:
         tags_to_remove_with_content = [
             html_parser.objects.TagToRemoveWithContent(tag="script"),
             html_parser.objects.TagToRemoveWithContent(tag="style"),
@@ -243,7 +243,7 @@ class HtmlPreprocessor(MetadataPreprocessor):
         return examples
 
 
-class WebsiteDescPreprocessor(MetadataPreprocessor):
+class WebsiteDescPreprocessor(MetadataTagger):
     """Metadata preprocessor for adding website description based on URLs."""
 
     def __init__(
@@ -270,7 +270,7 @@ class WebsiteDescPreprocessor(MetadataPreprocessor):
         }
         return features
 
-    def preprocess(self, examples: Dict[str, List]) -> Dict[str, List[OneToOneFeature]]:
+    def tag(self, examples: Dict[str, List]) -> Dict[str, List[OneToOneFeature]]:
 
         example_metadata_list = (
             examples[self.col_to_store_metadata]
@@ -301,14 +301,65 @@ class WebsiteDescPreprocessor(MetadataPreprocessor):
         return self.website_utils.fetch_website_description_from_keyword(keyword)
 
 
+class WebsiteDescPostprocessor(MetadataTagger):
+    """website metadata post-processor to remove noisy data"""
+
+    def __init__(
+        self,
+        col_to_store_metadata="metadata",
+    ) -> None:
+        corrupt_patterns = [".* refer(|s) to.?:", "\[\[\w*:"]
+        corrupt_pattern_str = "|".join("({0})".format(x) for x in corrupt_patterns)
+        # TODO: Stricter regex patterns for speed
+
+        self.corrupt_regex = re.compile(corrupt_pattern_str)
+        super().__init__(col_to_store_metadata=col_to_store_metadata)
+
+    @property
+    def new_columns_minimal_features(self) -> Dict[str, List[OneToOneFeature]]:
+        features = {
+            self.col_to_store_metadata: [
+                {
+                    "key": Value("string"),
+                    "type": Value("string"),
+                    "value": Value("string"),
+                }
+            ]
+        }
+        return features
+
+    def tag(self, examples: Dict[str, List]) -> Dict[str, List]:
+        example_metadata_list = examples[self.col_to_store_metadata]
+        # Iterate through the metadata associated with all examples in this batch.
+
+        for example_metadata in example_metadata_list:
+            if example_metadata and (
+                self.is_noisy_data(example_metadata[0]["value"])
+                or self.is_outlier(example_metadata[0]["value"])
+                # TODO: Trim `example_metadata[0]["value"]` and share it for speed
+                # TODO: Run `is_outlier()` first for speed
+            ):
+                example_metadata.clear()  # remove website description with empty list if metadata is invalid
+        examples[self.col_to_store_metadata] = example_metadata_list
+        return examples
+
+    def is_noisy_data(self, data):
+        return self.corrupt_regex.match(data)
+
+    def is_outlier(self, data):
+        return len(data.split()) < 5 or len(data.split()) > 50  # caps tbd
+        # TODO: Run `data.split()` only once for speed
+
+
 class EntityPreprocessor(
-    MetadataPreprocessor
+    MetadataTagger
 ):  # Note: To run this pre-processor, make sure that you have a column named "id" in the dataset.
     """Metadata preprocessor for adding entity information."""
 
     def __init__(
         self,
         base_url,
+        num_chars=5000,  # default length of text set as threshold to include an example in a batch
         path_or_url_flair_ner_model="ner-fast",
         col_to_store_metadata="metadata",
         col_text="text",
@@ -322,7 +373,7 @@ class EntityPreprocessor(
             "model_path": "ed-wiki-2019",
         }
         self.model = EntityDisambiguation(self.base_url, self.wiki_version, self.config, reset_embeddings=True)
-
+        self.num_chars = num_chars
         self.col_text = col_text
         super().__init__(col_to_store_metadata=col_to_store_metadata)
 
@@ -342,8 +393,12 @@ class EntityPreprocessor(
         return features
 
     def preprocess_example(self, examples: Dict[str, List]) -> Dict[str, List]:
-        # preprocess all the examples in a particular batch in the required format
-        processed = {ex_id: [ex_text, []] for ex_id, ex_text in enumerate(examples[self.col_text])}
+        # preprocess all the examples in a particular batch in the required format and consider an example only if length of text is less than or equal to num_chars
+        processed = {
+            ex_id: [ex_text, []]
+            for ex_id, ex_text in enumerate(examples[self.col_text])
+            if len(ex_text) <= self.num_chars
+        }
         return processed
 
     def fetch_mention_predictions(self, examples: Dict[str, List]) -> Dict[str, List]:
@@ -354,7 +409,7 @@ class EntityPreprocessor(
         result = process_results(mentions_dataset, predictions, input_text)
         return result
 
-    def preprocess(self, examples: Dict[str, List]) -> Dict[str, List[OneToOneFeature]]:
+    def tag(self, examples: Dict[str, List]) -> Dict[str, List[OneToOneFeature]]:
         # process all the examples in a particular batch and all the metadata extracted for entities for those examples
         mentions_predicted = self.fetch_mention_predictions(examples)
 
@@ -391,7 +446,7 @@ class EntityPreprocessor(
         return examples
 
 
-class GenerationLengthPreprocessor(MetadataPreprocessor):
+class GenerationLengthPreprocessor(MetadataTagger):
     """An exemplary metadata preprocessor for adding generation length information based on text."""
 
     def __init__(
@@ -438,7 +493,7 @@ class GenerationLengthPreprocessor(MetadataPreprocessor):
 
         return features
 
-    def preprocess(self, examples: Dict[str, List]) -> Dict[str, List[OneToOneFeature]]:
+    def tag(self, examples: Dict[str, List]) -> Dict[str, List[OneToOneFeature]]:
         """
         Iterate through all the examples retrieve the length meta information.
         """
@@ -502,7 +557,7 @@ class GenerationLengthPreprocessor(MetadataPreprocessor):
         return meta_sentences
 
 
-class DatasourcePreprocessor(MetadataPreprocessor):
+class DatasourcePreprocessor(MetadataTagger):
     """An exemplary metadata preprocessor for adding datasource information based on URLs."""
 
     def __init__(self, col_to_store_metadata="metadata", col_url="url") -> None:
@@ -570,7 +625,7 @@ class DatasourcePreprocessor(MetadataPreprocessor):
 
         return parts.netloc + " > " + " > ".join(directories_parts)
 
-    def preprocess(self, examples: Dict[str, List]) -> Dict[str, List[OneToOneFeature]]:
+    def tag(self, examples: Dict[str, List]) -> Dict[str, List[OneToOneFeature]]:
         example_metadata_list = (
             examples[self.col_to_store_metadata]
             if self.col_to_store_metadata in examples
@@ -589,7 +644,7 @@ class DatasourcePreprocessor(MetadataPreprocessor):
         return examples
 
 
-class UrlPreprocessor(MetadataPreprocessor):
+class UrlPreprocessor(MetadataTagger):
     """An exemplary metadata preprocessor for adding timestamp information based on URLs."""
 
     def __init__(self, col_to_store_metadata="metadata", col_url="url") -> None:
@@ -609,7 +664,7 @@ class UrlPreprocessor(MetadataPreprocessor):
         }
         return features
 
-    def preprocess(self, examples: Dict[str, List]) -> Dict[str, List[OneToOneFeature]]:
+    def tag(self, examples: Dict[str, List]) -> Dict[str, List[OneToOneFeature]]:
         example_metadata_list = (
             examples[self.col_to_store_metadata]
             if self.col_to_store_metadata in examples
@@ -625,11 +680,14 @@ class UrlPreprocessor(MetadataPreprocessor):
         return examples
 
 
-class TitlePreprocessor(MetadataPreprocessor):
+class TitlePreprocessor(MetadataTagger):
     """An exemplary metadata preprocessor for adding titles information."""
 
     def __init__(self, col_to_store_metadata="metadata", col_title="html_title") -> None:
         self.col_title = col_title
+        self.title_regex = re.compile(r"<title[^>]*>(.*)</title>")
+        # TODO: A stricter regex pattern for speed
+
         super().__init__(col_to_store_metadata=col_to_store_metadata)
 
     @property
@@ -645,7 +703,7 @@ class TitlePreprocessor(MetadataPreprocessor):
         }
         return features
 
-    def preprocess(self, examples: Dict[str, List]) -> Dict[str, List[OneToOneFeature]]:
+    def tag(self, examples: Dict[str, List]) -> Dict[str, List[OneToOneFeature]]:
         example_metadata_list = (
             examples[self.col_to_store_metadata]
             if self.col_to_store_metadata in examples
@@ -659,7 +717,9 @@ class TitlePreprocessor(MetadataPreprocessor):
             if not example_title:
                 continue
             title = example_title[0]
-            title = re.search("<title>(.*)</title>", title)
+            # TODO: Trim string for speed
+
+            title = self.title_regex.search(title)
             # If title is not None, we keep the first title retrieved.
             if title:
                 title = title.group(1)
@@ -669,7 +729,7 @@ class TitlePreprocessor(MetadataPreprocessor):
         return examples
 
 
-class ParagraphPreprocessor(MetadataPreprocessor):
+class ParagraphPreprocessor(MetadataTagger):
     """ParagraphPreprocessor Extract paragraphs based on HTML and line-breaking markers."""
 
     def __init__(self, col_to_store_metadata: str = "metadata", col_metadata_html: str = "metadata_html") -> None:
@@ -702,7 +762,7 @@ class ParagraphPreprocessor(MetadataPreprocessor):
         }
         return features
 
-    def preprocess(self, examples: Dict[str, List]) -> Dict[str, List[OneToOneFeature]]:
+    def tag(self, examples: Dict[str, List]) -> Dict[str, List[OneToOneFeature]]:
         exmpl_mtdt_list = examples.get(self.col_to_store_metadata, [[] for _ in range(len(examples[self._col_url]))])
         exmpl_mtdt_htmls = examples.get(self._col_mtdt_html)
         exmpl_txts = examples.get(self._col_text)
@@ -716,7 +776,7 @@ class ParagraphPreprocessor(MetadataPreprocessor):
         return examples
 
 
-class EntityParagraphPreprocessor(MetadataPreprocessor):
+class EntityParagraphPreprocessor(MetadataTagger):
     """A metadata preprocessor for updating entity information based on paragraphs."""
 
     def __init__(
@@ -743,7 +803,7 @@ class EntityParagraphPreprocessor(MetadataPreprocessor):
         }
         return features
 
-    def preprocess(self, examples: Dict[str, List]) -> Dict[str, List[OneToOneFeature]]:
+    def tag(self, examples: Dict[str, List]) -> Dict[str, List[OneToOneFeature]]:
         example_metadata_list = (
             examples[self.col_to_store_metadata]
             if self.col_to_store_metadata in examples
@@ -816,7 +876,7 @@ class EntityParagraphPreprocessor(MetadataPreprocessor):
 
 class ErrorWrapperPreprocessor:
     def __init__(
-        self, metadata_preprocessor: MetadataPreprocessor, output_keys: Dict[str, Any], verbose: bool = True
+        self, metadata_preprocessor: MetadataTagger, output_keys: Dict[str, Any], verbose: bool = True
     ) -> None:
         self.metadata_preprocessor = metadata_preprocessor
         self.output_keys = output_keys
@@ -837,7 +897,7 @@ class ErrorWrapperPreprocessor:
         )
         return features
 
-    def preprocess(self, examples: Dict[str, List]) -> Dict[str, ComplexFeatures]:
+    def tag(self, examples: Dict[str, List]) -> Dict[str, ComplexFeatures]:
         """Process a batch of examples and add or extract corresponding metadata."""
         num_errors = 0
 
@@ -847,7 +907,7 @@ class ErrorWrapperPreprocessor:
             if col_name in examples
         }
         try:
-            processed_examples = self.metadata_preprocessor.preprocess(examples=examples)
+            processed_examples = self.metadata_preprocessor.tag(examples=examples)
 
             random_key = list(processed_examples)[0]
             num_examples = len(processed_examples[random_key])
@@ -872,7 +932,7 @@ class ErrorWrapperPreprocessor:
             for idx in range(len(examples[random_key])):
                 example = {key: [values[idx]] for key, values in examples.items()}
                 try:
-                    processed_example = self.metadata_preprocessor.preprocess(examples=example)
+                    processed_example = self.metadata_preprocessor.tag(examples=example)
 
                     for key, value in processed_example.items():
                         processed_examples[key].append(value[0])

@@ -15,9 +15,11 @@ This script provides utility functions for linearizing, encoding and chunking a 
 """
 import random
 from collections import defaultdict
+from copy import deepcopy
 from dataclasses import asdict, dataclass, field
 from typing import Any, DefaultDict, Dict, List, Optional, Tuple
 
+import numpy as np
 from transformers import PreTrainedTokenizerFast
 
 from bsmetadata.metadata_processors import PROCESSORS, MetadataConfig, MetadataProcessor
@@ -75,6 +77,15 @@ def add_metadata_and_chunk_examples(
                 if metadata_prefix
                 else []
             )
+            # NOTE: this is added when testing very short input length
+            # limit how much length is used in prefix
+            # to suppress error when prefix is longer than max len
+            prefix_len = len(metadata_prefix_encoded)
+            max_prefix_len = cfg.max_seq_len // 2
+            if prefix_len > max_prefix_len:
+                # `-2`'s are for preseving "|||"; it can be wrong if a tokenizer sometimes outputs different tokens.
+                metadata_prefix_encoded = metadata_prefix_encoded[: max_prefix_len - 2] + metadata_prefix_encoded[-2:]
+
         else:
             metadata_prefix_encoded = []
 
@@ -124,6 +135,90 @@ def add_metadata_and_chunk_examples(
     return linearized_examples
 
 
+def convert_v2_dataset_to_v1_format(example):
+    metadata_list = []
+    key_prefix = "metadata_"
+    for key, value in example.items():
+        if key.startswith(key_prefix) and value is not None:
+            key = key[len(key_prefix) :]
+            for metadata in value:
+                metadata = deepcopy(metadata)
+                metadata["key"] = key
+                metadata_list.append(metadata)
+    example["metadata"] = metadata_list
+    return example
+
+
+def convert_v2_dataset_to_v1_format_v1_compatible(example):
+    if "metadata" in example:
+        return example
+    return convert_v2_dataset_to_v1_format(example=example)
+
+
+def get_metadata_types(metadata_list):
+    return list(set(m["key"] for m in metadata_list))
+
+
+def random_sample_metadata(
+    examples: Dict[str, List],
+    metadata_type_sample_weights: Dict[str, float],
+) -> Dict[str, List]:
+    """Randomly drop some of the metadata from the provided examples.
+    Uniformly decide the number of metadata types to keep. And sample the metadata types to keep.
+
+    Args:
+        examples: The examples to process, with required "metadata".
+
+    Returns:
+        A new collection of examples, with some metadata dropped.
+    """
+    new_metadata = []
+    for example_metadata_list in examples["metadata"]:
+        if not example_metadata_list:
+            new_metadata.append([])
+            continue
+
+        metadata_types = get_metadata_types(example_metadata_list)
+        num_metadata_to_keep = random.randint(1, len(metadata_types))
+        vec = np.arange(len(metadata_types))
+        weights = np.array([metadata_type_sample_weights[m] for m in metadata_types])
+        weights = weights / weights.sum()
+        metadata_types_ids = np.random.choice(vec, num_metadata_to_keep, replace=False, p=weights)
+        metadata_types = [metadata_types[i] for i in metadata_types_ids]
+        new_metadata.append([m for m in example_metadata_list if m["key"] in metadata_types])
+    examples["metadata"] = new_metadata
+    return examples
+
+
+def random_sample_metadata_v2(
+    examples: Dict[str, List],
+    metadata_type_sample_weights: Dict[str, float],
+) -> Dict[str, List]:
+    """Randomly drop some of the metadata from the provided examples.
+    Uniformly decide the number of metadata types to keep. And sample the metadata types to keep.
+
+    Args:
+        examples: The examples to process, with required "metadata".
+
+    Returns:
+        A new collection of examples, with some metadata dropped.
+    """
+    only_metadata_types = list(metadata_type_sample_weights.keys())
+    for i in range(len(examples["text"])):
+        example = {k: v[i] for k, v in examples.items()}
+        metadata_types = [key for key in only_metadata_types if example[f"metadata_{key}"]]
+        num_metadata_to_keep = random.randint(1, len(metadata_types))
+        weights = np.array([metadata_type_sample_weights[m] for m in metadata_types])
+        weights = weights / weights.sum()
+        ids = np.arange(len(metadata_types))
+        metadata_types_ids = np.random.choice(ids, num_metadata_to_keep, replace=False, p=weights)
+        metadata_types = set([metadata_types[i] for i in metadata_types_ids])
+        for key in only_metadata_types:
+            if key not in metadata_types:
+                examples[f"metadata_{key}"][i] = []
+    return examples
+
+
 def create_metadata_prefix(example: Dict[str, Any], cfg: MetadataConfig) -> str:
     """Creates a prefix containing all global metadata information (including URLs, timestamps, etc)
     and/or local metadata special tokens
@@ -135,6 +230,7 @@ def create_metadata_prefix(example: Dict[str, Any], cfg: MetadataConfig) -> str:
     Returns:
         A string containing the metadata prefix.
     """
+    example = convert_v2_dataset_to_v1_format_v1_compatible(example=example)
     processed_metadata = {}
     for metadata in example["metadata"]:
         key, type_ = metadata["key"], metadata["type"]
@@ -253,6 +349,7 @@ def add_local_metadata_to_text(example: Dict[str, Any], cfg: MetadataConfig) -> 
     # Filter and sort all metadata so that they are processed in the requested order.
 
     filtered_metadata = defaultdict(list)
+    example = convert_v2_dataset_to_v1_format_v1_compatible(example=example)
     for md in example["metadata"]:
         if md["type"] == "local" and md["key"] in cfg.metadata_list:
             filtered_metadata[md["key"]].append(md)
@@ -309,6 +406,7 @@ def add_local_metadata_to_text(example: Dict[str, Any], cfg: MetadataConfig) -> 
             text_with_local_metadata.append(metadata_text)
             metadata_mask += [True] * len(metadata_text)
 
+    idx = 0
     for idx, char in enumerate(example["text"]):
         if idx in metadata_idx_storage.end_idx_tag_with_content:
             metadata_text_list = metadata_idx_storage.end_idx_tag_with_content[idx]

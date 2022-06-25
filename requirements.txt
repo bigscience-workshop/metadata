@@ -1,4 +1,6 @@
 pyarrow>=7.0.0,<8       # Our custom `Features` need >=6, yet 7 is probably better for bugfixes.
+numpy<1.22; python_version < '3.8'
+numpy>=1.22; python_version >= '3.8'
 pandas<1.4; python_version < '3.8'
 pandas>=1.4; python_version >= '3.8'
 datasets>=1.18.4        # Our custom `Features` need this; pip will likely update it to 2.0.0 and it's ok.
@@ -13,3 +15,5 @@ wikipedia2vec==1.0.5    # wikipedia2vec doesn't support Python 3.9.
 nltk==3.6.7
 lxml==4.6.5
 htmlmin==0.1.12
+loguru>=0.6.0
+deepspeed>=0.6.1

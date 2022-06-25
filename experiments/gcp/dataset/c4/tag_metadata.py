@@ -1,20 +1,22 @@
 import json
-import logging
 import os
 import shutil
 import sys
 from dataclasses import dataclass, field, fields, is_dataclass
+from functools import partial, reduce
 from pprint import pformat
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 import hydra
 import wandb
 from datasets import Dataset, Features, Value, config, load_dataset, load_from_disk
 from hydra.core.config_store import ConfigStore
+from loguru import logger
 from omegaconf import OmegaConf
 
 from bsmetadata.preprocessing_utils import (
     DatasourcePreprocessor,
+    EntityParagraphPreprocessor,
     EntityPreprocessor,
     ErrorWrapperPreprocessor,
     GenerationLengthPreprocessor,
@@ -22,19 +24,18 @@ from bsmetadata.preprocessing_utils import (
     MetadataTagger,
     ParagraphPreprocessor,
     TimestampPreprocessor,
+    TitlePreprocessor,
     UrlPreprocessor,
+    WebsiteDescPostprocessor,
     WebsiteDescPreprocessor,
 )
-
-
-logger = logging.getLogger(__name__)
 
 
 @dataclass
 class PreprocessingConfig:
     task_id: int = field(metadata={"help": "The id of the task"})
     out_dir: str = field(metadata={"help": "where to save the resulting dataset."})
-    num_files_to_process: int = field(metadata={"help": "the number of files to process"})
+    num_files_to_process: int = field(default=1, metadata={"help": "the number of files to process"})
     path_wiki_db: Optional[str] = field(
         default=None,
         metadata={"help": "The path to the wikipedia database file necessary for the website descriptions"},
@@ -49,14 +50,17 @@ class PreprocessingConfig:
         default=None, metadata={"help": "The path or name of the flair ner model to use to preprocess entities"}
     )
     metadata_to_include: Optional[list] = field(
-        default_factory=lambda: ["website_description", "entity", "timestamp"],
-        metadata={"help": "The list of metadata to extract"},
+        default_factory=list,
+        metadata={"help": "The list of metadata to tag"},
     )
     dataset_name: Optional[str] = field(
         default=None, metadata={"help": "The name of the dataset to use (via the datasets library)"}
     )
     dataset_config_name: Optional[str] = field(
         default=None, metadata={"help": "The configuration name of the dataset to use (via the datasets library)"}
+    )
+    dataset_revision: Optional[str] = field(
+        default="main", metadata={"help": "The revision of the dataset to use (via the datasets library)"}
     )
     overwrite_cache: Optional[bool] = field(
         default=False, metadata={"help": "Whether the local cache containing datasets should be overwritten."}
@@ -65,16 +69,16 @@ class PreprocessingConfig:
         default=None, metadata={"help": "Where do you want to store the pretrained models downloaded from s3?"}
     )
     preprocessing_num_workers: Optional[int] = field(
-        default=None, metadata={"help": "The number of processes to use for the preprocessing."}
+        default=8, metadata={"help": "The number of processes to use for the preprocessing."}
     )
     map_batch_size: Optional[int] = field(
-        default=1,
+        default=64,
         metadata={
             "help": "This is the size of the batch size that will be used for the mapping operation when generating"
             " the dataset. If you are using `with_metadata` the recommended batch size is 1.."
         },
     )
-    project_name: str = field(default="metadata_lm_exploration", metadata={"help": "The project name."})
+    project_name: str = field(default="tag_metadata", metadata={"help": "The project name."})
     select_n_first_indices: Optional[int] = field(
         default=None,
         metadata={
@@ -104,15 +108,15 @@ class PreprocessingConfig:
         metadata={"help": "load_dataset()'s download_mode"},
     )
     save_as_jsonl_gz: Optional[bool] = field(
-        default=False,
+        default=True,
         metadata={"help": "If true, the program will save the processed dataset as a `jsonl.gz` file."},
     )
     save_as_jsonl_gz_batch_size: int = field(
-        default=1,
+        default=64,
         metadata={"help": "The number of records per batch to save a byte-stream of a `jsonl.gz` file."},
     )
     save_as_jsonl_gz_num_workers: Optional[int] = field(
-        default=1, metadata={"help": "The number of processes to use for savng a `jsonl.gz` file."}
+        default=8, metadata={"help": "The number of processes to use for savng a `jsonl.gz` file."}
     )
     file_pq_serial_range: Optional[Tuple[int, int, int]] = field(
         default=None,
@@ -124,7 +128,7 @@ class PreprocessingConfig:
         },
     )
     use_wandb: Optional[bool] = field(
-        default=True,
+        default=False,
         metadata={"help": "If false, the program will not run W&B."},
     )
 
@@ -171,20 +175,26 @@ col_to_store_title = "html_title"
 col_to_store_metadata_html = "metadata_html"
 col_to_store_metadata_url = "metadata_url"
 col_to_store_metadata_timestamp = "metadata_timestamp"
+col_to_store_metadata_title = "metadata_title"
 col_to_store_metadata_website_desc = "metadata_website_desc"
 col_to_store_metadata_entities = "metadata_entity"
+col_to_store_metadata_entity_paragraph = "metadata_entity_paragraph"
 col_to_store_metadata_generation_length_text = "metadata_generation_length_text"
 col_to_store_metadata_generation_length_sentence = "metadata_generation_length_sentence"
 col_to_store_metadata_datasource = "metadata_generation_datasource"
 col_to_store_metadata_paragraph = "metadata_paragraph"
 
 
-@hydra.main(config_path=".", config_name="preprocessing_config")
-def main(args: PreprocessingConfig) -> None:  # Setup logging
-    logging.basicConfig(
-        format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
-        datefmt="%m/%d/%Y %H:%M:%S",
-        level=logging.INFO,
+@hydra.main(config_path="../../../jz/dataset/c4/python_scripts", config_name="preprocessing_config")
+def main(args: PreprocessingConfig) -> None:
+    logger.remove()
+    logger.add(
+        sys.stderr,
+        format=(
+            "[<blue>{time:YYYY-MM-DD HH:mm:ss.SSS}</blue>][<level>{level: >8}</level>][<green>{name}</green>]"
+            " - <level>{message}</level>"
+        ),
+        colorize=True,
     )
 
     config_dict = OmegaConf.to_container(args)
@@ -222,6 +232,12 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
             col_to_store_metadata=col_to_store_metadata_timestamp, col_metadata_url=col_to_store_metadata_url
         )
 
+    if "title" in args.metadata_to_include:
+        logger.info("   Title...")
+        title_processor = TitlePreprocessor(
+            col_to_store_metadata=col_to_store_metadata_title, col_title=col_to_store_title
+        )
+
     if "website_description" in args.metadata_to_include:
         logger.info("   Website description...")
         website_processor = WebsiteDescPreprocessor(
@@ -230,6 +246,10 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
             path_wiki_db=args.path_wiki_db,
         )
 
+    if "clean_website_description" in args.metadata_to_include:
+        logger.info("   Clean Website Description...")
+        website_desc_cleaner = WebsiteDescPostprocessor(col_to_store_metadata=col_to_store_metadata_website_desc)
+
     if "entity" in args.metadata_to_include:
         logger.info("   Entity...")
         entity_processor = EntityPreprocessor(
@@ -237,6 +257,14 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
             path_or_url_flair_ner_model=args.path_or_url_flair_ner_model,
             col_to_store_metadata=col_to_store_metadata_entities,
             col_text=col_to_store_text,
+        )
+
+    if "entity_paragraph" in args.metadata_to_include:
+        logger.info("   Entity Paragraph...")
+        entity_paragraph_processor = EntityParagraphPreprocessor(
+            col_to_store_metadata=col_to_store_metadata_entity_paragraph,
+            col_entity=col_to_store_metadata_entities,
+            col_paragraph=col_to_store_metadata_paragraph,
         )
 
     if "generation_length_text" in args.metadata_to_include:
@@ -316,13 +344,14 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
             data_files = {"file": file_name}
             logger.info(
                 "Loading a dataset with `load_dataset`:\n"
-                f"\t{args.dataset_name}, {args.dataset_config_name},\n"
-                f"\tdata_files={data_files}, cache_dir={args.cache_dir}"
+                f"\t{args.dataset_name}, {args.dataset_config_name}\n"
+                f"\trevision={args.dataset_revision}\n"
+                f"\tdata_files={data_files}\n"
+                f"\tcache_dir={args.cache_dir}"
             )
 
             def _try_to_get_ds() -> Dataset:
                 # For `load_dataset()` to cast `null` of `metadata_timestamp`.
-                # For `map()` to have `metadata_paragraph`'s `Feature``, ~`apply_processor` will do it.
                 _feature_dic = {
                     "c4_shard": Value(dtype="int64", id=None),
                     "c4_timestamp": Value(dtype="string", id=None),
@@ -396,8 +425,18 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
                             "value": Value(dtype="string", id=None),
                         }
                     ],
+                    "metadata_paragraph": [
+                        {
+                            "char_end_idx": Value("int64"),
+                            "char_start_idx": Value("int64"),
+                            "key": Value("string"),
+                            "type": Value("string"),
+                            "value": Value("string"),
+                            "marker": Value("string"),
+                        }
+                    ],
                 }
-                _ve: ValueError = None
+                _e: Union[KeyError, ValueError, Exception] = None
                 try:
                     # For unknown reasons, this occationally hang after the HF's message
                     # "Extracting data files: 100%" without any error.
@@ -410,12 +449,12 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
                         cache_dir=args.cache_dir,
                         keep_in_memory=False,
                         download_mode=args.download_mode,
+                        revision=args.dataset_revision,
                         use_auth_token=True,
                     )["file"]
-                except ValueError as ve:
-                    _ve = ve
-                    logger.error(_ve)
-                    logger.info(_ve.args)
+                except (KeyError, ValueError, Exception) as e:
+                    _e = e
+                    logger.warning(e.__class__.__name__ + " (`Features` need metadata_entity)")
                     pass
                 try:
                     _feature_dic["metadata_entity"] = [
@@ -435,11 +474,12 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
                         cache_dir=args.cache_dir,
                         keep_in_memory=False,
                         download_mode=args.download_mode,
+                        revision=args.dataset_revision,
                         use_auth_token=True,
                     )["file"]
-                except Exception as e:
+                except (KeyError, ValueError, Exception) as e:
                     logger.exception(e)
-                    raise e from _ve
+                    raise e from _e
 
             ds = _try_to_get_ds()
 
@@ -450,57 +490,74 @@ def main(args: PreprocessingConfig) -> None:  # Setup logging
             ds = ds.select([i for i in range(args.select_n_first_indices)])
 
         features_dict = dict(ds.features)
-        logger.info(f"The initial features of the dataset are:\n{pformat(features_dict, compact=True)}")
+        logger.info(f"The initial features of the dataset are:\n{pformat(list(features_dict.keys()), compact=True)}")
 
-        def apply_processor(ds: Dataset, processor: MetadataTagger, remove_columns=None) -> Dataset:
-            for col_name, feature_type in processor.new_columns_minimal_features.items():
-                assert col_name not in features_dict
-                features_dict[col_name] = feature_type
-            extraction_name = processor.__class__.__name__
+        def apply_taggers(ds: Dataset, taggers: List[MetadataTagger]) -> Dataset:
+            tagger_names = []
+            for tagger in taggers:
+                for col_name, feature_type in tagger.new_columns_minimal_features.items():
+                    # assert col_name not in features_dict
+                    features_dict[col_name] = feature_type
+                tagger_names.append(tagger.__class__.__name__)
+            chained_funcs = partial(lambda x: reduce(lambda g, f: f(g), [tagger.tag for tagger in taggers], x))
 
-            logger.info(f"Start {extraction_name}")
-            metrics_logger.log({extraction_name: 0})
-            logger.info(f"   Example of 1st example 100 first characters:\n    {repr(ds[0][col_to_store_text][:100])}")
+            tagger_pipe_str = "|".join(tagger_names)
+            logger.info(f"Start {tagger_pipe_str}")
+            metrics_logger.log({tagger_pipe_str: 0})
+            logger.info(f"   Example of 1st example 100 first characters:\n\t{repr(ds[0][col_to_store_text][:100])}")
             ds = ds.map(
-                processor.tag,
+                chained_funcs,
                 batched=True,
                 batch_size=args.map_batch_size,
                 num_proc=args.preprocessing_num_workers,
                 load_from_cache_file=not args.overwrite_cache,
-                desc=f"Running {extraction_name} on dataset",
+                desc=tagger_pipe_str,
                 features=Features(features_dict),
-                remove_columns=remove_columns,
             )
-            metrics_logger.log({extraction_name: 1})
-            logger.info(f"End {extraction_name}")
+            metrics_logger.log({tagger_pipe_str: 1})
+            logger.info(f"End {tagger_pipe_str}")
             return ds
 
+        tagger_list = []
         if "html" in args.metadata_to_include:
-            ds = apply_processor(ds=ds, processor=html_processor)
+            tagger_list.append(html_processor)
 
         if "url" in args.metadata_to_include:
-            ds = apply_processor(ds=ds, processor=url_processor)
+            tagger_list.append(url_processor)
 
         if "timestamp" in args.metadata_to_include:
-            ds = apply_processor(ds=ds, processor=timestamp_processor)
+            tagger_list.append(timestamp_processor)
+
+        if "title" in args.metadata_to_include:
+            tagger_list.append(title_processor)
 
         if "website_description" in args.metadata_to_include:
-            ds = apply_processor(ds=ds, processor=website_processor)
+            tagger_list.append(website_processor)
+
+        if "clean_website_description" in args.metadata_to_include:
+            tagger_list.append(website_desc_cleaner)
 
         if "entity" in args.metadata_to_include:
-            ds = apply_processor(ds=ds, processor=entity_processor)
+            tagger_list.append(entity_processor)
+
+        has_entity = "metadata_entity" in features_dict
+        logger.debug(f"has_entity={has_entity}")
+        if "entity_paragraph" in args.metadata_to_include and has_entity:
+            tagger_list.append(entity_paragraph_processor)
 
         if "generation_length_text" in args.metadata_to_include:
-            ds = apply_processor(ds=ds, processor=generation_length_preprocessor_text)
+            tagger_list.append(generation_length_preprocessor_text)
 
         if "generation_length_sentence" in args.metadata_to_include:
-            ds = apply_processor(ds=ds, processor=generation_length_preprocessor_sentence)
+            tagger_list.append(generation_length_preprocessor_sentence)
 
         if "datasource" in args.metadata_to_include:
-            ds = apply_processor(ds=ds, processor=datasource_preprocessor)
+            tagger_list.append(datasource_preprocessor)
 
         if "paragraph" in args.metadata_to_include:
-            ds = apply_processor(ds=ds, processor=paragraph_preprocessor)
+            tagger_list.append(paragraph_preprocessor)
+
+        ds = apply_taggers(ds, tagger_list)
 
         logger.info(
             "Saving the processed dataset:\n"

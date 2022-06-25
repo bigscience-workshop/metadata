@@ -16,8 +16,9 @@ import wandb
 from accelerate import Accelerator
 from hydra.core.config_store import ConfigStore
 from omegaconf import OmegaConf
+from torch.optim import AdamW
 from tqdm.auto import tqdm as original_tqdm
-from transformers import AdamW, AutoModelForCausalLM, AutoTokenizer, get_scheduler, set_seed
+from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer, get_scheduler, set_seed
 from transformers.trainer_utils import IntervalStrategy
 
 from bsmetadata.input_pipeline import DataConfig, get_dataloaders
@@ -76,6 +77,9 @@ class CFG:
     save_steps: int = field(default=500, metadata={"help": "Save checkpoint every X update steps."})
     do_train: bool = field(default=True, metadata={"help": "Whether to run training."})
     do_eval: bool = field(default=True, metadata={"help": "Whether to run eval on the dev set."})
+    gradient_checkpointing: bool = field(
+        default=False, metadata={"help": "Whether to use gradient_checkpointing to save memory."}
+    )
 
 
 cs = ConfigStore.instance()
@@ -128,13 +132,15 @@ def loss_fn(batch, outputs, metadata_mask=None):
         shift_labels.view(-1),
         reduction="none",
     ).view(b, -1)
-    loss = (loss * shift_mask).sum() / shift_mask.sum()
+    # normalize first, so it doesn't overflow when there are many tokens
+    normed_loss_weights = shift_mask / shift_mask.sum()
+    loss = (loss * normed_loss_weights).sum()
     # per-example ppl
     # ppl = torch.exp((loss * shift_mask).sum(-1) / shift_mask.sum(-1))
     return loss
 
 
-@hydra.main(config_path=None, config_name="config")
+@hydra.main(config_path="hydra_configs", config_name="config")
 def main(args: CFG) -> None:
     print(OmegaConf.to_yaml(args))
     config_dict = OmegaConf.to_container(args)
@@ -143,6 +149,17 @@ def main(args: CFG) -> None:
     # name. Without this transformation the hash of args is not deterministic
     args = OmegaConf.to_object(args)
 
+    # if the yaml file is used to create the config, the args are not dataclass up to this step
+    # need to convert them back to dataclass via OmegaConf
+    if not dataclasses.is_dataclass(args):
+        schema = OmegaConf.structured(CFG)
+        args = OmegaConf.merge(schema, args)
+        config_dict = OmegaConf.to_container(args)
+        args = OmegaConf.to_object(args)
+        assert dataclasses.is_dataclass(args)
+        assert dataclasses.is_dataclass(args.data_config)
+        assert dataclasses.is_dataclass(args.data_config.metadata_config)
+
     set_seed(args.seed)
     accelerator = Accelerator()
     is_local_main_process = accelerator.is_local_main_process
@@ -150,13 +167,16 @@ def main(args: CFG) -> None:
 
     os.makedirs(args.out_dir, exist_ok=True)
 
+    config = AutoConfig.from_pretrained(args.model_name)
+    config.gradient_checkpointing = args.gradient_checkpointing
+    config.use_cache = not args.gradient_checkpointing  # to disable warning
     # get dataloaders
     tokenizer = AutoTokenizer.from_pretrained(args.model_name)
     tokenizer.pad_token = tokenizer.eos_token
     train_dataloader, eval_dataloaders = get_dataloaders(tokenizer, args.data_config)
 
     # get model
-    model = AutoModelForCausalLM.from_pretrained(args.model_name)
+    model = AutoModelForCausalLM.from_pretrained(args.model_name, config=config)
 
     # Optimizer
     # Split weights in two groups, one with weight decay and the other not.
@@ -171,7 +191,7 @@ def main(args: CFG) -> None:
             "weight_decay": 0.0,
         },
     ]
-    optimizer = AdamW(optimizer_grouped_parameters, lr=args.learning_rate)
+    optimizer = AdamW(optimizer_grouped_parameters, lr=args.learning_rate, betas=(0.9, 0.98), eps=1e-6)
 
     # Prepare everything
     model, optimizer, train_dataloader = accelerator.prepare(model, optimizer, train_dataloader)
@@ -253,19 +273,21 @@ def main(args: CFG) -> None:
         f"  Saving will be done every {save_per_n_step} steps, "
         f"for a total of {args.max_train_steps//save_per_n_step} times."
     )
+    step_loss = 0
+    step = 0
+    model.train()
     for epoch in range(args.num_train_epochs):
-        model.train()
-        for step, batch in enumerate(train_dataloader):
+        for batch in train_dataloader:
+            step += 1
             # pop labels because we want to calculate loss ourselves
             labels = batch.pop("labels")
             metadata_mask = batch.pop("metadata_mask", None)
             outputs = model(**batch)
             batch["labels"] = labels
             loss = loss_fn(batch, outputs, metadata_mask)
-
-            metrics_logger.log({"loss": loss})
             loss = loss / args.gradient_accumulation_steps
             accelerator.backward(loss)
+            step_loss += loss.detach()
 
             do_step = step % args.gradient_accumulation_steps == 0 or step == len(train_dataloader) - 1
             if do_step:
@@ -275,7 +297,14 @@ def main(args: CFG) -> None:
                 optimizer.zero_grad()
                 progress_bar.update(1)
                 completed_steps += 1
-                metrics_logger.log({"gradient_step": completed_steps})
+                metrics_logger.log(
+                    {
+                        "loss": step_loss,
+                        "lr": optimizer.param_groups[0]["lr"],
+                        "gradient_step": completed_steps,
+                    }
+                )
+                step_loss = 0
             else:
                 continue
 
@@ -315,4 +344,12 @@ if __name__ == "__main__":
     if "--help" in sys.argv or "-h" in sys.argv:
         show_help()
         sys.exit()
+    newargv = []
+    for arg in sys.argv:
+        if arg.startswith("--local_rank"):
+            pass
+        else:
+            newargv.append(arg)
+    sys.argv = newargv
+
     main()

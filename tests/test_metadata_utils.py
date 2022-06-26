@@ -441,6 +441,10 @@ class MetadataUtilsTester(unittest.TestCase):
         cfg.metadata_probability = 1
 
         PROCESSORS["timestamp"] = MetadataProcessor
+        # :func:`~test_add_local_metadata_to_text` as of writing can cause inconsistent outcome if not reset.
+        PROCESSORS["entity"] = MetadataProcessor
+        PROCESSORS["html"] = MetadataProcessor
+
         ds_dict = {
             key: [self.examples[0][key], self.examples[1][key], self.examples[3][key], self.examples[6][key]]
             for key in self.examples[0].keys()
@@ -455,35 +459,149 @@ class MetadataUtilsTester(unittest.TestCase):
             load_from_cache_file=False,
         )
 
+        self.assertEqual(len(mapped_ds), 6)
+
         # fmt: off
-        self.assertEqual(self.tokenizer.convert_ids_to_tokens(mapped_ds[0]["input_ids"]), ["url", ":", "Ġhttps", "://", "www", ".", "bb", "c", ".", "com", "/", "s", "port", "/", "live", "/", "oly", "mp", "ics", "/", "509", "74", "152", "Ġ|", "Ġtimestamp", ":", "Ġ2018", "-", "12", "-", "10", "T", "13", ":", "45", ":", "00", ".", "000", "Z", "Ġ||", "|", "ĠIt", "Ġwas", "Ġa", "Ġbrilliant", "Ġfirst", "Ġround", ".", "ĠYou", "Ġhave", "Ġto", "Ġbreak", "Ġdown", "Ġthe", "ĠCuban", "'s", "Ġrhythm", "Ġyou", "Ġcan", "'t", "Ġlet", "Ġthem", "Ġget"])
-        self.assertEqual(mapped_ds[0]["attention_mask"], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
-        self.assertEqual(mapped_ds[0]["metadata_mask"], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ])
+        pad_tkn = self.tokenizer.eos_token
 
-        self.assertEqual(self.tokenizer.convert_ids_to_tokens(mapped_ds[1]["input_ids"]), ["url", ":", "Ġhttps", "://", "www", ".", "bb", "c", ".", "com", "/", "s", "port", "/", "live", "/", "oly", "mp", "ics", "/", "509", "74", "152", "Ġ|", "Ġtimestamp", ":", "Ġ2018", "-", "12", "-", "10", "T", "13", ":", "45", ":", "00", ".", "000", "Z", "Ġ||", "|", "Ġinto", "Ġrhythm", ".", "ĠThe", "Ġrisk", "Ġwith", "Ġthat", "Ġis", "Ġ[", "entity", ":", "ĠGal", "al", "ĠY", "af", "ai", "]", "Y", "af", "ai", "[/", "entity", ])
-        self.assertEqual(mapped_ds[1]["attention_mask"], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, ])
-        self.assertEqual(mapped_ds[1]["metadata_mask"], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, ])
+        """
+        example[0]
+        ==========
+        """
+        expected_g_mtdt0 = [
+            "url", ":", "Ġhttps", "://", "www", ".", "bb", "c",
+            ".", "com", "/", "s", "port", "/", "live", "/",
+            "oly", "mp", "ics", "/", "509", "74", "152", "Ġ|",
+            "Ġtimestamp", ":", "Ġ2018", "-", "12", "-", "Ġ||", "|",
+        ]  # 32 tokens
 
-        self.assertEqual(self.tokenizer.convert_ids_to_tokens(mapped_ds[2]["input_ids"]), ["url", ":", "Ġhttps", "://", "www", ".", "bb", "c", ".", "com", "/", "s", "port", "/", "live", "/", "oly", "mp", "ics", "/", "509", "74", "152", "Ġ|", "Ġtimestamp", ":", "Ġ2018", "-", "12", "-", "10", "T", "13", ":", "45", ":", "00", ".", "000", "Z", "Ġ||", "|", ":", "ĠGal", "al", "ĠY", "af", "ai", "]", "Ġhas", "Ġgot", "Ġto", "Ġgo", "Ġhim", ".", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", ])
-        self.assertEqual(mapped_ds[2]["attention_mask"], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, ])
-        self.assertEqual(mapped_ds[2]["metadata_mask"], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ])
+        expected_tkns00 = expected_g_mtdt0 + [
+            "ĠIt", "Ġwas", "Ġa", "Ġbrilliant", "Ġfirst", "Ġround", ".", "ĠYou",
+            "Ġhave", "Ġto", "Ġbreak", "Ġdown", "Ġthe", "ĠCuban", "'s", "Ġrhythm",
+            "Ġyou", "Ġcan", "'t", "Ġlet", "Ġthem", "Ġget", "Ġinto", "Ġrhythm",
+            ".", "ĠThe", "Ġrisk", "Ġwith", "Ġthat", "Ġis", "Ġ[", "entity",
+        ]
+        actual_tkns00 = self.tokenizer.convert_ids_to_tokens(mapped_ds[0]["input_ids"])
+        self.assertEqual(actual_tkns00, expected_tkns00, actual_tkns00)
+        self.assertEqual(mapped_ds[0]["attention_mask"], [1] * cfg.max_seq_len)
+        self.assertEqual(mapped_ds[0]["metadata_mask"], [1] * 32 + [0] * (cfg.max_seq_len - 32 - 2) + [1] * 2)
 
-        self.assertEqual(self.tokenizer.convert_ids_to_tokens(mapped_ds[3]["input_ids"]), ["url", ":", "Ġhttps", "://", "en", ".", "wikipedia", ".", "org", "/", "wiki", "/", "Apple", "Ġ||", "|", "ĠAn", "Ġ[", "html", ":", "Ġb", "][", "entity", ":", "ĠMal", "us", "Ġdomest", "ica", "]", "apple", "[/", "entity", ":", "ĠMal", "us", "Ġdomest", "ica", "][/", "html", ":", "Ġb", "]", "Ġis", "Ġan", "Ġedible", "Ġfruit", "Ġproduced", "Ġby", "Ġan", "Ġ[", "html", ":", "Ġb", "][", "html", ":", "Ġi", "]", "apple", "[/", "html", ":", "Ġi", "]", "Ġtree", ])
-        self.assertEqual(mapped_ds[3]["attention_mask"], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, ])
-        self.assertEqual(mapped_ds[3]["metadata_mask"], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, ])
+        expected_tkns01 = expected_g_mtdt0 + [
+            ":", "ĠGal", "al", "ĠY", "af", "ai", "]", "Y",
+            "af", "ai", "[/", "entity", ":", "ĠGal", "al", "ĠY",
+            "af", "ai", "]", "Ġhas", "Ġgot", "Ġto", "Ġgo", "Ġhim",
+            ".",
+        ]
+        pad_len01 = cfg.max_seq_len - len(expected_tkns01)
+        expected_tkns01 += [pad_tkn] * pad_len01
+        actual_tkns01 = self.tokenizer.convert_ids_to_tokens(mapped_ds[1]["input_ids"])
+        self.assertEqual(actual_tkns01, expected_tkns01, actual_tkns01)
+        self.assertEqual(mapped_ds[1]["attention_mask"], [1] * (cfg.max_seq_len - pad_len01) + [0] * pad_len01)
+        self.assertEqual(
+            mapped_ds[1]["metadata_mask"],
+            [1] * len(expected_g_mtdt0)
+            + [1] * 7 + [0]
+            + [0] * 2 + [1] * 6
+            + [1] * 3 + [0] * 5
+            + [0]
+            + [0] * pad_len01
+        )
 
-        self.assertEqual(self.tokenizer.convert_ids_to_tokens(mapped_ds[4]["input_ids"]), ["url", ":", "Ġhttps", "://", "en", ".", "wikipedia", ".", "org", "/", "wiki", "/", "Apple", "Ġ||", "|", "[/", "html", ":", "Ġb", "]", "Ġ(", "Mal", "us", "Ġdomest", "ica", ").", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", ])
-        self.assertEqual(mapped_ds[4]["attention_mask"], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ])
-        self.assertEqual(mapped_ds[4]["metadata_mask"], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ])
-        self.assertEqual(self.tokenizer.convert_ids_to_tokens(mapped_ds[5]["input_ids"]), ["Website", "ĠDescription", ":", "ĠAmazon", ".", "com", ",", "ĠInc", ".", "Ġ(", "ĠAM", "-", "É", "Ļ", "-", "zon", ")", "Ġis", "Ġan", "ĠAmerican", "Ġmultinational", "Ġconglomerate", "Ġwhich", "Ġfocuses", "Ġon", "Ġe", "-", "commerce", ",", "Ġcloud", "Ġcomputing", ",", "Ġdigital", "Ġstreaming", ",", "Ġand", "Ġartificial", "Ġintelligence", ".", "Ġ||", "|", "ĠAmazon", ".", "com", ":", "ĠCustomer", "ĠReviews", ":", "ĠContracts", "Ġand", "Ġthe", "ĠLegal", "ĠEnvironment", "Ġfor", "ĠEngineers", "Ġand", "ĠArchitects", "Ċ", "Customer", "ĠReviews", "63", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", ])
+        """
+        example[1]
+        ==========
+        """
+        expected_g_mtdt1 = [
+            "url", ":", "Ġhttps", "://", "en", ".", "wikipedia", ".",
+            "org", "/", "wiki", "/", "Apple", "Ġ||", "|",
+        ]
 
-        self.assertEqual(mapped_ds[5]["attention_mask"], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, ])
+        expected_tkns10 = expected_g_mtdt1 + [
+            "ĠAn", "Ġ[", "html", ":", "Ġb", "][", "entity", ":",
+            "ĠMal", "us", "Ġdomest", "ica", "]", "apple", "[/", "entity",
+            ":", "ĠMal", "us", "Ġdomest", "ica", "][/", "html", ":",
+            "Ġb", "]", "Ġis", "Ġan", "Ġedible", "Ġfruit", "Ġproduced", "Ġby",
+            "Ġan", "Ġ[", "html", ":", "Ġb", "][", "html", ":",
+            "Ġi", "]", "apple", "[/", "html", ":", "Ġi", "]",
+            "Ġtree",
+        ]
+        actual_tkns10 = self.tokenizer.convert_ids_to_tokens(mapped_ds[2]["input_ids"])
+        self.assertEqual(actual_tkns10, expected_tkns10, actual_tkns10)
+        self.assertEqual(mapped_ds[2]["attention_mask"], [1] * cfg.max_seq_len)
+        self.assertEqual(
+            mapped_ds[2]["metadata_mask"],
+            [1] * len(expected_g_mtdt1)
+            + [0] + [1] * 7
+            + [1] * 5 + [0] + [1] * 2
+            + [1] * 8
+            + [1] * 2 + [0] * 6
+            + [0] + [1] * 7
+            + [1] * 2 + [0] + [1] * 5
+            + [0]
+        )
 
-        self.assertEqual(mapped_ds[5]["metadata_mask"], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ])
+        expected_tkns11 = expected_g_mtdt1 + [
+            "[/", "html", ":", "Ġb", "]", "Ġ(", "Mal", "us",
+            "Ġdomest", "ica", ").",
+        ]
+        pad_len11 = cfg.max_seq_len - len(expected_tkns11)
+        expected_tkns11 += [pad_tkn] * pad_len11
+        actual_tkns11 = self.tokenizer.convert_ids_to_tokens(mapped_ds[3]["input_ids"])
+        self.assertEqual(actual_tkns11, expected_tkns11, actual_tkns11)
+        self.assertEqual(mapped_ds[3]["attention_mask"], [1] * (cfg.max_seq_len - pad_len11) + [0] * pad_len11)
+        self.assertEqual(
+            mapped_ds[3]["metadata_mask"],
+            [1] * len(expected_g_mtdt1)
+            + [1] * 5 + [0] * 3
+            + [0] * 3
+            + [0] * pad_len11
+        )
 
-        self.assertEqual(self.tokenizer.convert_ids_to_tokens(mapped_ds[6]["input_ids"]), ["title", ":", "ĠMy", "ĠThoughts", "ĠOn", "ĠIt", "ĠÂ»", "ĠDad", ",", "ĠI", "Ġwant", "Ġto", "Ġbe", "Ġan", "Ġinventor", "Ġ||", "|", "ĠYour", "Ġarticle", "Ġstruck", "Ġa", "Ġcord", ",", "Ġas", "Ġa", "Ġchild", "ĠI", "Ġwould", "Ġimagine", "Ġbeing", "Ġan", "Ġinventor", ".", "Ġ.", "ĠAs", "Ġan", "Ġadult", "ĠI", "Ġstill", "Ġlove", "Ġit", "Ġwhen", "Ġan", "Ġinsight", "Ġto", "Ġa", "Ġnew", "Ġproduct", "Ġor", "Ġprocess", "Ġreveals", "Ġitself", "Ġ.", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", "<|endoftext|>", ])
-        self.assertEqual(mapped_ds[6]["attention_mask"], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ])
-        self.assertEqual(mapped_ds[6]["metadata_mask"], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ])
+        """
+        example[3]
+        ==========
+        """
+        expected_g_mtdt3 = [
+            "Website", "ĠDescription", ":", "ĠAmazon", ".", "com", ",", "ĠInc",
+            ".", "Ġ(", "ĠAM", "-", "É", "Ļ", "-", "zon",
+            ")", "Ġis", "Ġan", "ĠAmerican", "Ġmultinational", "Ġconglomerate", "Ġwhich", "Ġfocuses",
+            "Ġon", "Ġe", "-", "commerce", ",", "Ġcloud", "Ġ||", "|",
+        ]
+
+        expected_tkns30 = expected_g_mtdt3 + [
+            "ĠAmazon", ".", "com", ":", "ĠCustomer", "ĠReviews", ":", "ĠContracts",
+            "Ġand", "Ġthe", "ĠLegal", "ĠEnvironment", "Ġfor", "ĠEngineers", "Ġand", "ĠArchitects",
+            "Ċ", "Customer", "ĠReviews", "63",
+        ]
+        pad_len30 = cfg.max_seq_len - len(expected_tkns30)
+        expected_tkns30 += [pad_tkn] * pad_len30
+        actual_tkns30 = self.tokenizer.convert_ids_to_tokens(mapped_ds[4]["input_ids"])
+        self.assertEqual(actual_tkns30, expected_tkns30, actual_tkns30)
+        self.assertEqual(mapped_ds[4]["attention_mask"], [1] * (cfg.max_seq_len - pad_len30) + [0] * pad_len30)
+        self.assertEqual(mapped_ds[4]["metadata_mask"], [1] * (cfg.max_seq_len // 2) + [0] * (cfg.max_seq_len // 2))
+
+        """
+        example[6]
+        ==========
+        """
+        expected_g_mtdt6 = [
+            "title", ":", "ĠMy", "ĠThoughts", "ĠOn", "ĠIt", "ĠÂ»", "ĠDad",
+            ",", "ĠI", "Ġwant", "Ġto", "Ġbe", "Ġan", "Ġinventor", "Ġ||",
+            "|",
+        ]  # 17 tokens
+        expected_tkns60 = expected_g_mtdt6 + [
+            "ĠYour", "Ġarticle", "Ġstruck", "Ġa", "Ġcord", ",", "Ġas", "Ġa",
+            "Ġchild", "ĠI", "Ġwould", "Ġimagine", "Ġbeing", "Ġan", "Ġinventor", ".",
+            "Ġ.", "ĠAs", "Ġan", "Ġadult", "ĠI", "Ġstill", "Ġlove", "Ġit",
+            "Ġwhen", "Ġan", "Ġinsight", "Ġto", "Ġa", "Ġnew", "Ġproduct", "Ġor",
+            "Ġprocess", "Ġreveals", "Ġitself", "Ġ.",
+        ]
+        pad_len60 = cfg.max_seq_len - len(expected_tkns60)
+        expected_tkns60 += [pad_tkn] * pad_len60
+        actual_tkns60 = self.tokenizer.convert_ids_to_tokens(mapped_ds[5]["input_ids"])
+        self.assertEqual(actual_tkns60, expected_tkns60, actual_tkns60)
+        self.assertEqual(mapped_ds[5]["attention_mask"], [1] * (cfg.max_seq_len - pad_len60) + [0] * pad_len60)
+        self.assertEqual(mapped_ds[5]["metadata_mask"], [1] * 17 + [0] * (cfg.max_seq_len - 17))
         # fmt: on
 
     def test_add_metadata_and_chunk_examples_with_true_processor(self):

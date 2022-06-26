@@ -1,10 +1,13 @@
 import functools
 import logging
 from collections import Counter
+from fnmatch import fnmatch
 from itertools import chain
 
 import datasets
-from datasets import DatasetDict, Features, concatenate_datasets, config, load_dataset
+from datasets import DatasetDict, Features, concatenate_datasets, load_dataset
+from datasets.filesystems import HfFileSystem
+from huggingface_hub import dataset_info
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 from transformers import default_data_collator
@@ -394,7 +397,7 @@ def convert_types(features):
     if isinstance(features, dict) and "_type" in features:
         try:
             return getattr(datasets, features["_type"])(features["dtype"])
-        except:
+        except ValueError:
             print(features)
     elif isinstance(features, dict):
         return {key: convert_types(value) for key, value in features.items()}
@@ -405,15 +408,10 @@ def convert_types(features):
 new_features = {}
 final_features = convert_types(features)
 final_features_with_entities = convert_types(features_with_entities)
-from datasets.filesystems import HfFileSystem
-from huggingface_hub import dataset_info
-
 
 di = dataset_info("bs-modeling-metadata/c4-en-html-with-metadata")
 fs = HfFileSystem(di)
 all_files = fs.ls(".")
-
-from fnmatch import fnmatch
 
 
 def get_files(pattern):

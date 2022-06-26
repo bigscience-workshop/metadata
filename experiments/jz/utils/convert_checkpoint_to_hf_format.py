@@ -9,13 +9,12 @@ from typing import Optional
 import hydra
 import torch
 import torch.nn.functional as F
+import wandb
 from accelerate import Accelerator
 from git import Repo
 from hydra.core.config_store import ConfigStore
 from omegaconf import OmegaConf
 from transformers import AutoModelForCausalLM, AutoTokenizer
-
-import wandb
 
 
 logger = logging.getLogger(__name__)

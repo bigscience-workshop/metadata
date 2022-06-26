@@ -9,6 +9,7 @@ from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 from transformers import default_data_collator
 
+from bsmetadata.experiments.without_metadata import preprocess_no_metadata
 from bsmetadata.metadata_utils import add_metadata_and_chunk_examples, random_sample_metadata_v2
 
 
@@ -545,6 +546,7 @@ def build_dataset(tokenizer, args):
 
     for key, value in single_metadata_datasets.items():
         datasets[f"validation_{key}"] = value
+    validation_no_metadata = preprocess_no_metadata(datasets["validation"], tokenizer, args)
 
     logger.info(f"Dataset loaded: {datasets}")
     # See more about loading any type of standard or custom dataset (from files, python dict, pandas DataFrame, etc) at
@@ -575,6 +577,7 @@ def build_dataset(tokenizer, args):
         logger.info(f"Dataset {key} pre-processed: {d}, length: {len(d)}")
         newdatasetsdict[key] = d
     datasets = newdatasetsdict
+    datasets["validation_no_metadata"] = validation_no_metadata
     logger.info("Add metadata and chunk examples finished")
 
     def create_labels_column(examples):

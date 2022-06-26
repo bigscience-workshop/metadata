@@ -207,6 +207,8 @@ def random_sample_metadata_v2(
     for i in range(len(examples["text"])):
         example = {k: v[i] for k, v in examples.items()}
         metadata_types = [key for key in only_metadata_types if example[f"metadata_{key}"]]
+        if len(metadata_types) == 0:
+            continue
         num_metadata_to_keep = random.randint(1, len(metadata_types))
         weights = np.array([metadata_type_sample_weights[m] for m in metadata_types])
         weights = weights / weights.sum()

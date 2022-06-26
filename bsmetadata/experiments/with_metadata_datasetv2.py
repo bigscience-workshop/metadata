@@ -500,7 +500,12 @@ def build_dataset(tokenizer, args):
         a dataset
     """
     datasets = my_load_dataset(args)
-    datasets = datasets.filter(lambda x: x["text"])
+    datasets = datasets.filter(
+        lambda x: x["text"],
+        num_proc=args.preprocessing_num_workers,
+        load_from_cache_file=not args.overwrite_cache,
+        desc="filter out data with empty text",
+    )
 
     column_names = datasets["train"].column_names
     for key in args.metadata_config.metadata_list:

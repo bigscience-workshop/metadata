@@ -1,6 +1,7 @@
 import functools
 import logging
 from collections import Counter
+from copy import deepcopy
 from itertools import chain
 
 from datasets import DatasetDict, Features, concatenate_datasets, load_dataset
@@ -42,26 +43,9 @@ def my_load_dataset(args):
     logger.info(f"{len(validation_files)} validation files, starting with {validation_files[0]}")
     train_dataset = load_dataset_by_files(train_files)
     validation_dataset = load_dataset_by_files(validation_files)
-    datasets = DatasetDict(train=train_dataset, validation=validation_dataset)
-
-    return datasets
-
-
-"""
-def keep_one_metadata(dataset, metadata_key):
-    def map_fn(examples):
-        for k in examples:
-            if k.startswith("metadata_") and k != metadata_key:
-                    examples[k] = [[] for _ in examples[k]]
-        return examples
-    return dataset.map(
-            functools.partial(random_sample_metadata_v2, metadata_type_sample_weights=metadata_type_sample_weights),
-            batched=True,
-            num_proc=args.preprocessing_num_workers,
-            load_from_cache_file=not args.overwrite_cache,
-            desc="Randomly dropping metadata",
-    )
-"""
+    # datasets = DatasetDict(train=train_dataset, validation=validation_dataset)
+    # return datasets
+    return train_dataset, validation_dataset
 
 
 def copy_dataset_for_each_metadata_type(dataset):
@@ -75,9 +59,114 @@ def copy_dataset_for_each_metadata_type(dataset):
             for c in columns_to_remove:
                 new_column = [[] for _ in range(len(new_dataset))]
                 new_dataset = new_dataset.add_column(c, new_column)
-            new_datasets[col] = new_dataset
+            new_datasets[f"validation_{col}"] = new_dataset
             logger.info(f"Copied dataset columns: {new_dataset.column_names}")
     return new_datasets
+
+
+def preprocess_datasets(datasets, tokenizer, args, is_train=True):
+    """
+    Args:
+        dataset: a huggingface DatasetDict
+        tokenizer: a huggingface/transformers tokenizer
+        args: a DataConfig
+    Returns:
+        a dataset
+    """
+    datasets = datasets.filter(
+        lambda x: x["text"],
+        num_proc=args.preprocessing_num_workers,
+        load_from_cache_file=not args.overwrite_cache,
+        desc="filter out data with empty text",
+    )
+
+    if is_train:
+        logger.info("Removing metadata not used")
+        column_names = datasets["train"].column_names
+        for key in args.metadata_config.metadata_list:
+            assert f"metadata_{key}" in column_names, f"{key} is not in the dataset, column names are {column_names}"
+
+        keep_metadata_columns = [f"metadata_{key}" for key in args.metadata_config.metadata_list]
+        remove_columns = [
+            key for key in column_names if key.startswith("metadata_") and key not in keep_metadata_columns
+        ]
+        logger.info(f"Removing columns {remove_columns}")
+        datasets = datasets.remove_columns(remove_columns)
+
+        # First we pre-process our text and metadata
+        if args.metadata_config.random_sample_metadata:
+            logger.info("getting stats for dataset")
+
+            def get_metadata_types(example):
+                results = []
+                for metadata_type in args.metadata_config.metadata_list:
+                    if example[f"metadata_{metadata_type}"]:
+                        results.append(metadata_type)
+                return results
+
+            # get statistics of the dataset for sampling metadata
+            metadata_type_counter = Counter(
+                chain.from_iterable(
+                    get_metadata_types(x)
+                    for x in tqdm(datasets["train"], desc="iterate over training set to count metadata types")
+                )
+            )
+            metadata_type_weight_sum = sum(metadata_type_counter.values())
+            metadata_type_sample_weights = {k: metadata_type_weight_sum / v for k, v in metadata_type_counter.items()}
+            logger.info(f"Metadata type sample weights: {metadata_type_sample_weights}")
+
+            logger.info("Randomly sampling metadata")
+            datasets = datasets.map(
+                functools.partial(
+                    random_sample_metadata_v2, metadata_type_sample_weights=metadata_type_sample_weights
+                ),
+                batched=True,
+                num_proc=args.preprocessing_num_workers,
+                load_from_cache_file=not args.overwrite_cache,
+                desc="Randomly dropping metadata",
+                batch_size=args.map_batch_size,
+            )
+        else:
+            logger.info("Not randomly sampling metadata")
+
+        column_names = datasets["train"].column_names
+    else:
+        validation = datasets["validation"]
+        datasets = copy_dataset_for_each_metadata_type(validation)
+        datasets["validation"] = validation
+        validation_no_metadata = preprocess_no_metadata(validation, tokenizer, args)
+        column_names = validation.column_names
+
+    logger.info("Start to add metadata and chunk examples")
+
+    # First we pre-process our text and metadata
+    # note: chunking data in batches reqires remove_columns, see https://github.com/huggingface/datasets/issues/1817#issuecomment-774066254
+    # but each subset has different columns, so call .map() separately on each subset
+    # deepcopy
+    cfg = deepcopy(args.metadata_config)
+    if not is_train:
+        cfg.metadata_probability = 1.0
+    datasets = datasets.map(
+        functools.partial(add_metadata_and_chunk_examples, tokenizer=tokenizer, cfg=cfg),
+        batched=True,
+        num_proc=args.preprocessing_num_workers,
+        load_from_cache_file=not args.overwrite_cache,
+        desc="Pre-process the text and metadata to create new samples",
+        remove_columns=column_names,
+        batch_size=args.map_batch_size,
+    )
+
+    logger.info("Add metadata and chunk examples finished")
+
+    def create_labels_column(examples):
+        # remove columns
+        examples = {key: value for key, value in examples.items() if key not in column_names}
+        examples["labels"] = examples["input_ids"].copy()
+        return examples
+
+    # labels column will be generated from input_ids on the fly
+    datasets = datasets.with_transform(create_labels_column)
+    return datasets
 
 
 def build_dataset(tokenizer, args):
@@ -88,114 +177,13 @@ def build_dataset(tokenizer, args):
     Returns:
         a dataset
     """
-    datasets = my_load_dataset(args)
-    datasets = datasets.filter(
-        lambda x: x["text"],
-        num_proc=args.preprocessing_num_workers,
-        load_from_cache_file=not args.overwrite_cache,
-        desc="filter out data with empty text",
+    train_dataset, validation_dataset = my_load_dataset(args)
+
+    train_datasets = preprocess_datasets(DatasetDict(train=train_dataset), tokenizer, args, is_train=True)
+    validation_datasets = preprocess_datasets(
+        DatasetDict(validation=validation_dataset), tokenizer, args, is_train=False
     )
-
-    column_names = datasets["train"].column_names
-    for key in args.metadata_config.metadata_list:
-        assert f"metadata_{key}" in column_names, f"{key} is not in the dataset, column names are {column_names}"
-
-    keep_metadata_columns = [f"metadata_{key}" for key in args.metadata_config.metadata_list]
-    remove_columns = [key for key in column_names if key.startswith("metadata_") and key not in keep_metadata_columns]
-    logger.info(f"Removing columns {remove_columns}")
-    datasets = datasets.remove_columns(remove_columns)
-
-    logger.info("getting stats for dataset")
-
-    def get_metadata_types(example):
-        results = []
-        for metadata_type in args.metadata_config.metadata_list:
-            if example[f"metadata_{metadata_type}"]:
-                results.append(metadata_type)
-        return results
-
-    # get statistics of the dataset for sampling metadata
-    metadata_type_counter = Counter(
-        chain.from_iterable(
-            get_metadata_types(x)
-            for x in tqdm(datasets["train"], desc="iterate over training set to count metadata types")
-        )
-    )
-    metadata_type_weight_sum = sum(metadata_type_counter.values())
-    metadata_type_sample_weights = {k: metadata_type_weight_sum / v for k, v in metadata_type_counter.items()}
-    logger.info(f"Metadata type sample weights: {metadata_type_sample_weights}")
-
-    # First we pre-process our text and metadata
-    if args.metadata_config.random_sample_metadata:
-        logger.info("Randomly sampling metadata")
-        datasets = datasets.map(
-            functools.partial(random_sample_metadata_v2, metadata_type_sample_weights=metadata_type_sample_weights),
-            batched=True,
-            num_proc=args.preprocessing_num_workers,
-            load_from_cache_file=not args.overwrite_cache,
-            desc="Randomly dropping metadata",
-            batch_size=args.map_batch_size,
-        )
-    single_metadata_datasets = copy_dataset_for_each_metadata_type(datasets["validation"])
-
-    for key, value in single_metadata_datasets.items():
-        datasets[f"validation_{key}"] = value
-    validation_no_metadata = preprocess_no_metadata(datasets["validation"], tokenizer, args)
-
-    logger.info(f"Dataset loaded: {datasets}")
-    # See more about loading any type of standard or custom dataset (from files, python dict, pandas DataFrame, etc) at
-    # https://huggingface.co/docs/datasets/loading_datasets.html.
-
-    # Preprocessing the datasets.
-    column_names = datasets["train"].column_names
-
-    logger.info("Start to add metadata and chunk examples")
-
-    # First we pre-process our text and metadata
-    # note: chunking data in batches reqires remove_columns, see https://github.com/huggingface/datasets/issues/1817#issuecomment-774066254
-    # but each subset has different columns, so call .map() separately on each subset
-    newdatasetsdict = DatasetDict()
-    """
-    for key, d in datasets.items():
-        logger.info(f"Processing dataset subset {key}")
-        print(d)
-        d = d.map(
-            functools.partial(add_metadata_and_chunk_examples, tokenizer=tokenizer, cfg=args.metadata_config),
-            batched=True,
-            num_proc=args.preprocessing_num_workers,
-            load_from_cache_file=not args.overwrite_cache,
-            desc="Pre-process the text and metadata to create new samples",
-            # remove_columns=column_names, # cannot remove columns here, because each validation has different column
-            remove_columns=d.column_names,  # cannot remove columns here, because each validation has different column
-            batch_size=args.map_batch_size,
-        )
-        logger.info(f"Dataset {key} pre-processed: {d}, length: {len(d)}")
-        newdatasetsdict[key] = d
-    """
-    datasets = datasets.map(
-        functools.partial(add_metadata_and_chunk_examples, tokenizer=tokenizer, cfg=args.metadata_config),
-        batched=True,
-        num_proc=args.preprocessing_num_workers,
-        load_from_cache_file=not args.overwrite_cache,
-        desc="Pre-process the text and metadata to create new samples",
-        remove_columns=column_names,
-        batch_size=args.map_batch_size,
-    )
-
-    # datasets = newdatasetsdict
-    datasets["validation_no_metadata"] = validation_no_metadata
-    logger.info("Add metadata and chunk examples finished")
-
-    def create_labels_column(examples):
-        # remove columns
-        examples = {key: value for key, value in examples.items() if key not in column_names}
-        examples["labels"] = examples["input_ids"].copy()
-        return examples
-
-    logger.info("Create labels column")
-    # labels column will be generated from input_ids on the fly
-    datasets = datasets.with_transform(create_labels_column)
-    return datasets
+    return train_datasets, validation_datasets
 
 
 def get_dataloaders(tokenizer, args):
@@ -217,13 +205,15 @@ def get_dataloaders(tokenizer, args):
            outputs = model(**batch)
            metrics = loss_fn(batch, outputs, metadata_mask)
     """
-    datasets = build_dataset(tokenizer, args)
+    train_datasets, validation_datasets = build_dataset(tokenizer, args)
 
-    train_dataset = datasets["train"]
-    val_dataset = datasets["validation"]
+    train_dataset = train_datasets["train"]
+    val_dataset = validation_datasets["validation"]
 
     logger.info(f"  Num train examples = {len(train_dataset)}")
     logger.info(f"  Num validation examples = {len(val_dataset)}")
+    logger.info(f"{train_datasets=}")
+    logger.info(f"{validation_datasets=}")
 
     # DataLoaders creation:
     train_dataloader = DataLoader(
@@ -239,7 +229,7 @@ def get_dataloaders(tokenizer, args):
             collate_fn=default_data_collator,
             batch_size=args.per_device_eval_batch_size,
         )
-        for key, val_dataset in datasets.items()
+        for key, val_dataset in validation_datasets.items()
         if key.startswith("validation")
     }
     logger.info(f"validation dataloaders: {val_dataloaders.keys()}")

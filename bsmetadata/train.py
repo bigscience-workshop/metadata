@@ -257,6 +257,7 @@ def main(args: CFG) -> None:
     if do_eval:
         logger.info("Start with an evaluation")
         for key, eval_dataloader in eval_dataloaders.items():
+            logger.info(f"Evaluating split {key}")
             metrics = evaluate(eval_dataloader)
             metrics_logger.log({key: metrics})
         logger.info("Evaluation finished")

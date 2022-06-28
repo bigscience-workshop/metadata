@@ -7,7 +7,7 @@ import os
 import sys
 from dataclasses import dataclass, field
 from functools import partial
-from typing import Optional
+from typing import List, Optional
 
 import hydra
 import torch
@@ -52,6 +52,10 @@ class CFG:
     project_name: str = field(default="metadata_lm", metadata={"help": "The project name."})
     jobid: Optional[str] = field(default=None, metadata={"help": "The jobid of the run."})
     start_with_eval: bool = field(default=False, metadata={"help": "Start by evaluating the model"})
+    extra_steps_to_eval_save_at: List[str] = field(
+        default_factory=(lambda: []),
+        metadata={"help": "A list of additional steps to evaluate and save at."},
+    )
     evaluation_strategy: IntervalStrategy = field(
         default="STEPS",
         metadata={"help": "The evaluation strategy to use."},
@@ -246,6 +250,13 @@ def main(args: CFG) -> None:
         model.train()
         return {"perplexity": perplexity}
 
+    def evaluate_multiple_dateloaders(eval_dataloaders):
+        for key, eval_dataloader in eval_dataloaders.items():
+            logger.info(f"Evaluating split {key}")
+            metrics = evaluate(eval_dataloader)
+            metrics_logger.log({key: metrics})
+        logger.info("Evaluation finished")
+
     if not args.do_train and not args.do_eval:
         return
 
@@ -256,11 +267,7 @@ def main(args: CFG) -> None:
     do_eval = args.do_eval and args.start_with_eval
     if do_eval:
         logger.info("Start with an evaluation")
-        for key, eval_dataloader in eval_dataloaders.items():
-            logger.info(f"Evaluating split {key}")
-            metrics = evaluate(eval_dataloader)
-            metrics_logger.log({key: metrics})
-        logger.info("Evaluation finished")
+        evaluate_multiple_dateloaders(eval_dataloaders)
 
     if not args.do_train:
         return
@@ -309,14 +316,19 @@ def main(args: CFG) -> None:
             else:
                 continue
 
-            do_eval = args.do_eval and completed_steps > 0 and completed_steps % eval_per_n_step == 0
+            do_eval = (
+                args.do_eval
+                and completed_steps > 0
+                and (completed_steps % eval_per_n_step == 0 or completed_steps in args.extra_steps_to_eval_save_at)
+            )
             if do_eval:
-                for key, eval_dataloader in eval_dataloaders.items():
-                    metrics = evaluate(eval_dataloader)
-                    metrics_logger.log({key: metrics})
-                    # logger.info(f"epoch {epoch}: perplexity: {perplexity}")
+                evaluate_multiple_dateloaders(eval_dataloaders)
 
-            do_save = is_local_main_process and completed_steps > 0 and completed_steps % save_per_n_step == 0
+            do_save = (
+                is_local_main_process
+                and completed_steps > 0
+                and (completed_steps % save_per_n_step == 0 or completed_steps in args.extra_steps_to_eval_save_at)
+            )
             if do_save:
                 save_path = os.path.join(args.out_dir, f"checkpoint-{completed_steps}step.pt")
                 logger.info(f"Save model at {save_path}")

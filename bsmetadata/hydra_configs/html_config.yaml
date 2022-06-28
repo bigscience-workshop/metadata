@@ -70,7 +70,8 @@ out_dir: /mnt/storage/Documents/hugging_face/bigscience/jz/jz-code/sync/metadata
 model_name: gpt2
 project_name: metadata_lm
 jobid: null
-start_with_eval: true
+start_with_eval: false
+extra_steps_to_eval_save_at: [2]
 evaluation_strategy: STEPS
 eval_num_per_epoch: 3
 eval_steps: 100

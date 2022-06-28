@@ -33,11 +33,17 @@ def preprocess_no_metadata(dataset, tokenizer, args):
         # customize this part to your needs.
         if total_length >= block_size:
             total_length = (total_length // block_size) * block_size
-        # Split by chunks of max_len.
-        result = {
-            k: [t[i : i + block_size] for i in range(0, total_length, block_size)]
-            for k, t in concatenated_examples.items()
-        }
+            # Split by chunks of max_len.
+            result = {
+                k: [t[i : i + block_size] for i in range(0, total_length, block_size)]
+                for k, t in concatenated_examples.items()
+            }
+        else:
+            padding_len = block_size - total_length
+            result = {
+                "input_ids": [concatenated_examples["input_ids"] + [tokenizer.eos_token_id] * padding_len],
+                "attention_mask": [concatenated_examples["input_ids"] + [0] * padding_len],
+            }
         return result
 
     result = tokenized_dataset.map(

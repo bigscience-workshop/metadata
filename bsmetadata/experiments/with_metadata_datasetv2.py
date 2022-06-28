@@ -79,21 +79,20 @@ def preprocess_datasets(datasets, tokenizer, args, is_train=True):
         load_from_cache_file=not args.overwrite_cache,
         desc="filter out data with empty text",
     )
+    if is_train:
+        column_names = datasets["train"].column_names
+    else:
+        column_names = datasets["validation"].column_names
+    logger.info("Removing metadata not used")
+    for key in args.metadata_config.metadata_list:
+        assert f"metadata_{key}" in column_names, f"{key} is not in the dataset, column names are {column_names}"
+
+    keep_metadata_columns = [f"metadata_{key}" for key in args.metadata_config.metadata_list]
+    remove_columns = [key for key in column_names if key.startswith("metadata_") and key not in keep_metadata_columns]
+    logger.info(f"Removing columns {remove_columns}")
+    datasets = datasets.remove_columns(remove_columns)
 
     if is_train:
-        logger.info("Removing metadata not used")
-        column_names = datasets["train"].column_names
-        for key in args.metadata_config.metadata_list:
-            assert f"metadata_{key}" in column_names, f"{key} is not in the dataset, column names are {column_names}"
-
-        keep_metadata_columns = [f"metadata_{key}" for key in args.metadata_config.metadata_list]
-        remove_columns = [
-            key for key in column_names if key.startswith("metadata_") and key not in keep_metadata_columns
-        ]
-        logger.info(f"Removing columns {remove_columns}")
-        datasets = datasets.remove_columns(remove_columns)
-
-        # First we pre-process our text and metadata
         if args.metadata_config.random_sample_metadata:
             logger.info("getting stats for dataset")
 
@@ -128,14 +127,11 @@ def preprocess_datasets(datasets, tokenizer, args, is_train=True):
             )
         else:
             logger.info("Not randomly sampling metadata")
-
-        column_names = datasets["train"].column_names
     else:
         validation = datasets["validation"]
         datasets = copy_dataset_for_each_metadata_type(validation)
         datasets["validation"] = validation
-        validation_no_metadata = preprocess_no_metadata(validation, tokenizer, args)
-        column_names = validation.column_names
+        datasets["validation_no_metadata"] = preprocess_no_metadata(validation, tokenizer, args)
 
     logger.info("Start to add metadata and chunk examples")
 
@@ -223,11 +219,17 @@ def get_dataloaders(tokenizer, args):
         batch_size=args.per_device_train_batch_size,
         drop_last=True,
     )
+
     val_dataloaders = {
         key: DataLoader(
-            val_dataset,
+            (
+                val_dataset
+                if args.validation_size_max is None
+                else val_dataset.select(range(min(args.validation_size_max, len(val_dataset))))
+            ),
             collate_fn=default_data_collator,
             batch_size=args.per_device_eval_batch_size,
+            drop_last=True,
         )
         for key, val_dataset in validation_datasets.items()
         if key.startswith("validation")

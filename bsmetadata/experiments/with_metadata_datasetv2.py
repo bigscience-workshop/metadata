@@ -175,6 +175,9 @@ def build_dataset(tokenizer, args):
     """
     train_dataset, validation_dataset = my_load_dataset(args)
 
+    if args.validation_size_max is not None:
+        validation_dataset = validation_dataset.select(range(min(args.validation_size_max, len(validation_dataset))))
+
     train_datasets = preprocess_datasets(DatasetDict(train=train_dataset), tokenizer, args, is_train=True)
     validation_datasets = preprocess_datasets(
         DatasetDict(validation=validation_dataset), tokenizer, args, is_train=False
@@ -222,11 +225,7 @@ def get_dataloaders(tokenizer, args):
 
     val_dataloaders = {
         key: DataLoader(
-            (
-                val_dataset
-                if args.validation_size_max is None
-                else val_dataset.select(range(min(args.validation_size_max, len(val_dataset))))
-            ),
+            val_dataset,
             collate_fn=default_data_collator,
             batch_size=args.per_device_eval_batch_size,
             drop_last=True,

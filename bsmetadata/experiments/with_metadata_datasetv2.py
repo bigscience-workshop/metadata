@@ -79,18 +79,17 @@ def preprocess_datasets(datasets, tokenizer, args, is_train=True):
         load_from_cache_file=not args.overwrite_cache,
         desc="filter out data with empty text",
     )
-    if is_train:
-        column_names = datasets["train"].column_names
-    else:
-        column_names = datasets["validation"].column_names
+    key = "train" if is_train else "validation"
+    column_names = datasets[key].column_names
+
     logger.info("Removing metadata not used")
     for key in args.metadata_config.metadata_list:
         assert f"metadata_{key}" in column_names, f"{key} is not in the dataset, column names are {column_names}"
-
     keep_metadata_columns = [f"metadata_{key}" for key in args.metadata_config.metadata_list]
     remove_columns = [key for key in column_names if key.startswith("metadata_") and key not in keep_metadata_columns]
     logger.info(f"Removing columns {remove_columns}")
     datasets = datasets.remove_columns(remove_columns)
+    column_names = datasets[key].column_names
 
     if is_train:
         if args.metadata_config.random_sample_metadata:

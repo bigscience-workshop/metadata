@@ -130,7 +130,6 @@ def preprocess_datasets(datasets, tokenizer, args, is_train=True):
         validation = datasets["validation"]
         datasets = copy_dataset_for_each_metadata_type(validation)
         datasets["validation"] = validation
-        datasets["validation_no_metadata"] = preprocess_no_metadata(validation, tokenizer, args)
 
     logger.info("Start to add metadata and chunk examples")
 
@@ -150,6 +149,8 @@ def preprocess_datasets(datasets, tokenizer, args, is_train=True):
         remove_columns=column_names,
         batch_size=args.map_batch_size,
     )
+    if not is_train:
+        datasets["validation_no_metadata"] = preprocess_no_metadata(validation, tokenizer, args)
 
     logger.info("Add metadata and chunk examples finished")
 

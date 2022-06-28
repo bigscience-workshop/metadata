@@ -266,7 +266,9 @@ class HtmlProcessor(MetadataProcessor):
         txt_min_chr_len = cfg.html_parser_config.all_tags_rules.txt_min_chr_len
         tags_exceptions = cfg.html_parser_config.all_tags_rules.tags_exceptions_to_txt_max_min_chr_len
         tags_to_remove_alone = [
-            html_parser.objects.TagToRemove(tag=tag, txt_max_chr_len=txt_max_chr_len, txt_min_chr_len=txt_min_chr_len)
+            html_parser.objects.TagToRemove(
+                tag=tag, content_min_char_length=txt_min_chr_len, content_max_char_length=txt_max_chr_len
+            )
             for (tag, txt_max_chr_len, txt_min_chr_len) in zip(
                 cfg.html_parser_config.tags_to_remove_alone_tag_name,
                 cfg.html_parser_config.tags_to_remove_alone_txt_max_chr_len,

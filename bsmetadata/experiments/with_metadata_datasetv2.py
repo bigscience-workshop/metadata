@@ -209,6 +209,18 @@ def get_dataloaders(tokenizer, args):
     train_dataset = train_datasets["train"]
     val_dataset = validation_datasets["validation"]
 
+    def check_examples_all_same_length(dataset, check_num=1000):
+        length = len(dataset[0]["input_ids"])
+        for i in range(min(check_num, len(dataset))):
+            example = dataset[i]
+            if len(example["input_ids"]) != length:
+                return False
+        return True
+
+    for dss in (train_datasets, validation_datasets):
+        for k, ds in dss.items():
+            assert check_examples_all_same_length(ds), f"{k} examples are not all the same length"
+
     logger.info(f"  Num train examples = {len(train_dataset)}")
     logger.info(f"  Num validation examples = {len(val_dataset)}")
     logger.info(f"{train_datasets=}")

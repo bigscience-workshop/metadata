@@ -38,6 +38,7 @@ def preprocess_no_metadata(dataset, tokenizer, args):
             k: [t[i : i + block_size] for i in range(0, total_length, block_size)]
             for k, t in concatenated_examples.items()
         }
+        return result
 
     result = tokenized_dataset.map(
         functools.partial(group_texts, block_size=block_size),

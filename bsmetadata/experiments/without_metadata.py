@@ -42,7 +42,7 @@ def preprocess_no_metadata(dataset, tokenizer, args):
             padding_len = block_size - total_length
             result = {
                 "input_ids": [concatenated_examples["input_ids"] + [tokenizer.eos_token_id] * padding_len],
-                "attention_mask": [concatenated_examples["input_ids"] + [0] * padding_len],
+                "attention_mask": [concatenated_examples["attention_mask"] + [0] * padding_len],
             }
         return result
 

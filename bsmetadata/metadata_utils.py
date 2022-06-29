@@ -143,7 +143,8 @@ def convert_v2_dataset_to_v1_format(example):
             key = key[len(key_prefix) :]
             for metadata in value:
                 metadata = deepcopy(metadata)
-                metadata["key"] = key
+                if 'key' not in metadata:
+                    metadata["key"] = key
                 metadata_list.append(metadata)
     example["metadata"] = metadata_list
     return example

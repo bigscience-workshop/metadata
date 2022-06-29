@@ -1,9 +1,29 @@
 data_config:
-  validation_size_max: 1000
+  validation_size_max: 100
   metadata_config:
-    random_sample_metadata: true
-    metadata_list: []
-    metadata_column_list: []
+    random_sample_metadata: false
+    metadata_list:
+    - html
+    - entity
+    - timestamp
+    - website_description
+    - title
+    - url
+    - source
+    - length
+    - entity_paragraph
+    metadata_column_list:
+    - html
+    - entity
+    - timestamp
+    - website_desc
+    - title
+    - url
+    - generation_datasource
+    - generation_length_sentence
+    - generation_length_text
+    - entity_paragraph
+    - paragraph
     local_metadata_special_tokens: null
     metadata_sep: ' | '
     metadata_key_value_sep: ': '
@@ -12,7 +32,7 @@ data_config:
     add_local_metadata_special_tokens_in_prefix: false
     metadata_prefix_sep: ' |||'
     metadata_prefix_start_seq: ''
-    max_seq_len: 512
+    max_seq_len: 1024
     html_parser_config:
       all_tags_rules:
         attributes_to_keep:
@@ -45,40 +65,41 @@ data_config:
       - 0.0
       - 0.0
       - 0.0
-  experiment: sample
-  per_device_eval_batch_size: 2
-  per_device_train_batch_size: 2
-  dataset_name: null
+  experiment: with_metadata_datasetv2
+  per_device_eval_batch_size: 32
+  per_device_train_batch_size: 32
+  dataset_name: bs-modeling-metadata/c4-en-html-with-metadata
   dataset_config_name: null
-  train_file: /mnt/storage/Documents/hugging_face/bigscience/jz/jz-code/sync/metadata/experiments/jz/html/exp_1/test_local/inputs/sample.json
-  validation_file: null
+  train_file: c4-en-html_cc-main-2019-18_pq00-001.jsonl.gz
+  validation_file: c4-en-html_cc-main-2019-18_pq00-000.jsonl.gz
   overwrite_cache: false
   cache_dir: null
   extension: null
-  preprocessing_num_workers: null
+  preprocessing_num_workers: 6
   validation_split_percentage: 5
   block_size: null
   map_batch_size: 1
-weight_decay: 0.0
+weight_decay: 0.01
 learning_rate: 5.0e-05
-gradient_accumulation_steps: 1
+gradient_accumulation_steps: 8
 num_train_epochs: 1
-max_train_steps: null
+max_train_steps: 100
 lr_scheduler_type: linear
-num_warmup_steps: 1000
+num_warmup_steps: 6
 seed: 42
-out_dir: /mnt/storage/Documents/hugging_face/bigscience/jz/jz-code/sync/metadata/experiments/jz/html/exp_1/test_local/outputs
+out_dir: metadata_outputs/
 model_name: gpt2
 project_name: metadata_lm
-jobid: null
+jobid: ''
 start_with_eval: false
-extra_steps_to_eval_save_at: [2]
+extra_steps_to_eval_save_at:
+- 2
 evaluation_strategy: STEPS
 eval_num_per_epoch: 3
-eval_steps: 100
+eval_steps: 20
 save_strategy: STEPS
 save_num_per_epoch: 3
-save_steps: 500
+save_steps: 5900
 do_train: true
 do_eval: true
 gradient_checkpointing: true

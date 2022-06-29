@@ -85,6 +85,10 @@ class MetadataConfig:
         default_factory=list,
         metadata={"help": "The list of metadata types to use. Metadata is added in order of appearance in this list."},
     )
+    metadata_column_list: List[str] = field(
+        default_factory=list,
+        metadata={"help": "The list of column names containing metadata to use"},
+    )
     local_metadata_special_tokens: Optional[Dict[str, str]] = field(
         default=None,
         metadata={

@@ -45,23 +45,34 @@ def my_load_dataset(args):
     validation_dataset = load_dataset_by_files(validation_files)
     # datasets = DatasetDict(train=train_dataset, validation=validation_dataset)
     # return datasets
+    def check_has_metadata(dataset, key):
+        for example in dataset:
+            if len(example[key]) > 0:
+                return True
+        return False
+
+    for key in validation_dataset.column_names:
+        if key.startswith("metadata_"):
+            if not check_has_metadata(validation_dataset, key):
+                logger.info(f"validation_dataset does not have any metadata {key}")
+            else:
+                logger.info(f"validation_dataset has metadata {key}")
     return train_dataset, validation_dataset
 
 
-def copy_dataset_for_each_metadata_type(dataset):
-    d = dataset
-    new_datasets = DatasetDict()
-    for col in dataset.column_names:
-        if col.startswith("metadata_"):
-            logger.info(f"Copying dataset for {col}")
-            columns_to_remove = [x for x in d.column_names if x.startswith("metadata_") and x != col]
-            new_dataset = d.remove_columns(columns_to_remove)
-            for c in columns_to_remove:
-                new_column = [[] for _ in range(len(new_dataset))]
-                new_dataset = new_dataset.add_column(c, new_column)
-            new_datasets[f"validation_{col}"] = new_dataset
-            logger.info(f"Copied dataset columns: {new_dataset.column_names}")
-    return new_datasets
+def get_only_examples_with_metadata(dataset, key):
+    cols_to_remove = [col for col in dataset.column_names if col.startswith("metadata_") and col != key]
+    dataset = dataset.remove_columns(cols_to_remove).filter(lambda x: x[key])
+    for c in cols_to_remove:
+        new_column = [[] for _ in range(len(dataset))]
+        dataset = dataset.add_column(c, new_column)
+    logger.info(f"{len(dataset)} examples with metadata {key}")
+    return dataset
+
+
+def get_validation_for_each_metadata_type(dataset):
+    metadata_cols = [col for col in dataset.column_names if col.startswith("metadata_")]
+    return {f"validation_{col}": get_only_examples_with_metadata(dataset, col) for col in metadata_cols}
 
 
 def preprocess_datasets(datasets, tokenizer, args, is_train=True):
@@ -83,9 +94,9 @@ def preprocess_datasets(datasets, tokenizer, args, is_train=True):
     column_names = datasets[main_key].column_names
 
     logger.info("Removing metadata not used")
-    for key in args.metadata_config.metadata_list:
+    for key in args.metadata_config.metadata_column_list:
         assert f"metadata_{key}" in column_names, f"{key} is not in the dataset, column names are {column_names}"
-    keep_metadata_columns = [f"metadata_{key}" for key in args.metadata_config.metadata_list]
+    keep_metadata_columns = [f"metadata_{key}" for key in args.metadata_config.metadata_column_list]
     remove_columns = [key for key in column_names if key.startswith("metadata_") and key not in keep_metadata_columns]
     logger.info(f"Removing columns {remove_columns}")
     datasets = datasets.remove_columns(remove_columns)
@@ -97,12 +108,13 @@ def preprocess_datasets(datasets, tokenizer, args, is_train=True):
 
             def get_metadata_types(example):
                 results = []
-                for metadata_type in args.metadata_config.metadata_list:
+                for metadata_type in args.metadata_config.metadata_column_list:
                     if example[f"metadata_{metadata_type}"]:
                         results.append(metadata_type)
                 return results
 
-            # get statistics of the dataset for sampling metadata
+            # TODO: for streaming, add an arg to control how much data to control how much data to iterate
+            # and then maybe reset the iterator
             metadata_type_counter = Counter(
                 chain.from_iterable(
                     get_metadata_types(x)
@@ -128,8 +140,28 @@ def preprocess_datasets(datasets, tokenizer, args, is_train=True):
             logger.info("Not randomly sampling metadata")
     else:
         validation = datasets["validation"]
-        datasets = copy_dataset_for_each_metadata_type(validation)
+        datasets = get_validation_for_each_metadata_type(validation)
         datasets["validation"] = validation
+        if args.validation_size_max is not None:
+            datasets = {
+                key: dataset.select(range(min(args.validation_size_max, len(dataset))))
+                for key, dataset in datasets.items()
+            }
+        # get the validation dataset again, since it was modified, will be used later to get the validation without metadata
+        validation = datasets["validation"]
+        datasets = DatasetDict(datasets)
+
+        # debug, TODO: remove this or add an argument
+        for key, dataset in datasets.items():
+            path = f"/tmp/filtered_no_prepro/{key}.jsonl"
+            if key.startswith("validation_metadata_"):
+                k = dataset[0][key[len("validation_") :]][0]["key"]
+                logger.info(f"saving {key} to {path}, with {len(dataset)} examples, first example has {k}")
+                dataset.to_json(path)
+            logger.info(f"saving {key} to {path}, with {len(dataset)} examples")
+
+        for key, dataset in datasets.items():
+            logger.info(f"dataset {key} has {len(dataset)} examples")
 
     logger.info("Start to add metadata and chunk examples")
 
@@ -156,7 +188,7 @@ def preprocess_datasets(datasets, tokenizer, args, is_train=True):
 
     def create_labels_column(examples):
         # remove columns
-        examples = {key: value for key, value in examples.items() if key not in column_names}
+        # examples = {key: value for key, value in examples.items() if key not in column_names}
         examples["labels"] = examples["input_ids"].copy()
         return examples
 
@@ -175,8 +207,8 @@ def build_dataset(tokenizer, args):
     """
     train_dataset, validation_dataset = my_load_dataset(args)
 
-    if args.validation_size_max is not None:
-        validation_dataset = validation_dataset.select(range(min(args.validation_size_max, len(validation_dataset))))
+    # make debugging runs faster, TODO: remove this
+    train_dataset = train_dataset.select(range(min(args.validation_size_max, len(train_dataset))))
 
     train_datasets = preprocess_datasets(DatasetDict(train=train_dataset), tokenizer, args, is_train=True)
     validation_datasets = preprocess_datasets(
@@ -214,11 +246,32 @@ def get_dataloaders(tokenizer, args):
             example = dataset[i]
             length = len(example["input_ids"])
             # assert another_length == length, f"{message} examples are not all the same length, got {length} and {another_length}"
-            assert length <= 1024, f"{message} examples are not all the same length, got {length}"
+            assert length <= 1024, f"{message} some examples are shorter than 1024, got {length}"
 
     for dss in (train_datasets, validation_datasets):
         for k, ds in dss.items():
             check_examples_all_same_length(ds, message=f"{k}")
+
+    def check_has_metadata_mask(dataset):
+        for example in dataset:
+            if sum(example["metadata_mask"]) > 0:
+                return True
+        return False
+
+    for k, ds in validation_datasets.items():
+        if k.startswith("validation_metadata_"):
+            # assert check_has_metadata_mask(ds), f"{k} does not have any metadata mask"
+            if not check_has_metadata_mask(ds):
+                logger.info(f"{k} does not have any metadata mask")
+            else:
+                logger.info(f"{k} has metadata mask")
+
+    # debug, TODO: remove this or add an argument
+    for dss in (train_datasets, validation_datasets):
+        for k, ds in dss.items():
+            path = f"/tmp/filtered/{k}.jsonl"
+            ds.to_json(path)
+            logger.info(f"saving {k} to {path}, with {len(ds)} examples")
 
     logger.info(f"  Num train examples = {len(train_dataset)}")
     logger.info(f"  Num validation examples = {len(val_dataset)}")

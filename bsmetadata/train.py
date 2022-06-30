@@ -7,6 +7,7 @@ import os
 import sys
 from dataclasses import dataclass, field
 from functools import partial
+from pathlib import Path
 from typing import List, Optional
 
 import hydra
@@ -147,6 +148,13 @@ def loss_fn(batch, outputs, metadata_mask=None):
 @hydra.main(config_path="hydra_configs", config_name="config")
 def main(args: CFG) -> None:
     print(OmegaConf.to_yaml(args))
+    # write the yaml to a file
+    path = Path(args.out_dir).resolve() / "actual_config.yaml"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w") as f:
+        f.write(OmegaConf.to_yaml(args))
+        logger.info(f"Wrote actual config to {path}")
+
     config_dict = OmegaConf.to_container(args)
 
     # The dataset library use the hash of the arguments to create the cache

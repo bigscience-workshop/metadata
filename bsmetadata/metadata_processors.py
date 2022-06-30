@@ -375,7 +375,7 @@ class BasicStartLocalProcessor(MetadataProcessor):
 
 PROCESSORS = {
     "timestamp": TimestampProcessor,
-    "source": DatasourceProcessor,
+    "datasource": DatasourceProcessor,
     "length": GenerationLengthProcessor,
     "entity": EntityProcessor,
     "entity_paragraph": EntityParagraphProcessor,

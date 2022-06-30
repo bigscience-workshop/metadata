@@ -1,5 +1,5 @@
 data_config:
-  validation_size_max: 100
+  validation_size_max: null
   metadata_config:
     random_sample_metadata: false
     metadata_list:
@@ -9,9 +9,10 @@ data_config:
     - website_description
     - title
     - url
-    - source
+    - datasource
     - length
     - entity_paragraph
+    - paragraph
     metadata_column_list:
     - html
     - entity
@@ -24,6 +25,7 @@ data_config:
     - generation_length_text
     - entity_paragraph
     - paragraph
+    - entity_paragraph
     local_metadata_special_tokens: null
     metadata_sep: ' | '
     metadata_key_value_sep: ': '
@@ -66,8 +68,8 @@ data_config:
       - 0.0
       - 0.0
   experiment: with_metadata_datasetv2
-  per_device_eval_batch_size: 32
-  per_device_train_batch_size: 32
+  per_device_eval_batch_size: 4
+  per_device_train_batch_size: 4
   dataset_name: bs-modeling-metadata/c4-en-html-with-metadata
   dataset_config_name: null
   train_file: c4-en-html_cc-main-2019-18_pq00-001.jsonl.gz

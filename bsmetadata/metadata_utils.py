@@ -13,11 +13,15 @@
 """
 This script provides utility functions for linearizing, encoding and chunking a given input text with metadata information.
 """
+import logging
 import random
 from collections import defaultdict
 from copy import deepcopy
 from dataclasses import asdict, dataclass, field
 from typing import Any, DefaultDict, Dict, List, Optional, Tuple
+
+
+logger = logging.getLogger(__name__)
 
 import numpy as np
 from transformers import PreTrainedTokenizerFast
@@ -143,7 +147,7 @@ def convert_v2_dataset_to_v1_format(example):
             key = key[len(key_prefix) :]
             for metadata in value:
                 metadata = deepcopy(metadata)
-                if 'key' not in metadata:
+                if "key" not in metadata:
                     metadata["key"] = key
                 metadata_list.append(metadata)
     example["metadata"] = metadata_list
@@ -238,6 +242,7 @@ def create_metadata_prefix(example: Dict[str, Any], cfg: MetadataConfig) -> str:
     for metadata in example["metadata"]:
         key, type_ = metadata["key"], metadata["type"]
         if key not in cfg.metadata_list:
+            logger.warning(f"metadata key not in metadata_list, skipping. {key=}, {cfg.metadata_list=}")
             continue
 
         if type_ == "global":

@@ -11,6 +11,7 @@ from transformers import default_data_collator
 
 from bsmetadata.experiments.datasetv2 import get_files, load_dataset_by_files
 from bsmetadata.experiments.without_metadata import preprocess_no_metadata
+from bsmetadata.metadata_processors import PROCESSORS
 from bsmetadata.metadata_utils import add_metadata_and_chunk_examples, random_sample_metadata_v2
 
 
@@ -156,6 +157,8 @@ def preprocess_datasets(datasets, tokenizer, args, is_train=True):
             path = f"/tmp/filtered_no_prepro/{key}.jsonl"
             if key.startswith("validation_metadata_"):
                 k = dataset[0][key[len("validation_") :]][0]["key"]
+                assert k in PROCESSORS, f"{k} is not in PROCESSORS, but is in the dataset"
+                assert k in args.metadata_config.metadata_list, f"{k} is not in metadata_list, but is in the dataset"
                 logger.info(f"saving {key} to {path}, with {len(dataset)} examples, first example has {k}")
                 dataset.to_json(path)
             logger.info(f"saving {key} to {path}, with {len(dataset)} examples")
@@ -208,7 +211,8 @@ def build_dataset(tokenizer, args):
     train_dataset, validation_dataset = my_load_dataset(args)
 
     # make debugging runs faster, TODO: remove this
-    train_dataset = train_dataset.select(range(min(args.validation_size_max, len(train_dataset))))
+    if args.validation_size_max is not None:
+        train_dataset = train_dataset.select(range(min(args.validation_size_max, len(train_dataset))))
 
     train_datasets = preprocess_datasets(DatasetDict(train=train_dataset), tokenizer, args, is_train=True)
     validation_datasets = preprocess_datasets(
@@ -246,7 +250,9 @@ def get_dataloaders(tokenizer, args):
             example = dataset[i]
             length = len(example["input_ids"])
             # assert another_length == length, f"{message} examples are not all the same length, got {length} and {another_length}"
-            assert length <= 1024, f"{message} some examples are shorter than 1024, got {length}"
+            assert (
+                length <= args.metadata_config.max_seq_len
+            ), f"{message} some examples are shorter than {args.metadata_config.max_seq_len}, got {length}"
 
     for dss in (train_datasets, validation_datasets):
         for k, ds in dss.items():

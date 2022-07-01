@@ -23,7 +23,6 @@ data_config:
     - generation_length_sentence
     - generation_length_text
     - entity_paragraph
-    - entity_paragraph
     local_metadata_special_tokens: null
     metadata_sep: ' | '
     metadata_key_value_sep: ': '

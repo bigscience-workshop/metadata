@@ -157,7 +157,8 @@ def preprocess_datasets(datasets, tokenizer, args, is_train=True):
             path = f"/tmp/filtered_no_prepro/{key}.jsonl"
             if key.startswith("validation_metadata_"):
                 k = dataset[0][key[len("validation_") :]][0]["key"]
-                assert k in PROCESSORS, f"{k} is not in PROCESSORS, but is in the dataset"
+                if k not in PROCESSORS:
+                    logger.warning(f"{k} is not in PROCESSORS, but is in the dataset")
                 assert k in args.metadata_config.metadata_list, f"{k} is not in metadata_list, but is in the dataset"
                 logger.info(f"saving {key} to {path}, with {len(dataset)} examples, first example has {k}")
                 dataset.to_json(path)

@@ -27,8 +27,8 @@ data_config:
     metadata_sep: ' | '
     metadata_key_value_sep: ': '
     metadata_probability: 1.0
-    treat_local_metadata_as_regular_text: false
-    add_local_metadata_special_tokens_in_prefix: false
+    treat_local_metadata_as_regular_text: true
+    add_local_metadata_special_tokens_in_prefix: true
     metadata_prefix_sep: ' |||'
     metadata_prefix_start_seq: ''
     max_seq_len: 1024
@@ -37,32 +37,14 @@ data_config:
         attributes_to_keep:
         - class
         - id
-        txt_max_chr_len: 128.0
+        txt_max_chr_len: 0
         txt_min_chr_len: -.inf
-        tags_exceptions_to_txt_max_min_chr_len:
-        - tabletr
-        - th
-        - td
-        - caption
-        - colgroup
-        - thead
-        - tfoot
-        - tbody
-        - li
-        - ol
-        - ul
-        - span
+        tags_exceptions_to_txt_max_min_chr_len: null
       tags_to_remove_alone_tag_name:
       - body
-      - div
-      - a
       tags_to_remove_alone_txt_max_chr_len:
       - .inf
-      - 0.0
-      - 0.0
       tags_to_remove_alone_txt_min_chr_len:
-      - 0.0
-      - 0.0
       - 0.0
   experiment: with_metadata_datasetv2
   per_device_eval_batch_size: 4

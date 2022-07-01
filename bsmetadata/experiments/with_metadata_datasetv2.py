@@ -179,7 +179,8 @@ def preprocess_datasets(datasets, tokenizer, args, is_train=True):
         functools.partial(add_metadata_and_chunk_examples, tokenizer=tokenizer, cfg=cfg),
         batched=True,
         num_proc=args.preprocessing_num_workers,
-        load_from_cache_file=not args.overwrite_cache,
+        # load_from_cache_file=not args.overwrite_cache,
+        load_from_cache_file=False,
         desc="Pre-process the text and metadata to create new samples",
         remove_columns=column_names,
         batch_size=args.map_batch_size,
@@ -214,6 +215,7 @@ def build_dataset(tokenizer, args):
     if args.validation_size_max is not None:
         train_dataset = train_dataset.select(range(min(args.validation_size_max, len(train_dataset))))
 
+    train_dataset = train_dataset.select(range(100))
     train_datasets = preprocess_datasets(DatasetDict(train=train_dataset), tokenizer, args, is_train=True)
     validation_datasets = preprocess_datasets(
         DatasetDict(validation=validation_dataset), tokenizer, args, is_train=False

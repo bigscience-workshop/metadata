@@ -12,7 +12,6 @@ data_config:
     - datasource
     - length
     - entity_paragraph
-    - paragraph
     metadata_column_list:
     - html
     - entity
@@ -24,7 +23,6 @@ data_config:
     - generation_length_sentence
     - generation_length_text
     - entity_paragraph
-    - paragraph
     - entity_paragraph
     local_metadata_special_tokens: null
     metadata_sep: ' | '

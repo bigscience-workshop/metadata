@@ -40,7 +40,8 @@ data_config:
         txt_max_chr_len: 0
         txt_min_chr_len: -.inf
         tags_exceptions_to_txt_max_min_chr_len:
-        - tabletr
+        - table
+        - tr
         - th
         - td
         - colgroup

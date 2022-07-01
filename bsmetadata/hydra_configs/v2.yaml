@@ -39,7 +39,14 @@ data_config:
         - id
         txt_max_chr_len: 0
         txt_min_chr_len: -.inf
-        tags_exceptions_to_txt_max_min_chr_len: null
+        tags_exceptions_to_txt_max_min_chr_len:
+        - tabletr
+        - th
+        - td
+        - colgroup
+        - thead
+        - tfoot
+        - tbody
       tags_to_remove_alone_tag_name:
       - body
       tags_to_remove_alone_txt_max_chr_len:
@@ -54,16 +61,10 @@ data_config:
   train_file: c4-en-html_cc-main-2019-18_pq00-001.jsonl.gz
   validation_file: c4-en-html_cc-main-2019-18_pq00-000.jsonl.gz
   overwrite_cache: false
-  cache_dir: null
-  extension: null
   preprocessing_num_workers: 6
   validation_split_percentage: 5
-  block_size: null
-  map_batch_size: 1
 weight_decay: 0.01
 learning_rate: 5.0e-05
-gradient_accumulation_steps: 8
-num_train_epochs: 1
 max_train_steps: 100
 lr_scheduler_type: linear
 num_warmup_steps: 6
@@ -72,15 +73,9 @@ out_dir: metadata_outputs/
 model_name: gpt2
 project_name: metadata_lm
 jobid: ''
-start_with_eval: false
-extra_steps_to_eval_save_at:
 - 2
 evaluation_strategy: STEPS
-eval_num_per_epoch: 3
-eval_steps: 20
 save_strategy: STEPS
 save_num_per_epoch: 3
-save_steps: 5900
-do_train: true
 do_eval: true
 gradient_checkpointing: true

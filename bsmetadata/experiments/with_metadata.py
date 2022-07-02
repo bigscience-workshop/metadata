@@ -1,34 +1,29 @@
 import functools
 import logging
+from collections import Counter
+from itertools import chain
 
 from datasets import config, load_dataset
 from torch.utils.data import DataLoader
+from tqdm.auto import tqdm
 from transformers import default_data_collator
 
-from bsmetadata.metadata_utils import add_metadata_and_chunk_examples
+from bsmetadata.metadata_utils import add_metadata_and_chunk_examples, get_metadata_types, random_sample_metadata
 
 
 logger = logging.getLogger(__name__)
 
 
-def get_dataloaders(tokenizer, args):
+load_dataset = functools.partial(load_dataset, use_auth_token=True)
+
+
+def build_dataset(tokenizer, args):
     """
     Args:
         tokenizer: a huggingface/transformers tokenizer
         args: a DataConfig
     Returns:
-        a training dataloader and one or more validation dataloaders
-        validation dataloaders should be in a dictionary
-        each dataloader should yield  {str: torch.Tensor(cpu) }
-        dictionary keys may have 'metadata_mask'
-        other fields will be passed to model
-        note: metadata_mask should be padded
-    Example:
-       train_dataloader, val_dataloaders = get_dataloaders(...)
-       for batch in train_dataloader:
-           metadata_mask = batch.get('metadata_mask', None)
-           outputs = model(**batch)
-           metrics = loss_fn(batch, outputs, metadata_mask)
+        a dataset
     """
     # Mostly copy/paste from https://github.com/huggingface/transformers/blob/master/examples/pytorch/language-modeling/run_clm_no_trainer.py
     # Get the datasets: you can either provide your own CSV/JSON/TXT training and evaluation files (see below)
@@ -105,7 +100,7 @@ def get_dataloaders(tokenizer, args):
                 split=f"train[{args.validation_split_percentage}%:]",
                 cache_dir=args.cache_dir,
             )
-    logger.info("Dataset loaded")
+    logger.info(f"Dataset loaded: {datasets}")
     # See more about loading any type of standard or custom dataset (from files, python dict, pandas DataFrame, etc) at
     # https://huggingface.co/docs/datasets/loading_datasets.html.
 
@@ -114,7 +109,26 @@ def get_dataloaders(tokenizer, args):
 
     logger.info("Start to add metadata and chunk examples")
 
+    # get statistics of the dataset for sampling metadata
+    metadata_type_counter = Counter(
+        chain.from_iterable(
+            get_metadata_types(x["metadata"])
+            for x in tqdm(datasets["train"], desc="iterate over training set to count metadata types")
+        )
+    )
+    metadata_type_weight_sum = sum(metadata_type_counter.values())
+    metadata_type_sample_weights = {k: metadata_type_weight_sum / v for k, v in metadata_type_counter.items()}
+
     # First we pre-process our text and metadata
+    if args.metadata_config.random_sample_metadata:
+        datasets = datasets.map(
+            functools.partial(random_sample_metadata, metadata_type_sample_weights=metadata_type_sample_weights),
+            batched=True,
+            num_proc=args.preprocessing_num_workers,
+            load_from_cache_file=not args.overwrite_cache,
+            desc="Randomly dropping metadata",
+            batch_size=args.map_batch_size,
+        )
     datasets = datasets.map(
         functools.partial(add_metadata_and_chunk_examples, tokenizer=tokenizer, cfg=args.metadata_config),
         batched=True,
@@ -141,6 +155,29 @@ def get_dataloaders(tokenizer, args):
         batch_size=args.map_batch_size,
     )
     logger.info("Creating labels column finished")
+    return datasets
+
+
+def get_dataloaders(tokenizer, args):
+    """
+    Args:
+        tokenizer: a huggingface/transformers tokenizer
+        args: a DataConfig
+    Returns:
+        a training dataloader and one or more validation dataloaders
+        validation dataloaders should be in a dictionary
+        each dataloader should yield  {str: torch.Tensor(cpu) }
+        dictionary keys may have 'metadata_mask'
+        other fields will be passed to model
+        note: metadata_mask should be padded
+    Example:
+       train_dataloader, val_dataloaders = get_dataloaders(...)
+       for batch in train_dataloader:
+           metadata_mask = batch.get('metadata_mask', None)
+           outputs = model(**batch)
+           metrics = loss_fn(batch, outputs, metadata_mask)
+    """
+    datasets = build_dataset(tokenizer, args)
 
     train_dataset = datasets["train"]
     val_dataset = datasets["validation"]

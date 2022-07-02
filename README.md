@@ -1,5 +1,7 @@
 # BigScience Modeling Metadata
 
+[![Test](../../actions/workflows/test.yml/badge.svg)](../../actions/workflows/test.yml)
+
 This repository contains code for including metadata such as URLs, timestamps, website descriptions and HTML tags during language model pretraining. The purpose is to explore, solely from a modeling perspective, how to make good use of metadata to improve various aspects of the model (such as its zero-shot text generation abilities). This repository is **not** intended for general contributions to metadata that are not concerned with modeling.
 
 ## Usage
@@ -81,6 +83,14 @@ Below is a table showing ``relative_start_pos`` (`start`) and ``relative_end_pos
 | ``<i><b> ... </b></i>`` | 0 | 1 | 1 | 0 |
 | ``<i> ... </i><b></b>`` | 0 | 0 | 1 | 2 |
 | ``<i> ... <b></b></i>`` | 0 | 2 | 0 | 1 |
+
+## Pre-processing Metadata:
+
+### Entity Tags.
+
+**Pre-requisite steps for preprocessing Entity Tags**
+
+* Run `preprocessing_scripts/download_entity_processing_files.sh <"location of the folder to save the files">` to download all the required files. (approximate size of files to be downloaded in total is around 20GB and after extracting the zipped folders, space required is around 60GB.)
 
 ## Contribute 🧠
 

@@ -4,7 +4,7 @@ from collections import Counter
 from copy import deepcopy
 from itertools import chain
 
-from datasets import DatasetDict, Features, concatenate_datasets, load_dataset
+from datasets import DatasetDict
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 from transformers import default_data_collator
@@ -46,6 +46,7 @@ def my_load_dataset(args):
     validation_dataset = load_dataset_by_files(validation_files)
     # datasets = DatasetDict(train=train_dataset, validation=validation_dataset)
     # return datasets
+
     def check_has_metadata(dataset, key):
         for example in dataset:
             if len(example[key]) > 0:

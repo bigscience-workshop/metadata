@@ -20,13 +20,13 @@ from copy import deepcopy
 from dataclasses import asdict, dataclass, field
 from typing import Any, DefaultDict, Dict, List, Optional, Tuple
 
-
-logger = logging.getLogger(__name__)
-
 import numpy as np
 from transformers import PreTrainedTokenizerFast
 
 from bsmetadata.metadata_processors import PROCESSORS, MetadataConfig, MetadataProcessor
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass

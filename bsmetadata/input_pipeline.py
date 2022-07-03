@@ -55,9 +55,7 @@ class DataConfig:
     )
     validation_size_max: Optional[int] = field(
         default=None,
-        metadata={
-            "help": "The maximum number of samples to use for validation. If None, all samples will be used."
-        },
+        metadata={"help": "The maximum number of samples to use for validation. If None, all samples will be used."},
     )
 
 

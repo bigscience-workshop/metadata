@@ -8,7 +8,7 @@ import sys
 from dataclasses import dataclass, field
 from functools import partial
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Union, get_args, get_origin
 
 import hydra
 import torch
@@ -93,9 +93,14 @@ cs.store(name="config", node=CFG)
 
 def show_help(context="", cls=CFG):
     default_instance = cls()
+
     for field_ in dataclasses.fields(cls):
-        if dataclasses.is_dataclass(field_.type):
-            show_help(context=f"{context}{field_.name}.", cls=field_.type)
+        type_ = field_.type
+        origin = get_origin(type_)
+        if origin is Union:  # do this to handle Optional[some_dataclass]
+            type_ = get_args(type_)[0]
+        if dataclasses.is_dataclass(type_):
+            show_help(context=f"{context}{field_.name}.", cls=type_)
         else:
             kwargs = field_.metadata.copy()
             help = kwargs.get("help", "")

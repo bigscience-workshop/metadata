@@ -17,7 +17,7 @@ def preprocess_no_metadata(dataset, tokenizer, args):
         tokenize_function,
         batched=True,
         num_proc=args.preprocessing_num_workers,
-        remove_columns=dataset.column_names,
+        remove_columns=dataset.column_names["train"],
         load_from_cache_file=not args.overwrite_cache,
         desc="Running tokenizer on dataset",
         batch_size=args.map_batch_size,

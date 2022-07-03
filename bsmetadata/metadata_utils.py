@@ -1,7 +1,3 @@
-#!/usr/bin/env python3
-"""
-This script provides utility functions for linearizing, encoding and chunking a given input text with metadata information.
-"""
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -13,7 +9,9 @@ This script provides utility functions for linearizing, encoding and chunking a 
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+"""
+This script provides utility functions for linearizing, encoding and chunking a given input text with metadata information.
+"""
 import logging
 import random
 from collections import defaultdict
@@ -243,7 +241,7 @@ def create_metadata_prefix(example: Dict[str, Any], cfg: MetadataConfig) -> str:
     for metadata in example["metadata"]:
         key, type_ = metadata["key"], metadata["type"]
         if key not in cfg.metadata_list:
-            logger.warning(f"metadata key not in metadata_list, skipping. {key=}, {cfg.metadata_list=}")
+            logger.warning(f"metadata key not in metadata_list, skipping. {key}, {cfg.metadata_list}")
             continue
 
         if type_ == "global":

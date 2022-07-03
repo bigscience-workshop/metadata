@@ -286,8 +286,8 @@ def get_dataloaders(tokenizer, args):
 
     logger.info(f"  Num train examples = {len(train_dataset)}")
     logger.info(f"  Num validation examples = {len(val_dataset)}")
-    logger.info(f"{train_datasets=}")
-    logger.info(f"{validation_datasets=}")
+    logger.info(f"{train_datasets}")
+    logger.info(f"{validation_datasets}")
 
     # DataLoaders creation:
     train_dataloader = DataLoader(

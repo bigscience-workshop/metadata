@@ -26,4 +26,7 @@ jobs:
                   python -m pip install -r requirements-dev.txt
             - name: Make quality
               run: |
+                  flake8 --version
+                  python -V
+                  python -m flake8 .
                   make quality

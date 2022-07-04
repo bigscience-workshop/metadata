@@ -13,11 +13,12 @@ def preprocess_no_metadata(dataset, tokenizer, args):
     def tokenize_function(examples):
         return tokenizer(examples["text"])
 
+    remove_cols = dataset.column_names["train"] if "train" in dataset.column_names else dataset.column_names
     tokenized_dataset = dataset.map(
         tokenize_function,
         batched=True,
         num_proc=args.preprocessing_num_workers,
-        remove_columns=dataset.column_names["train"],
+        remove_columns=remove_cols,
         load_from_cache_file=not args.overwrite_cache,
         desc="Running tokenizer on dataset",
         batch_size=args.map_batch_size,

@@ -1,10 +1,11 @@
+#!/usr/bin/env python3
 import functools
 import logging
 from collections import Counter
 from copy import deepcopy
 from itertools import chain
 
-from datasets import DatasetDict, Features, concatenate_datasets, load_dataset
+from datasets import DatasetDict
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 from transformers import default_data_collator
@@ -46,6 +47,7 @@ def my_load_dataset(args):
     validation_dataset = load_dataset_by_files(validation_files)
     # datasets = DatasetDict(train=train_dataset, validation=validation_dataset)
     # return datasets
+
     def check_has_metadata(dataset, key):
         for example in dataset:
             if len(example[key]) > 0:
@@ -284,8 +286,8 @@ def get_dataloaders(tokenizer, args):
 
     logger.info(f"  Num train examples = {len(train_dataset)}")
     logger.info(f"  Num validation examples = {len(val_dataset)}")
-    logger.info(f"{train_datasets=}")
-    logger.info(f"{validation_datasets=}")
+    logger.info(f"{train_datasets}")
+    logger.info(f"{validation_datasets}")
 
     # DataLoaders creation:
     train_dataloader = DataLoader(

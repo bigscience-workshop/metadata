@@ -4,7 +4,6 @@ data_config:
     random_sample_metadata: false
     metadata_list:
     - html
-    - entity
     - timestamp
     - website_description
     - title
@@ -14,7 +13,6 @@ data_config:
     - entity_paragraph
     metadata_column_list:
     - html
-    - entity
     - timestamp
     - website_desc
     - title
@@ -23,7 +21,8 @@ data_config:
     - generation_length_sentence
     - generation_length_text
     - entity_paragraph
-    local_metadata_special_tokens: null
+    local_metadata_special_tokens: 
+      entity_paragraph: "entity"
     metadata_sep: ' | '
     metadata_key_value_sep: ': '
     metadata_probability: 1.0

@@ -49,6 +49,12 @@ class CFG:
     out_dir: str = field(
         default="output_dir", metadata={"help": "The output directory in which the trained model is saved."}
     )
+    resume_from_checkpoint_dir: Optional[str] = field(
+        default=None, metadata={"help": "The directory where checkpoint to resume from is saved"}
+    )
+    resume_from_checkpoint: Optional[str] = field(
+        default=None, metadata={"help": "The checkpoint to resume from is saved"}
+    )
     model_name: str = field(default="gpt2", metadata={"help": "The name of the pretrained model to use."})
     project_name: str = field(default="metadata_lm", metadata={"help": "The project name."})
     jobid: Optional[str] = field(default=None, metadata={"help": "The jobid of the run."})
@@ -150,6 +156,14 @@ def loss_fn(batch, outputs, metadata_mask=None):
     return loss
 
 
+def save_model_and_tokenizer(accelerator, model, path, tokenizer=None):
+    accelerator.wait_for_everyone()
+    unwrapped_model = accelerator.unwrap_model(model)
+    unwrapped_model.save_pretrained(path, save_function=accelerator.save)
+    if tokenizer:
+        tokenizer.save_pretrained(path, save_function=accelerator.save)
+
+
 @hydra.main(config_path="hydra_configs", config_name="config")
 def main(args: CFG) -> None:
     print(OmegaConf.to_yaml(args))
@@ -161,6 +175,16 @@ def main(args: CFG) -> None:
         logger.info(f"Wrote actual config to {path}")
 
     config_dict = OmegaConf.to_container(args)
+
+    # If resume_from_checkpoint is not None, we load the model before preparing
+    # see this for details: https://github.com/huggingface/accelerate/issues/95
+    model_name = args.model_name if not args.resume_from_checkpoint_dir else args.resume_from_checkpoint_dir
+
+    # If resume_from_checkpoint is not None, we load the resumed state
+    resumed_state = None
+    if args.resume_from_checkpoint:
+        print("Loading states from checkpoint ...")
+        resumed_state = torch.load(f"{args.resume_from_checkpoint_dir}/{args.resume_from_checkpoint}")
 
     # The dataset library use the hash of the arguments to create the cache
     # name. Without this transformation the hash of args is not deterministic
@@ -188,7 +212,7 @@ def main(args: CFG) -> None:
     config.gradient_checkpointing = args.gradient_checkpointing
     config.use_cache = not args.gradient_checkpointing  # to disable warning
     # get dataloaders
-    tokenizer = AutoTokenizer.from_pretrained(args.model_name)
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
     tokenizer.pad_token = tokenizer.eos_token
     train_dataloader, eval_dataloaders = get_dataloaders(tokenizer, args.data_config)
 
@@ -209,6 +233,14 @@ def main(args: CFG) -> None:
         },
     ]
     optimizer = AdamW(optimizer_grouped_parameters, lr=args.learning_rate, betas=(0.9, 0.98), eps=1e-6)
+
+    if resumed_state:
+        model.load_state_dict(resumed_state["state_dict"])
+        optimizer.load_state_dict(resumed_state["optimizer"])
+
+    # Save Model and Tokenizer in beginning
+    if is_local_main_process and args.out_dir:
+        save_model_and_tokenizer(accelerator, model, args.out_dir, tokenizer)
 
     # Prepare everything
     model, optimizer, train_dataloader = accelerator.prepare(model, optimizer, train_dataloader)
@@ -244,6 +276,8 @@ def main(args: CFG) -> None:
         num_warmup_steps=args.num_warmup_steps,
         num_training_steps=args.max_train_steps,
     )
+    if resumed_state:
+        scheduler.load_state_dict(resumed_state["scheduler"])
 
     @torch.no_grad()
     def evaluate(eval_dataloader):
@@ -343,6 +377,8 @@ def main(args: CFG) -> None:
                 and (completed_steps % save_per_n_step == 0 or completed_steps in args.extra_steps_to_eval_save_at)
             )
             if do_save:
+                # currently saving all the models. might be useful to save only the best model
+
                 save_path = os.path.join(args.out_dir, f"checkpoint-{completed_steps}step.pt")
                 logger.info(f"Save model at {save_path}")
                 save_dict = {
@@ -361,9 +397,7 @@ def main(args: CFG) -> None:
     logger.info("Training finished")
 
     if args.out_dir is not None:
-        accelerator.wait_for_everyone()
-        unwrapped_model = accelerator.unwrap_model(model)
-        unwrapped_model.save_pretrained(args.out_dir, save_function=accelerator.save)
+        save_model_and_tokenizer(accelerator, model, args.out_dir)
 
 
 if __name__ == "__main__":

@@ -15,16 +15,17 @@
                 0.9,
                 0.98
             ],
-            "eps": 1e-8,
-            "weight_decay": 3e-7
+            "eps": 1e-6,
+            "weight_decay": 1e-2
         }
     },
     "scheduler": {
-        "type": "WarmupLR",
+        "type": "WarmupDecayLR",
         "params": {
+            "total_num_steps": 100000,
+            "warmup_num_steps": 6000,
             "warmup_min_lr": 0,
             "warmup_max_lr": 1e-4,
-            "warmup_num_steps": 100,
             "warmup_type": "linear"
         }
     },

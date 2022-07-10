@@ -162,6 +162,26 @@ def save_model_and_tokenizer(accelerator, model, path, tokenizer=None):
         tokenizer.save_pretrained(path, save_function=accelerator.save)
 
 
+@dataclass
+class TrainState:
+    completed_steps: int = 0
+
+    def step(self):
+        self.completed_steps += 1
+
+    def save(self, path):
+        """to json"""
+        with open(path, "w") as f:
+            json.dump(dataclasses.asdict(self), f)
+
+    @classmethod
+    def load(cls, path):
+        """from json"""
+        with open(path, "r") as f:
+            d = json.load(f)
+        return cls(**d)
+
+
 @hydra.main(config_path="hydra_configs", config_name="config")
 def main(args: CFG) -> None:
     print(OmegaConf.to_yaml(args))
@@ -260,6 +280,7 @@ def main(args: CFG) -> None:
     # Prepare everything
     model, optimizer, train_dataloader, scheduler = accelerator.prepare(model, optimizer, train_dataloader, scheduler)
     eval_dataloaders = {k: accelerator.prepare(v) for k, v in eval_dataloaders.items()}
+    train_state = TrainState()
 
     # If resume_from_checkpoint_dir is not None, we load the resumed state
     if args.resume_from_checkpoint_dir:
@@ -271,6 +292,7 @@ def main(args: CFG) -> None:
             model.load_checkpoint(path)
         else:
             accelerator.load_state(path)
+        train_state = TrainState.load(Path(path) / "train_state.json")
 
     if args.evaluation_strategy == IntervalStrategy.EPOCH and args.eval_num_per_epoch >= 1:
         eval_per_n_step = args.max_train_steps // (args.eval_num_per_epoch * args.num_train_epochs)
@@ -314,8 +336,7 @@ def main(args: CFG) -> None:
     if not args.do_train and not args.do_eval:
         return
 
-    progress_bar = tqdm(range(args.max_train_steps), desc="training")
-    completed_steps = 0
+    progress_bar = tqdm(range(args.max_train_steps), desc="training", initial=train_state.completed_steps)
     metrics_logger = Logger(is_local_main_process, project=args.project_name, config=config_dict)
 
     do_eval = args.do_eval and args.start_with_eval
@@ -335,10 +356,24 @@ def main(args: CFG) -> None:
         f"  Saving will be done every {save_per_n_step} steps, "
         f"for a total of {args.max_train_steps//save_per_n_step} times."
     )
+
+    def save(path):
+        path = Path(path).resolve()
+        logger.info(f"Saving checkpoint at {path}")
+        if accelerator.distributed_type == DistributedType.DEEPSPEED:
+            model.save_checkpoint(path)
+        else:
+            accelerator.save_state(path)
+        save_model_and_tokenizer(accelerator, model, path)
+        if is_local_main_process:
+            train_state.save(path / "train_state.json")
+
     step_loss = 0
     step = 0
     model.train()
-    for epoch in range(args.num_train_epochs):
+    # for epoch in range(args.num_train_epochs):
+    finished = False
+    while not finished:
         for batch in train_dataloader:
             step += 1
             # pop labels because we want to calculate loss ourselves
@@ -358,17 +393,18 @@ def main(args: CFG) -> None:
                 scheduler.step()
                 optimizer.zero_grad()
                 progress_bar.update(1)
-                completed_steps += 1
+                train_state.step()
                 metrics_logger.log(
                     {
                         "loss": step_loss,
                         "lr": optimizer.param_groups[0]["lr"],
-                        "gradient_step": completed_steps,
+                        "gradient_step": train_state.completed_steps,
                     }
                 )
                 step_loss = 0
             else:
                 continue
+            completed_steps = train_state.completed_steps
 
             do_eval = (
                 args.do_eval
@@ -383,21 +419,16 @@ def main(args: CFG) -> None:
             )
             if do_save:
                 path = Path(args.out_dir).resolve() / f"checkpoint-{completed_steps}step"
-                logger.info(f"Saved model at {path}")
-                if accelerator.distributed_type == DistributedType.DEEPSPEED:
-                    model.save_checkpoint(path)
-                else:
-                    accelerator.save_state(path)
-                save_model_and_tokenizer(accelerator, model, args.out_dir)
+                save(path)
             if do_eval:
                 evaluate_multiple_dateloaders(eval_dataloaders)
 
             if completed_steps >= args.max_train_steps:
+                finished = True
                 break
     metrics_logger.close()
     logger.info("Training finished")
-
-    save_model_and_tokenizer(accelerator, model, args.out_dir)
+    save(args.out_dir)
 
 
 if __name__ == "__main__":

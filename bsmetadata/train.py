@@ -412,10 +412,8 @@ def main(args: CFG) -> None:
                 and (completed_steps % eval_per_n_step == 0 or completed_steps in args.extra_steps_to_eval_save_at)
             )
 
-            do_save = (
-                is_local_main_process
-                and completed_steps > 0
-                and (completed_steps % save_per_n_step == 0 or completed_steps in args.extra_steps_to_eval_save_at)
+            do_save = completed_steps > 0 and (
+                completed_steps % save_per_n_step == 0 or completed_steps in args.extra_steps_to_eval_save_at
             )
             if do_save:
                 path = Path(args.out_dir).resolve() / f"checkpoint-{completed_steps}step"

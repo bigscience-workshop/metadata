@@ -1,5 +1,5 @@
 data_config:
-  validation_size_max: null
+  validation_size_max: 1024
   metadata_config:
     random_sample_metadata: false
     metadata_list:

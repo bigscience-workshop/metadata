@@ -63,19 +63,26 @@ def my_load_dataset(args):
     return train_dataset, validation_dataset
 
 
-def get_only_examples_with_metadata(dataset, key):
+def get_only_examples_with_metadata(dataset, key, size_limit=None):
     cols_to_remove = [col for col in dataset.column_names if col.startswith("metadata_") and col != key]
     dataset = dataset.remove_columns(cols_to_remove).filter(lambda x: x[key])
+    if size_limit is not None:
+        logger.info(f"{len(dataset)} examples with metadata {key}, limiting to {size_limit}")
+        dataset = dataset.select(range(min(size_limit, len(dataset))))
+    else:
+        logger.info(f"{len(dataset)} examples with metadata {key}")
     for c in cols_to_remove:
         new_column = [[] for _ in range(len(dataset))]
         dataset = dataset.add_column(c, new_column)
-    logger.info(f"{len(dataset)} examples with metadata {key}")
     return dataset
 
 
-def get_validation_for_each_metadata_type(dataset):
+def get_validation_for_each_metadata_type(dataset, size_limit=None):
     metadata_cols = [col for col in dataset.column_names if col.startswith("metadata_")]
-    return {f"validation_{col}": get_only_examples_with_metadata(dataset, col) for col in metadata_cols}
+    return {
+        f"validation_{col}": get_only_examples_with_metadata(dataset, col, size_limit=size_limit)
+        for col in metadata_cols
+    }
 
 
 def preprocess_datasets(datasets, tokenizer, args, is_train=True):
@@ -143,15 +150,10 @@ def preprocess_datasets(datasets, tokenizer, args, is_train=True):
             logger.info("Not randomly sampling metadata")
     else:
         validation = datasets["validation"]
-        datasets = get_validation_for_each_metadata_type(validation)
-        datasets["validation"] = validation
         if args.validation_size_max is not None:
-            datasets = {
-                key: dataset.select(range(min(args.validation_size_max, len(dataset))))
-                for key, dataset in datasets.items()
-            }
-        # get the validation dataset again, since it was modified, will be used later to get the validation without metadata
-        validation = datasets["validation"]
+            validation = validation.select(range(min(args.validation_size_max, len(validation))))
+        datasets = get_validation_for_each_metadata_type(validation, size_limit=args.validation_size_max)
+        datasets["validation"] = validation
         datasets = DatasetDict(datasets)
 
         # debug, TODO: remove this or add an argument
@@ -163,7 +165,7 @@ def preprocess_datasets(datasets, tokenizer, args, is_train=True):
                     logger.warning(f"{k} is not in PROCESSORS, but is in the dataset")
                 assert k in args.metadata_config.metadata_list, f"{k} is not in metadata_list, but is in the dataset"
                 logger.info(f"saving {key} to {path}, with {len(dataset)} examples, first example has {k}")
-                dataset.to_json(path)
+                # dataset.to_json(path)
             logger.info(f"saving {key} to {path}, with {len(dataset)} examples")
 
         for key, dataset in datasets.items():
@@ -185,7 +187,7 @@ def preprocess_datasets(datasets, tokenizer, args, is_train=True):
         # load_from_cache_file=not args.overwrite_cache,
         load_from_cache_file=False,
         desc="Pre-process the text and metadata to create new samples",
-        remove_columns=column_names,
+        remove_columns=sorted(list(map(str, column_names))),  # make sure it's deterministic
         batch_size=args.map_batch_size,
     )
     if not is_train:
@@ -281,7 +283,7 @@ def get_dataloaders(tokenizer, args):
     for dss in (train_datasets, validation_datasets):
         for k, ds in dss.items():
             path = f"/tmp/filtered/{k}.jsonl"
-            ds.to_json(path)
+            # ds.to_json(path)
             logger.info(f"saving {k} to {path}, with {len(ds)} examples")
 
     logger.info(f"  Num train examples = {len(train_dataset)}")

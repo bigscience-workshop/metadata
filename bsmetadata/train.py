@@ -14,7 +14,6 @@ import hydra
 import torch
 import torch.nn.functional as F
 import wandb
-from accelerate import Accelerator
 from hydra.core.config_store import ConfigStore
 from omegaconf import OmegaConf
 from torch.optim import AdamW
@@ -22,6 +21,8 @@ from tqdm.auto import tqdm as original_tqdm
 from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer, get_scheduler, set_seed
 from transformers.trainer_utils import IntervalStrategy
 
+from accelerate import Accelerator
+from accelerate.utils import DistributedType, DummyOptim, DummyScheduler
 from bsmetadata.input_pipeline import DataConfig, get_dataloaders
 
 
@@ -51,9 +52,6 @@ class CFG:
     )
     resume_from_checkpoint_dir: Optional[str] = field(
         default=None, metadata={"help": "The directory where checkpoint to resume from is saved"}
-    )
-    resume_from_checkpoint: Optional[str] = field(
-        default=None, metadata={"help": "The checkpoint to resume from is saved"}
     )
     model_name: str = field(default="gpt2", metadata={"help": "The name of the pretrained model to use."})
     project_name: str = field(default="metadata_lm", metadata={"help": "The project name."})
@@ -176,16 +174,6 @@ def main(args: CFG) -> None:
 
     config_dict = OmegaConf.to_container(args)
 
-    # If resume_from_checkpoint is not None, we load the model before preparing
-    # see this for details: https://github.com/huggingface/accelerate/issues/95
-    model_name = args.model_name if not args.resume_from_checkpoint_dir else args.resume_from_checkpoint_dir
-
-    # If resume_from_checkpoint is not None, we load the resumed state
-    resumed_state = None
-    if args.resume_from_checkpoint:
-        print("Loading states from checkpoint ...")
-        resumed_state = torch.load(f"{args.resume_from_checkpoint_dir}/{args.resume_from_checkpoint}")
-
     # The dataset library use the hash of the arguments to create the cache
     # name. Without this transformation the hash of args is not deterministic
     args = OmegaConf.to_object(args)
@@ -205,6 +193,17 @@ def main(args: CFG) -> None:
     accelerator = Accelerator()
     is_local_main_process = accelerator.is_local_main_process
     tqdm = partial(original_tqdm, disable=not is_local_main_process, position=0)
+    use_deepspeed_optimzer = (
+        accelerator.state.deepspeed_plugin is not None
+        or "optimizer" in accelerator.state.deepspeed_plugin.deepspeed_config
+    )
+    use_deepspeed_scheduler = (
+        accelerator.state.deepspeed_plugin is not None
+        or "scheduler" in accelerator.state.deepspeed_plugin.deepspeed_config
+    )
+
+    if accelerator.distributed_type == DistributedType.DEEPSPEED and not use_deepspeed_scheduler:
+        assert False, "Please set scheduler in DeepSpeed config file otherwise it may not be checkpointed properly"
 
     os.makedirs(args.out_dir, exist_ok=True)
 
@@ -212,7 +211,7 @@ def main(args: CFG) -> None:
     config.gradient_checkpointing = args.gradient_checkpointing
     config.use_cache = not args.gradient_checkpointing  # to disable warning
     # get dataloaders
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    tokenizer = AutoTokenizer.from_pretrained(args.model_name)
     tokenizer.pad_token = tokenizer.eos_token
     train_dataloader, eval_dataloaders = get_dataloaders(tokenizer, args.data_config)
 
@@ -232,29 +231,46 @@ def main(args: CFG) -> None:
             "weight_decay": 0.0,
         },
     ]
-    optimizer = AdamW(optimizer_grouped_parameters, lr=args.learning_rate, betas=(0.9, 0.98), eps=1e-6)
-
-    if resumed_state:
-        model.load_state_dict(resumed_state["state_dict"])
-        optimizer.load_state_dict(resumed_state["optimizer"])
-
-    # Save Model and Tokenizer in beginning
-    if is_local_main_process and args.out_dir:
-        save_model_and_tokenizer(accelerator, model, args.out_dir, tokenizer)
-
-    # Prepare everything
-    model, optimizer, train_dataloader = accelerator.prepare(model, optimizer, train_dataloader)
-    eval_dataloaders = {k: accelerator.prepare(v) for k, v in eval_dataloaders.items()}
-
-    # Note -> the training dataloader needs to be prepared before we grab its length below (cause its length will be
-    # shorter in multiprocess)
+    if use_deepspeed_optimzer:
+        optimizer = DummyOptim(optimizer_grouped_parameters)
+    else:
+        optimizer = AdamW(optimizer_grouped_parameters, lr=args.learning_rate, betas=(0.9, 0.98), eps=1e-6)
 
     # Scheduler and math around the number of training steps.
     num_update_steps_per_epoch = math.ceil(len(train_dataloader) / args.gradient_accumulation_steps)
-    if args.max_train_steps is None:
-        args.max_train_steps = args.num_train_epochs * num_update_steps_per_epoch
+    assert args.max_train_steps is not None, "max_train_steps is required, num_train_epochs is not supported"
+    # if args.max_train_steps is None:
+    # args.max_train_steps = args.num_train_epochs * num_update_steps_per_epoch
+    args.num_train_epochs = math.ceil(args.max_train_steps / num_update_steps_per_epoch)
+    # Note -> the training dataloader will be shorter in multiprocess)
+    # TODO: optionally ignore epoch length to support streaming mode
+
+    if use_deepspeed_scheduler:
+        scheduler = DummyScheduler(
+            optimizer, total_num_steps=args.max_train_steps, warmup_num_steps=args.num_warmup_steps
+        )
     else:
-        args.num_train_epochs = math.ceil(args.max_train_steps / num_update_steps_per_epoch)
+        scheduler = get_scheduler(
+            name=args.lr_scheduler_type,
+            optimizer=optimizer,
+            num_warmup_steps=args.num_warmup_steps,
+            num_training_steps=args.max_train_steps,
+        )
+
+    # Prepare everything
+    model, optimizer, train_dataloader, scheduler = accelerator.prepare(model, optimizer, train_dataloader, scheduler)
+    eval_dataloaders = {k: accelerator.prepare(v) for k, v in eval_dataloaders.items()}
+
+    # If resume_from_checkpoint_dir is not None, we load the resumed state
+    if args.resume_from_checkpoint_dir:
+        path = Path(args.resume_from_checkpoint_dir).resolve()
+        logger.info(f"Loading checkpoint from {path}")
+        if accelerator.distributed_type == DistributedType.DEEPSPEED:
+            # this is a deepspeed method, will load model, optimizer, scheduler
+            # `model` wraps the optimizer and scheduler
+            model.load_checkpoint(path)
+        else:
+            accelerator.load_state(path)
 
     if args.evaluation_strategy == IntervalStrategy.EPOCH and args.eval_num_per_epoch >= 1:
         eval_per_n_step = args.max_train_steps // (args.eval_num_per_epoch * args.num_train_epochs)
@@ -269,15 +285,6 @@ def main(args: CFG) -> None:
         save_per_n_step = args.save_steps
     else:  # IntervalStrategy.NO or (args.save_num_per_epoch < 1 and args.save_strategy == IntervalStrategy.EPOCH)
         save_per_n_step = args.max_train_steps + 1  # will never eval
-
-    scheduler = get_scheduler(
-        name=args.lr_scheduler_type,
-        optimizer=optimizer,
-        num_warmup_steps=args.num_warmup_steps,
-        num_training_steps=args.max_train_steps,
-    )
-    if resumed_state:
-        scheduler.load_state_dict(resumed_state["scheduler"])
 
     @torch.no_grad()
     def evaluate(eval_dataloader):
@@ -368,8 +375,6 @@ def main(args: CFG) -> None:
                 and completed_steps > 0
                 and (completed_steps % eval_per_n_step == 0 or completed_steps in args.extra_steps_to_eval_save_at)
             )
-            if do_eval:
-                evaluate_multiple_dateloaders(eval_dataloaders)
 
             do_save = (
                 is_local_main_process
@@ -377,27 +382,22 @@ def main(args: CFG) -> None:
                 and (completed_steps % save_per_n_step == 0 or completed_steps in args.extra_steps_to_eval_save_at)
             )
             if do_save:
-                # currently saving all the models. might be useful to save only the best model
-
-                save_path = os.path.join(args.out_dir, f"checkpoint-{completed_steps}step.pt")
-                logger.info(f"Save model at {save_path}")
-                save_dict = {
-                    "epoch": epoch + 1,
-                    "state_dict": accelerator.unwrap_model(model).state_dict(),
-                    "optimizer": optimizer.state_dict(),
-                    "scheduler": scheduler.state_dict(),
-                }
-                torch.save(save_dict, save_path)
-                del save_dict
-                gc.collect()
+                path = Path(args.out_dir).resolve() / f"checkpoint-{completed_steps}step"
+                logger.info(f"Saved model at {path}")
+                if accelerator.distributed_type == DistributedType.DEEPSPEED:
+                    model.save_checkpoint(path)
+                else:
+                    accelerator.save_state(path)
+                save_model_and_tokenizer(accelerator, model, args.out_dir)
+            if do_eval:
+                evaluate_multiple_dateloaders(eval_dataloaders)
 
             if completed_steps >= args.max_train_steps:
                 break
     metrics_logger.close()
     logger.info("Training finished")
 
-    if args.out_dir is not None:
-        save_model_and_tokenizer(accelerator, model, args.out_dir)
+    save_model_and_tokenizer(accelerator, model, args.out_dir)
 
 
 if __name__ == "__main__":

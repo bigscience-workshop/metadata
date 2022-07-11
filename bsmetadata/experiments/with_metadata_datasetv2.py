@@ -4,8 +4,8 @@ import logging
 from collections import Counter
 from copy import deepcopy
 from itertools import chain
-import numpy as np
 
+import numpy as np
 from datasets import DatasetDict
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
@@ -128,7 +128,9 @@ def preprocess_datasets(datasets, tokenizer, args, is_train=True):
             # and then maybe reset the iterator
             sample_dataset = datasets["train"]
             if 0 < args.metadata_config.random_sample_metadata_calculate_size < len(sample_dataset):
-                ids = np.random.randint(low=0, high=len(datasets['train']), size = args.metadata_config.random_sample_metadata_calculate_size)
+                ids = np.random.randint(
+                    low=0, high=len(datasets["train"]), size=args.metadata_config.random_sample_metadata_calculate_size
+                )
                 sample_dataset = sample_dataset.select(ids)
             metadata_type_counter = Counter(
                 chain.from_iterable(

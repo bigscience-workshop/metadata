@@ -14,6 +14,8 @@ import hydra
 import torch
 import torch.nn.functional as F
 import wandb
+from accelerate import Accelerator
+from accelerate.utils import DistributedType, DummyOptim, DummyScheduler
 from hydra.core.config_store import ConfigStore
 from omegaconf import OmegaConf
 from torch.optim import AdamW
@@ -21,8 +23,6 @@ from tqdm.auto import tqdm as original_tqdm
 from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer, get_scheduler, set_seed
 from transformers.trainer_utils import IntervalStrategy
 
-from accelerate import Accelerator
-from accelerate.utils import DistributedType, DummyOptim, DummyScheduler
 from bsmetadata.input_pipeline import DataConfig, get_dataloaders
 
 
@@ -213,14 +213,9 @@ def main(args: CFG) -> None:
     accelerator = Accelerator()
     is_local_main_process = accelerator.is_local_main_process
     tqdm = partial(original_tqdm, disable=not is_local_main_process, position=0)
-    use_deepspeed_optimzer = (
-        accelerator.state.deepspeed_plugin is not None
-        or "optimizer" in accelerator.state.deepspeed_plugin.deepspeed_config
-    )
-    use_deepspeed_scheduler = (
-        accelerator.state.deepspeed_plugin is not None
-        or "scheduler" in accelerator.state.deepspeed_plugin.deepspeed_config
-    )
+    use_deepspeed = accelerator.state.deepspeed_plugin is not None
+    use_deepspeed_optimzer = use_deepspeed or "optimizer" in accelerator.state.deepspeed_plugin.deepspeed_config
+    use_deepspeed_scheduler = use_deepspeed or "scheduler" in accelerator.state.deepspeed_plugin.deepspeed_config
 
     if accelerator.distributed_type == DistributedType.DEEPSPEED and not use_deepspeed_scheduler:
         assert False, "Please set scheduler in DeepSpeed config file otherwise it may not be checkpointed properly"
@@ -230,11 +225,6 @@ def main(args: CFG) -> None:
     config = AutoConfig.from_pretrained(args.model_name)
     config.gradient_checkpointing = args.gradient_checkpointing
     config.use_cache = not args.gradient_checkpointing  # to disable warning
-    # get dataloaders
-    tokenizer = AutoTokenizer.from_pretrained(args.model_name)
-    tokenizer.pad_token = tokenizer.eos_token
-    train_dataloader, eval_dataloaders = get_dataloaders(tokenizer, args.data_config)
-
     # get model
     model = AutoModelForCausalLM.from_pretrained(args.model_name, config=config)
 
@@ -256,18 +246,13 @@ def main(args: CFG) -> None:
     else:
         optimizer = AdamW(optimizer_grouped_parameters, lr=args.learning_rate, betas=(0.9, 0.98), eps=1e-6)
 
-    # Scheduler and math around the number of training steps.
-    num_update_steps_per_epoch = math.ceil(len(train_dataloader) / args.gradient_accumulation_steps)
     assert args.max_train_steps is not None, "max_train_steps is required, num_train_epochs is not supported"
-    # if args.max_train_steps is None:
-    # args.max_train_steps = args.num_train_epochs * num_update_steps_per_epoch
-    args.num_train_epochs = math.ceil(args.max_train_steps / num_update_steps_per_epoch)
-    # Note -> the training dataloader will be shorter in multiprocess)
-    # TODO: optionally ignore epoch length to support streaming mode
-
     if use_deepspeed_scheduler:
         scheduler = DummyScheduler(
             optimizer, total_num_steps=args.max_train_steps, warmup_num_steps=args.num_warmup_steps
+        )
+        logger.info(
+            f"Using DeepSpeed scheduler, total_num_steps={args.max_train_steps}, warmup_num_steps={args.num_warmup_steps}"
         )
     else:
         scheduler = get_scheduler(
@@ -276,6 +261,10 @@ def main(args: CFG) -> None:
             num_warmup_steps=args.num_warmup_steps,
             num_training_steps=args.max_train_steps,
         )
+    # get dataloaders
+    tokenizer = AutoTokenizer.from_pretrained(args.model_name)
+    tokenizer.pad_token = tokenizer.eos_token
+    train_dataloader, eval_dataloaders = get_dataloaders(tokenizer, args.data_config)
 
     # Prepare everything
     model, optimizer, train_dataloader, scheduler = accelerator.prepare(model, optimizer, train_dataloader, scheduler)
@@ -293,6 +282,13 @@ def main(args: CFG) -> None:
         else:
             accelerator.load_state(path)
         train_state = TrainState.load(Path(path) / "train_state.json")
+
+    # Scheduler and math around the number of training steps.
+    num_update_steps_per_epoch = math.ceil(len(train_dataloader) / args.gradient_accumulation_steps)
+    # if args.max_train_steps is None:
+    # args.max_train_steps = args.num_train_epochs * num_update_steps_per_epoch
+    args.num_train_epochs = math.ceil(args.max_train_steps / num_update_steps_per_epoch)
+    # Note -> the training dataloader will be shorter in multiprocess)
 
     if args.evaluation_strategy == IntervalStrategy.EPOCH and args.eval_num_per_epoch >= 1:
         eval_per_n_step = args.max_train_steps // (args.eval_num_per_epoch * args.num_train_epochs)
@@ -373,6 +369,7 @@ def main(args: CFG) -> None:
     model.train()
     # for epoch in range(args.num_train_epochs):
     finished = False
+    metrics_logger.log({"train_dataloader_length": len(train_dataloader)})
     while not finished:
         for batch in train_dataloader:
             step += 1
@@ -382,23 +379,30 @@ def main(args: CFG) -> None:
             outputs = model(**batch)
             batch["labels"] = labels
             loss = loss_fn(batch, outputs, metadata_mask)
-            loss = loss / args.gradient_accumulation_steps
-            accelerator.backward(loss)
-            step_loss += loss.detach()
 
-            do_step = step % args.gradient_accumulation_steps == 0 or step == len(train_dataloader) - 1
+            step_loss += loss.detach() / args.gradient_accumulation_steps
+            if use_deepspeed:
+                model.backward(loss)
+                model.step()
+            else:
+                accelerator.backward(loss)
+
+            do_step = step % args.gradient_accumulation_steps == 0
             if do_step:
-                #             accelerator.clip_grad_norm_(model.parameters(), 1.0)
-                optimizer.step()
-                scheduler.step()
-                optimizer.zero_grad()
                 progress_bar.update(1)
                 train_state.step()
+                #             accelerator.clip_grad_norm_(model.parameters(), 1.0)
+                if not use_deepspeed:
+                    optimizer.step()
+                    scheduler.step()
+                    optimizer.zero_grad()
                 metrics_logger.log(
                     {
                         "loss": step_loss,
-                        "lr": optimizer.param_groups[0]["lr"],
+                        # "lr": optimizer.param_groups[0]["lr"],
+                        "lr": max(scheduler.get_lr()),
                         "gradient_step": train_state.completed_steps,
+                        "epoch": step / len(train_dataloader),
                     }
                 )
                 step_loss = 0

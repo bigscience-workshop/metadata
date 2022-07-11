@@ -144,8 +144,8 @@ class MetadataConfig:
         metadata={"help": "The character sequence to be concatenated at the beginning of the metadata prefix."},
     )
     entity_setting: str = field(
-        default="normal",
-        metadata={"help": "The settings in which you want to use entites. Valid choices: (beg, end, normal)"},
+        default="beg",
+        metadata={"help": "The settings in which you want to use entites. Valid choices: (beg, end)"},
     )
     local_metadata_special_token_start: Optional[Dict[str, str]] = field(
         default=None,
@@ -336,7 +336,7 @@ class TitleProcessor(MetadataProcessor):
     def process_global(self, metadata_attrs: Dict[str, Any]) -> Optional[str]:
         # We represent a title by the title of the corresponding webpage content.
         # Example: "My Thoughts On It » Dad, I want to be an inventor".
-        return "".join([metadata_attrs["key"], self.cfg.metadata_key_value_sep, metadata_attrs["value"]])
+        return "".join(["Title", self.cfg.metadata_key_value_sep, metadata_attrs["value"]])
 
 
 class WebsiteDescriptionProcessor(MetadataProcessor):

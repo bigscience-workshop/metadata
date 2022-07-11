@@ -114,6 +114,10 @@ class MetadataConfig:
         default=False,
         metadata={"help": "Whether to random drop metadata, using bsmetadata.metadata_utils.random_sample_metadata."},
     )
+    random_sample_metadata_calculate_size: int = field(
+        default=-1,
+        metadata={"help": "Number of examples to go through when calculating sampling proportion."},
+    )
     metadata_probability: float = field(
         default=1, metadata={"help": "The probability of adding metadata to an input example."}
     )

@@ -10,7 +10,7 @@
     "optimizer": {
         "type": "AdamW",
         "params": {
-            "lr": 0.001,
+            "lr": 0.0001,
             "betas": [
                 0.9,
                 0.98
@@ -30,19 +30,16 @@
         }
     },
     "zero_optimization": {
-        "stage": 2,
+        "stage": 1,
         "allgather_partitions": true,
-        "allgather_bucket_size": 2e8,
+        "allgather_bucket_size": 500000000,
         "overlap_comm": true,
         "reduce_scatter": true,
-        "reduce_bucket_size": "auto",
+        "reduce_bucket_size": 500000000,
         "contiguous_gradients": true,
-        "offload_optimizer": {
-            "device": "cpu",
-            "pin_memory": true
-        }
+        "cpu_offload": false
     },
-    "gradient_accumulation_steps": 8,
+    "gradient_accumulation_steps": 4,
     "gradient_clipping": "auto",
     "steps_per_print": 100,
     "train_batch_size": 256,

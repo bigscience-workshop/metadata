@@ -1,7 +1,8 @@
 data_config:
   validation_size_max: 1024
   metadata_config:
-    random_sample_metadata: false
+    random_sample_metadata: true
+    random_sample_metadata_calculate_size: 16384
     metadata_list:
     - html
     - entity
@@ -55,8 +56,8 @@ data_config:
       tags_to_remove_alone_txt_min_chr_len:
       - 0.0
   experiment: with_metadata_datasetv2
-  per_device_eval_batch_size: 4
-  per_device_train_batch_size: 4
+  per_device_eval_batch_size: 32
+  per_device_train_batch_size: 32
   dataset_name: bs-modeling-metadata/c4-en-html-with-metadata
   dataset_config_name: null
   train_file: c4-en-html_cc-main-2019-18_pq00-001.jsonl.gz
@@ -70,11 +71,11 @@ data_config:
   map_batch_size: 1
 weight_decay: 0.01
 learning_rate: 5.0e-05
-gradient_accumulation_steps: 8
+
 num_train_epochs: 1
-max_train_steps: 100
+max_train_steps: 100000
 lr_scheduler_type: linear
-num_warmup_steps: 6
+num_warmup_steps: 6000
 seed: 42
 out_dir: metadata_outputs/
 model_name: gpt2
@@ -85,11 +86,12 @@ extra_steps_to_eval_save_at:
 - 2
 evaluation_strategy: STEPS
 eval_num_per_epoch: 3
-eval_steps: 20
+eval_steps: 500
 save_strategy: STEPS
 save_num_per_epoch: 3
-save_steps: 5900
+save_steps: 500
 do_train: true
 do_eval: true
 gradient_checkpointing: true
 resume_from_checkpoint_dir: null 
+gradient_accumulation_steps: 4

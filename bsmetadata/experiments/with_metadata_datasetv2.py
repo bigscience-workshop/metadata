@@ -4,6 +4,7 @@ import logging
 from collections import Counter
 from copy import deepcopy
 from itertools import chain
+import numpy as np
 
 from datasets import DatasetDict
 from torch.utils.data import DataLoader
@@ -125,10 +126,14 @@ def preprocess_datasets(datasets, tokenizer, args, is_train=True):
 
             # TODO: for streaming, add an arg to control how much data to control how much data to iterate
             # and then maybe reset the iterator
+            sample_dataset = datasets["train"]
+            if 0 < args.metadata_config.random_sample_metadata_calculate_size < len(sample_dataset):
+                ids = np.random.randint(low=0, high=len(datasets['train']), size = args.metadata_config.random_sample_metadata_calculate_size)
+                sample_dataset = sample_dataset.select(ids)
             metadata_type_counter = Counter(
                 chain.from_iterable(
                     get_metadata_types(x)
-                    for x in tqdm(datasets["train"], desc="iterate over training set to count metadata types")
+                    for x in tqdm(sample_dataset, desc="iterate over training set to count metadata types")
                 )
             )
             metadata_type_weight_sum = sum(metadata_type_counter.values())
@@ -216,11 +221,6 @@ def build_dataset(tokenizer, args):
     """
     train_dataset, validation_dataset = my_load_dataset(args)
 
-    # make debugging runs faster, TODO: remove this
-    if args.validation_size_max is not None:
-        train_dataset = train_dataset.select(range(min(args.validation_size_max, len(train_dataset))))
-
-    train_dataset = train_dataset.select(range(100))
     train_datasets = preprocess_datasets(DatasetDict(train=train_dataset), tokenizer, args, is_train=True)
     validation_datasets = preprocess_datasets(
         DatasetDict(validation=validation_dataset), tokenizer, args, is_train=False

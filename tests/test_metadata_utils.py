@@ -389,7 +389,7 @@ class MetadataUtilsTester(unittest.TestCase):
             global_metadata_prefix_4,
             "Website Description: Amazon.com, Inc. ( AM-ə-zon) is an American multinational conglomerate which focuses on e-commerce, cloud computing, digital streaming, and artificial intelligence. |||",
         )
-        self.assertEqual(global_metadata_prefix_5, "title: My Thoughts On It » Dad, I want to be an inventor |||")
+        self.assertEqual(global_metadata_prefix_5, "Title: My Thoughts On It » Dad, I want to be an inventor |||")
 
     def test_entity_settings(self):
         from transformers import AddedToken
@@ -653,7 +653,7 @@ class MetadataUtilsTester(unittest.TestCase):
         ==========
         """
         expected_g_mtdt6 = [
-            "title", ":", "ĠMy", "ĠThoughts", "ĠOn", "ĠIt", "ĠÂ»", "ĠDad",
+            "Title", ":", "ĠMy", "ĠThoughts", "ĠOn", "ĠIt", "ĠÂ»", "ĠDad",
             ",", "ĠI", "Ġwant", "Ġto", "Ġbe", "Ġan", "Ġinventor", "Ġ||",
             "|",
         ]  # 17 tokens

@@ -1,7 +1,7 @@
 from fnmatch import fnmatch
 
 import datasets
-from datasets import Features, concatenate_datasets, load_dataset
+from datasets import Features, concatenate_datasets, interleave_datasets, load_dataset
 from datasets.filesystems import HfFileSystem
 from huggingface_hub import dataset_info
 
@@ -407,7 +407,7 @@ def get_files(pattern):
             yield file
 
 
-def load_dataset_by_files(files):
+def load_dataset_by_files(files, streaming=False):
     selected_files_entities = list(filter(lambda v: v in data_files_with_entities, files))
     selected_files_no_entities = list(filter(lambda v: v not in data_files_with_entities, files))
     datasets = []
@@ -418,8 +418,9 @@ def load_dataset_by_files(files):
             data_files=selected_files_entities,
             split="train",
             use_auth_token=True,
+            streaming=streaming,
         )
-        datasets.append(dataset_entities)
+        datasets.append((dataset_entities, len(selected_files_entities)))
 
     if selected_files_no_entities:
         dataset_no_entities = load_dataset(
@@ -428,7 +429,16 @@ def load_dataset_by_files(files):
             data_files=selected_files_no_entities,
             split="train",
             use_auth_token=True,
+            streaming=streaming,
         )
-        datasets.append(dataset_no_entities)
-    dataset = concatenate_datasets(datasets)
+        datasets.append((dataset_no_entities, len(selected_files_no_entities)))
+    if not streaming:
+        dataset = concatenate_datasets([d for d, _ in datasets])
+    else:
+        datasets = [d.shuffle(16384) for d, n in datasets]
+        if len(datasets) == 1:
+            return datasets[0]
+        sizes = [n for _, n in datasets]
+        probabilities = [n / sum(sizes) for n in sizes]
+        dataset = interleave_datasets(datasets, probabilities=probabilities)
     return dataset

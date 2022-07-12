@@ -13,6 +13,8 @@ import hydra
 import torch
 import torch.nn.functional as F
 import wandb
+from accelerate import Accelerator
+from accelerate.utils import DistributedType, DummyOptim, DummyScheduler
 from hydra.core.config_store import ConfigStore
 from omegaconf import OmegaConf
 from torch.optim import AdamW
@@ -20,8 +22,6 @@ from tqdm.auto import tqdm as original_tqdm
 from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer, get_scheduler, set_seed
 from transformers.trainer_utils import IntervalStrategy
 
-from accelerate import Accelerator
-from accelerate.utils import DistributedType, DummyOptim, DummyScheduler
 from bsmetadata.input_pipeline import DataConfig, get_dataloaders
 
 

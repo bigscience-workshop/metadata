@@ -247,7 +247,7 @@ def create_metadata_prefix(example: Dict[str, Any], cfg: MetadataConfig) -> str:
         if type_ == "global":
             processor = PROCESSORS.get(key, MetadataProcessor)(cfg)
             processed_metadata[key] = processor.process_global(metadata)
-        elif cfg.add_local_metadata_special_tokens_in_prefix and cfg.local_metadata_special_tokens:
+        elif cfg.add_local_metadata_special_tokens_in_prefix and cfg.local_metadata_special_tokens and key in cfg.local_metadata_special_tokens:
             processed_metadata[key] = cfg.local_metadata_special_tokens[key]
         elif cfg.add_local_metadata_special_tokens_in_prefix:
             processed_metadata[key] = key

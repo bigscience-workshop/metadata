@@ -17,16 +17,16 @@ data_config:
     - timestamp
     - website_desc
     - title
-    - url
+    #- url
     - generation_datasource
-    - generation_length_sentence
-    - generation_length_text
+    #- generation_length_sentence
+    #- generation_length_text
     - entity_paragraph
     local_metadata_special_tokens: 
       entity_paragraph: "entity"
     metadata_sep: ' | '
     metadata_key_value_sep: ': '
-    metadata_probability: 1.0
+    metadata_probability: 0.5
     treat_local_metadata_as_regular_text: true
     add_local_metadata_special_tokens_in_prefix: true
     metadata_prefix_sep: ' |||'
@@ -54,10 +54,10 @@ data_config:
       - .inf
       tags_to_remove_alone_txt_min_chr_len:
       - 0.0
-  local_metadata_special_token_start:
-      entity_paragraph: "<ENTITY_CHAIN>"
-  local_metadata_special_token_end:
-      entity_paragraph: " </ENTITY_CHAIN> " 
+    local_metadata_special_token_start:
+        entity_paragraph: "<ENTITY_CHAIN>"
+    local_metadata_special_token_end:
+        entity_paragraph: " </ENTITY_CHAIN> "
   experiment: with_metadata_datasetv2
   per_device_eval_batch_size: 32
   per_device_train_batch_size: 32
@@ -73,8 +73,7 @@ data_config:
   block_size: null
   map_batch_size: 1
 weight_decay: 0.01
-learning_rate: 5.0e-05
-
+learning_rate: 1e-4
 num_train_epochs: 1
 max_train_steps: 100000
 lr_scheduler_type: linear

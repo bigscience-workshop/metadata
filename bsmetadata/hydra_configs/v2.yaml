@@ -1,4 +1,5 @@
 data_config:
+  streaming: True
   validation_size_max: 1024
   metadata_config:
     random_sample_metadata: true

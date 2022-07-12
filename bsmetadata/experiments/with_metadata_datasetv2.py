@@ -44,10 +44,8 @@ def my_load_dataset(args):
     # log number of train & val files before downloading
     logger.info(f"{len(train_files)} train files, starting with {train_files[0]}")
     logger.info(f"{len(validation_files)} validation files, starting with {validation_files[0]}")
-    train_dataset = load_dataset_by_files(train_files)
+    train_dataset = load_dataset_by_files(train_files, streaming=args.streaming)
     validation_dataset = load_dataset_by_files(validation_files)
-    # datasets = DatasetDict(train=train_dataset, validation=validation_dataset)
-    # return datasets
 
     def check_has_metadata(dataset, key):
         for example in dataset:
@@ -86,7 +84,7 @@ def get_validation_for_each_metadata_type(dataset, size_limit=None):
     }
 
 
-def preprocess_datasets(datasets, tokenizer, args, is_train=True):
+def preprocess_datasets(dataset, tokenizer, args, column_names, is_train=True):
     """
     Args:
         dataset: a huggingface DatasetDict
@@ -95,14 +93,20 @@ def preprocess_datasets(datasets, tokenizer, args, is_train=True):
     Returns:
         a dataset
     """
-    datasets = datasets.filter(
-        lambda x: x["text"],
+
+    def remove_num_proc_kwarg(kwargs):
+        if args.streaming and is_train:
+            kwargs.pop("num_proc", None)
+            kwargs.pop("load_from_cache_file", None)
+            kwargs.pop("desc", None)
+        return kwargs
+
+    kwargs = dict(
         num_proc=args.preprocessing_num_workers,
         load_from_cache_file=not args.overwrite_cache,
         desc="filter out data with empty text",
     )
-    main_key = "train" if is_train else "validation"
-    column_names = datasets[main_key].column_names
+    dataset = dataset.filter(lambda x: x["text"], **remove_num_proc_kwarg(kwargs))
 
     logger.info("Removing metadata not used")
     for key in args.metadata_config.metadata_column_list:
@@ -110,8 +114,8 @@ def preprocess_datasets(datasets, tokenizer, args, is_train=True):
     keep_metadata_columns = [f"metadata_{key}" for key in args.metadata_config.metadata_column_list]
     remove_columns = [key for key in column_names if key.startswith("metadata_") and key not in keep_metadata_columns]
     logger.info(f"Removing columns {remove_columns}")
-    datasets = datasets.remove_columns(remove_columns)
-    column_names = datasets[main_key].column_names
+    dataset = dataset.remove_columns(remove_columns)
+    column_names = [key for key in column_names if key not in remove_columns]
 
     if is_train:
         if args.metadata_config.random_sample_metadata:
@@ -126,16 +130,20 @@ def preprocess_datasets(datasets, tokenizer, args, is_train=True):
 
             # TODO: for streaming, add an arg to control how much data to control how much data to iterate
             # and then maybe reset the iterator
-            sample_dataset = datasets["train"]
-            if 0 < args.metadata_config.random_sample_metadata_calculate_size < len(sample_dataset):
-                ids = np.random.randint(
-                    low=0, high=len(datasets["train"]), size=args.metadata_config.random_sample_metadata_calculate_size
-                )
-                sample_dataset = sample_dataset.select(ids)
+            sample_size = args.metadata_config.random_sample_metadata_calculate_size
+            if args.streaming:
+                sample_dataset = dataset.take(sample_size)
+            else:
+                sample_dataset = dataset
+                if 0 < sample_size < len(sample_dataset):
+                    ids = np.random.randint(low=0, high=len(dataset), size=sample_size)
+                    sample_dataset = sample_dataset.select(ids)
             metadata_type_counter = Counter(
                 chain.from_iterable(
                     get_metadata_types(x)
-                    for x in tqdm(sample_dataset, desc="iterate over training set to count metadata types")
+                    for x in tqdm(
+                        sample_dataset, desc="iterate over training set to count metadata types", total=sample_size
+                    )
                 )
             )
             metadata_type_weight_sum = sum(metadata_type_counter.values())
@@ -143,22 +151,26 @@ def preprocess_datasets(datasets, tokenizer, args, is_train=True):
             logger.info(f"Metadata type sample weights: {metadata_type_sample_weights}")
 
             logger.info("Randomly sampling metadata")
-            datasets = datasets.map(
-                functools.partial(
-                    random_sample_metadata_v2, metadata_type_sample_weights=metadata_type_sample_weights
-                ),
+            kwargs = dict(
                 batched=True,
                 num_proc=args.preprocessing_num_workers,
                 load_from_cache_file=not args.overwrite_cache,
                 desc="Randomly dropping metadata",
                 batch_size=args.map_batch_size,
             )
+            dataset = dataset.map(
+                functools.partial(
+                    random_sample_metadata_v2, metadata_type_sample_weights=metadata_type_sample_weights
+                ),
+                **remove_num_proc_kwarg(kwargs),
+            )
         else:
             logger.info("Not randomly sampling metadata")
     else:
-        validation = datasets["validation"]
+        validation = dataset
         if args.validation_size_max is not None:
             validation = validation.select(range(min(args.validation_size_max, len(validation))))
+        # this is a dict of validation datasets, one for each metadata type
         datasets = get_validation_for_each_metadata_type(validation, size_limit=args.validation_size_max)
         datasets["validation"] = validation
         datasets = DatasetDict(datasets)
@@ -187,18 +199,27 @@ def preprocess_datasets(datasets, tokenizer, args, is_train=True):
     cfg = deepcopy(args.metadata_config)
     if not is_train:
         cfg.metadata_probability = 1.0
-    datasets = datasets.map(
-        functools.partial(add_metadata_and_chunk_examples, tokenizer=tokenizer, cfg=cfg),
+    if is_train:
+        # always a single dataset, because streaming is not supported in DatasetDict.map
+        d = dataset
+    else:
+        # multiple dataset
+        d = datasets
+    kwargs = dict(
         batched=True,
         num_proc=args.preprocessing_num_workers,
-        # load_from_cache_file=not args.overwrite_cache,
-        load_from_cache_file=False,
+        load_from_cache_file=not args.overwrite_cache,
         desc="Pre-process the text and metadata to create new samples",
         remove_columns=sorted(list(map(str, column_names))),  # make sure it's deterministic
         batch_size=args.map_batch_size,
     )
+
+    d = d.map(
+        functools.partial(add_metadata_and_chunk_examples, tokenizer=tokenizer, cfg=cfg),
+        **remove_num_proc_kwarg(kwargs),
+    )
     if not is_train:
-        datasets["validation_no_metadata"] = preprocess_no_metadata(validation, tokenizer, args)
+        d["validation_no_metadata"] = preprocess_no_metadata(validation, tokenizer, args)
 
     logger.info("Add metadata and chunk examples finished")
 
@@ -209,8 +230,11 @@ def preprocess_datasets(datasets, tokenizer, args, is_train=True):
         return examples
 
     # labels column will be generated from input_ids on the fly
-    datasets = datasets.with_transform(create_labels_column)
-    return datasets
+    if args.streaming:
+        d = d.map(create_labels_column)
+    else:
+        d = d.with_transform(create_labels_column)
+    return d
 
 
 def build_dataset(tokenizer, args):
@@ -223,11 +247,12 @@ def build_dataset(tokenizer, args):
     """
     train_dataset, validation_dataset = my_load_dataset(args)
 
-    train_datasets = preprocess_datasets(DatasetDict(train=train_dataset), tokenizer, args, is_train=True)
-    validation_datasets = preprocess_datasets(
-        DatasetDict(validation=validation_dataset), tokenizer, args, is_train=False
-    )
-    return train_datasets, validation_datasets
+    # because streaming dataset has no column_names, so need to pass it in
+    # validation_dataset will never use streaming
+    column_names = validation_dataset.column_names
+    train_dataset = preprocess_datasets(train_dataset, tokenizer, args, column_names, is_train=True)
+    validation_datasets = preprocess_datasets(validation_dataset, tokenizer, args, column_names, is_train=False)
+    return train_dataset, validation_datasets
 
 
 def get_dataloaders(tokenizer, args):
@@ -249,9 +274,7 @@ def get_dataloaders(tokenizer, args):
            outputs = model(**batch)
            metrics = loss_fn(batch, outputs, metadata_mask)
     """
-    train_datasets, validation_datasets = build_dataset(tokenizer, args)
-
-    train_dataset = train_datasets["train"]
+    train_dataset, validation_datasets = build_dataset(tokenizer, args)
     val_dataset = validation_datasets["validation"]
 
     def check_examples_all_same_length(dataset, check_num=1000, message=""):
@@ -263,9 +286,8 @@ def get_dataloaders(tokenizer, args):
                 length <= args.metadata_config.max_seq_len
             ), f"{message} some examples are shorter than {args.metadata_config.max_seq_len}, got {length}"
 
-    for dss in (train_datasets, validation_datasets):
-        for k, ds in dss.items():
-            check_examples_all_same_length(ds, message=f"{k}")
+    for k, ds in validation_datasets.items():
+        check_examples_all_same_length(ds, message=f"{k}")
 
     def check_has_metadata_mask(dataset):
         for example in dataset:
@@ -281,26 +303,36 @@ def get_dataloaders(tokenizer, args):
             else:
                 logger.info(f"{k} has metadata mask")
 
-    # debug, TODO: remove this or add an argument
-    for dss in (train_datasets, validation_datasets):
-        for k, ds in dss.items():
-            path = f"/tmp/filtered/{k}.jsonl"
-            # ds.to_json(path)
-            logger.info(f"saving {k} to {path}, with {len(ds)} examples")
+    # debug, TODO: remove this
+    for k, ds in validation_datasets.items():
+        path = f"/tmp/filtered/{k}.jsonl"
+        # ds.to_json(path)
+        logger.info(f"saving {k} to {path}, with {len(ds)} examples")
 
-    logger.info(f"  Num train examples = {len(train_dataset)}")
+    if not args.streaming:
+        logger.info(f"  Num train examples = {len(train_dataset)}")
+    else:
+        logger.info(f"  Num train examples = unknown (streaming)")
     logger.info(f"  Num validation examples = {len(val_dataset)}")
-    logger.info(f"{train_datasets}")
+    logger.info(f"{train_dataset}")
     logger.info(f"{validation_datasets}")
 
     # DataLoaders creation:
-    train_dataloader = DataLoader(
-        train_dataset,
-        shuffle=True,
-        collate_fn=default_data_collator,
-        batch_size=args.per_device_train_batch_size,
-        drop_last=True,
-    )
+    if args.streaming:
+        train_dataloader = DataLoader(
+            train_dataset.with_format("torch"),
+            batch_size=args.per_device_train_batch_size,
+            collate_fn=default_data_collator,
+            drop_last=True,
+        )
+    else:
+        train_dataloader = DataLoader(
+            train_dataset,
+            shuffle=True,
+            collate_fn=default_data_collator,
+            batch_size=args.per_device_train_batch_size,
+            drop_last=True,
+        )
 
     val_dataloaders = {
         key: DataLoader(

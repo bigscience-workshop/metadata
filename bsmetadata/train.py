@@ -282,8 +282,10 @@ def main(args: CFG) -> None:
             accelerator.load_state(path)
         train_state = TrainState.load(Path(path) / "train_state.json")
 
+    # set a random dataset size if streaming
+    dl_size = int(1e6) if args.data_config.streaming else len(train_dataloader)
     # Scheduler and math around the number of training steps.
-    num_update_steps_per_epoch = math.ceil(len(train_dataloader) / args.gradient_accumulation_steps)
+    num_update_steps_per_epoch = math.ceil(dl_size / args.gradient_accumulation_steps)
     # if args.max_train_steps is None:
     # args.max_train_steps = args.num_train_epochs * num_update_steps_per_epoch
     args.num_train_epochs = math.ceil(args.max_train_steps / num_update_steps_per_epoch)
@@ -368,7 +370,9 @@ def main(args: CFG) -> None:
     model.train()
     # for epoch in range(args.num_train_epochs):
     finished = False
-    metrics_logger.log({"train_dataloader_length": len(train_dataloader)})
+
+    if not args.data_config.streaming:
+        metrics_logger.log({"train_dataloader_length": len(train_dataloader)})
     while not finished:
         for batch in train_dataloader:
             step += 1
@@ -390,20 +394,19 @@ def main(args: CFG) -> None:
             if do_step:
                 progress_bar.update(1)
                 train_state.step()
-                #             accelerator.clip_grad_norm_(model.parameters(), 1.0)
                 if not use_deepspeed:
                     optimizer.step()
                     scheduler.step()
                     optimizer.zero_grad()
-                metrics_logger.log(
-                    {
-                        "loss": step_loss,
-                        # "lr": optimizer.param_groups[0]["lr"],
-                        "lr": max(scheduler.get_lr()),
-                        "gradient_step": train_state.completed_steps,
-                        "epoch": step / len(train_dataloader),
-                    }
-                )
+                metrics = {
+                    "loss": step_loss,
+                    "lr": max(scheduler.get_lr()),
+                    "gradient_step": train_state.completed_steps,
+                }
+                if not args.data_config.streaming:
+                    metrics["epoch"] = step / len(train_dataloader)
+
+                metrics_logger.log(metrics)
                 step_loss = 0
             else:
                 continue

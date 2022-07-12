@@ -57,6 +57,10 @@ class DataConfig:
         default=None,
         metadata={"help": "The maximum number of samples to use for validation. If None, all samples will be used."},
     )
+    streaming: bool = field(
+        default=False,
+        metadata={"help": "Wether to use streaming mode. Note that validation will not be streamed."},
+    )
 
 
 def get_dataloaders(tokenizer, cfg: DataConfig):

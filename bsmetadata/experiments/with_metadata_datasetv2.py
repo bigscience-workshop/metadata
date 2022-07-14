@@ -312,7 +312,7 @@ def get_dataloaders(tokenizer, args):
     if not args.streaming:
         logger.info(f"  Num train examples = {len(train_dataset)}")
     else:
-        logger.info(f"  Num train examples = unknown (streaming)")
+        logger.info("  Num train examples = unknown (streaming)")
     logger.info(f"  Num validation examples = {len(val_dataset)}")
     logger.info(f"{train_dataset}")
     logger.info(f"{validation_datasets}")

@@ -320,7 +320,7 @@ def get_dataloaders(tokenizer, args):
     # DataLoaders creation:
     if args.streaming:
         train_dataloader = DataLoader(
-            train_dataset.with_format("torch"),
+            train_dataset.shuffle(seed=42, buffer_size=16384).with_format("torch"),
             batch_size=args.per_device_train_batch_size,
             collate_fn=default_data_collator,
             drop_last=True,

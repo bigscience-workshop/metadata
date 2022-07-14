@@ -435,7 +435,7 @@ def load_dataset_by_files(files, streaming=False):
     if not streaming:
         dataset = concatenate_datasets([d for d, _ in datasets])
     else:
-        datasets = [d.shuffle(16384) for d, n in datasets]
+        datasets = [d.shuffle(seed=42, buffer_size=1024) for d, n in datasets]
         if len(datasets) == 1:
             return datasets[0]
         sizes = [n for _, n in datasets]

@@ -59,7 +59,7 @@ class DataConfig:
     )
     streaming: bool = field(
         default=False,
-        metadata={"help": "Wether to use streaming mode. Note that validation will not be streamed."},
+        metadata={"help": "Whether to use streaming mode. Note that validation will not be streamed."},
     )
 
 

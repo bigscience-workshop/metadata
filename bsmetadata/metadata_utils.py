@@ -9,10 +9,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """
 This script provides utility functions for linearizing, encoding and chunking a given input text with metadata information.
 """
+import logging
 import random
 from collections import defaultdict
 from copy import deepcopy
@@ -23,6 +23,9 @@ import numpy as np
 from transformers import PreTrainedTokenizerFast
 
 from bsmetadata.metadata_processors import PROCESSORS, MetadataConfig, MetadataProcessor
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -143,7 +146,8 @@ def convert_v2_dataset_to_v1_format(example):
             key = key[len(key_prefix) :]
             for metadata in value:
                 metadata = deepcopy(metadata)
-                metadata["key"] = key
+                if "key" not in metadata:
+                    metadata["key"] = key
                 metadata_list.append(metadata)
     example["metadata"] = metadata_list
     return example
@@ -207,6 +211,8 @@ def random_sample_metadata_v2(
     for i in range(len(examples["text"])):
         example = {k: v[i] for k, v in examples.items()}
         metadata_types = [key for key in only_metadata_types if example[f"metadata_{key}"]]
+        if len(metadata_types) == 0:
+            continue
         num_metadata_to_keep = random.randint(1, len(metadata_types))
         weights = np.array([metadata_type_sample_weights[m] for m in metadata_types])
         weights = weights / weights.sum()
@@ -235,12 +241,17 @@ def create_metadata_prefix(example: Dict[str, Any], cfg: MetadataConfig) -> str:
     for metadata in example["metadata"]:
         key, type_ = metadata["key"], metadata["type"]
         if key not in cfg.metadata_list:
+            logger.warning(f"metadata key not in metadata_list, skipping. {key}, {cfg.metadata_list}")
             continue
 
         if type_ == "global":
             processor = PROCESSORS.get(key, MetadataProcessor)(cfg)
             processed_metadata[key] = processor.process_global(metadata)
-        elif cfg.add_local_metadata_special_tokens_in_prefix and cfg.local_metadata_special_tokens:
+        elif (
+            cfg.add_local_metadata_special_tokens_in_prefix
+            and cfg.local_metadata_special_tokens
+            and key in cfg.local_metadata_special_tokens
+        ):
             processed_metadata[key] = cfg.local_metadata_special_tokens[key]
         elif cfg.add_local_metadata_special_tokens_in_prefix:
             processed_metadata[key] = key

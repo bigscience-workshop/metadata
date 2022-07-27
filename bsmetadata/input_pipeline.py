@@ -53,6 +53,14 @@ class DataConfig:
             " the dataset. If you are using `with_metadata` the recommended batch size is 1.."
         },
     )
+    validation_size_max: Optional[int] = field(
+        default=None,
+        metadata={"help": "The maximum number of samples to use for validation. If None, all samples will be used."},
+    )
+    streaming: bool = field(
+        default=False,
+        metadata={"help": "Whether to use streaming mode. Note that validation will not be streamed."},
+    )
 
 
 def get_dataloaders(tokenizer, cfg: DataConfig):

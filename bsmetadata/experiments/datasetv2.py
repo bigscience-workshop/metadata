@@ -432,7 +432,8 @@ def load_dataset_by_files(files, streaming=False):
             streaming=streaming,
         )
         if streaming:
-            def add_columns(example, columns=['metadata_entity', 'metadata_entity_paragraph']):
+
+            def add_columns(example, columns=["metadata_entity", "metadata_entity_paragraph"]):
                 for c in columns:
                     example[c] = []
                 return example

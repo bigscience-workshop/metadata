@@ -318,9 +318,12 @@ def main(args: CFG) -> None:
 
             losses.append(accelerator.gather(loss.repeat(args.data_config.per_device_eval_batch_size)))
 
+        model.train()
+        if not losses:
+            # in case the dataloader is empty
+            return
         losses = torch.cat(losses)
         perplexity = math.exp(torch.mean(losses))
-        model.train()
         return {"perplexity": perplexity}
 
     def evaluate_multiple_dateloaders(eval_dataloaders):

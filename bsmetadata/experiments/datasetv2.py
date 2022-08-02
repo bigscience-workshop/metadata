@@ -431,14 +431,22 @@ def load_dataset_by_files(files, streaming=False):
             use_auth_token=True,
             streaming=streaming,
         )
+        if streaming:
+
+            def add_columns(example, columns=["metadata_entity", "metadata_entity_paragraph"]):
+                for c in columns:
+                    example[c] = []
+                return example
+
+            dataset_no_entities = dataset_no_entities.map(add_columns)
         datasets.append((dataset_no_entities, len(selected_files_no_entities)))
     if not streaming:
         dataset = concatenate_datasets([d for d, _ in datasets])
     else:
+        sizes = [n for _, n in datasets]
         datasets = [d.shuffle(seed=42, buffer_size=1024) for d, n in datasets]
         if len(datasets) == 1:
             return datasets[0]
-        sizes = [n for _, n in datasets]
         probabilities = [n / sum(sizes) for n in sizes]
         dataset = interleave_datasets(datasets, probabilities=probabilities)
     return dataset

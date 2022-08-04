@@ -1,0 +1,100 @@
+data_config:
+  streaming: True
+  validation_size_max: 1024
+  metadata_config:
+    random_sample_metadata: true
+    random_sample_metadata_calculate_size: 16384
+    metadata_list:
+    - html
+    - timestamp
+    - website_description
+    - title
+    - url
+    - datasource
+    - length
+    - entity_paragraph
+    metadata_column_list:
+    - html
+    - timestamp
+    - website_desc
+    - title
+    #- url
+    - generation_datasource
+    #- generation_length_sentence
+    #- generation_length_text
+    - entity_paragraph
+    local_metadata_special_tokens: 
+      entity_paragraph: "entity"
+    metadata_sep: ' | '
+    metadata_key_value_sep: ': '
+    metadata_probability: 0.5
+    treat_local_metadata_as_regular_text: true
+    add_local_metadata_special_tokens_in_prefix: true
+    metadata_prefix_sep: ' |||'
+    metadata_prefix_start_seq: ''
+    max_seq_len: 1024
+    html_parser_config:
+      all_tags_rules:
+        attributes_to_keep:
+        - class
+        - id
+        txt_max_chr_len: 0
+        txt_min_chr_len: -.inf
+        tags_exceptions_to_txt_max_min_chr_len:
+        - table
+        - tr
+        - th
+        - td
+        - colgroup
+        - thead
+        - tfoot
+        - tbody
+      tags_to_remove_alone_tag_name:
+      - body
+      tags_to_remove_alone_txt_max_chr_len:
+      - .inf
+      tags_to_remove_alone_txt_min_chr_len:
+      - 0.0
+    local_metadata_special_token_start:
+        entity_paragraph: "<ENTITY_CHAIN>"
+    local_metadata_special_token_end:
+        entity_paragraph: " </ENTITY_CHAIN> "
+  experiment: with_metadata_datasetv2
+  per_device_eval_batch_size: 32
+  per_device_train_batch_size: 32
+  dataset_name: bs-modeling-metadata/c4-en-html-with-metadata
+  dataset_config_name: null
+  train_file: c4-en-html_cc-main-2019-18_pq00-001.jsonl.gz
+  validation_file: c4-en-html_cc-main-2019-18_pq00-000.jsonl.gz
+  overwrite_cache: false
+  cache_dir: null
+  extension: null
+  preprocessing_num_workers: 6
+  validation_split_percentage: 5
+  block_size: null
+  map_batch_size: 1
+weight_decay: 0.01
+learning_rate: 1e-4
+num_train_epochs: 1
+max_train_steps: 100000
+lr_scheduler_type: linear
+num_warmup_steps: 6000
+seed: 42
+out_dir: metadata_outputs/
+model_name: gpt2
+project_name: metadata_lm
+jobid: ''
+start_with_eval: false
+extra_steps_to_eval_save_at:
+- 2
+evaluation_strategy: STEPS
+eval_num_per_epoch: 3
+eval_steps: 500
+save_strategy: STEPS
+save_num_per_epoch: 3
+save_steps: 500
+do_train: true
+do_eval: true
+gradient_checkpointing: true
+resume_from_checkpoint_dir: null 
+gradient_accumulation_steps: 4

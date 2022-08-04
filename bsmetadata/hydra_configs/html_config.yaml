@@ -1,7 +1,9 @@
 data_config:
+  validation_size_max: 1000
   metadata_config:
     random_sample_metadata: true
     metadata_list: []
+    metadata_column_list: []
     local_metadata_special_tokens: null
     metadata_sep: ' | '
     metadata_key_value_sep: ': '
@@ -70,6 +72,7 @@ model_name: gpt2
 project_name: metadata_lm
 jobid: null
 start_with_eval: false
+extra_steps_to_eval_save_at: [2]
 evaluation_strategy: STEPS
 eval_num_per_epoch: 3
 eval_steps: 100

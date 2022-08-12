@@ -264,6 +264,19 @@ data_files_with_entities = [
     "c4-en-html_cc-main-2019-18_pq01-010.jsonl.gz",
     "c4-en-html_cc-main-2019-18_pq01-011.jsonl.gz",
 ]
+bad_files = [
+    "c4-en-html_cc-main-2019-18_pq00-119.jsonl.gz",
+    "c4-en-html_cc-main-2019-18_pq01-012.jsonl.gz",
+    "c4-en-html_cc-main-2019-18_pq01-013.jsonl.gz",
+    "c4-en-html_cc-main-2019-18_pq01-014.jsonl.gz",
+    "c4-en-html_cc-main-2019-18_pq01-016.jsonl.gz",
+    "c4-en-html_cc-main-2019-18_pq01-017.jsonl.gz",
+    "c4-en-html_cc-main-2019-18_pq01-018.jsonl.gz",
+    "c4-en-html_cc-main-2019-18_pq01-019.jsonl.gz",
+    "c4-en-html_cc-main-2019-18_pq01-020.jsonl.gz",
+    "c4-en-html_cc-main-2019-18_pq01-021.jsonl.gz",
+]
+
 
 features = {
     "HtmlPreprocessor_error": {"_type": "Value", "dtype": "int64", "id": None},
@@ -401,13 +414,22 @@ fs = HfFileSystem(di)
 all_files = fs.ls(".")
 
 
-def get_files(pattern):
+def get_files0(pattern):
     for file in all_files:
         if fnmatch(file, pattern):
             yield file
 
 
-def load_dataset_by_files(files, streaming=False):
+def get_files(pattern):
+    files = list(get_files0("*.jsonl.gz"))
+    files = sorted(files)[:400]
+    files = [x for x in files if x not in bad_files]
+    for file in files:
+        if fnmatch(file, pattern):
+            yield file
+
+
+def load_dataset_by_files(files, streaming=False, shuffle_buffer_size=1024):
     selected_files_entities = list(filter(lambda v: v in data_files_with_entities, files))
     selected_files_no_entities = list(filter(lambda v: v not in data_files_with_entities, files))
     datasets = []
@@ -444,7 +466,9 @@ def load_dataset_by_files(files, streaming=False):
         dataset = concatenate_datasets([d for d, _ in datasets])
     else:
         sizes = [n for _, n in datasets]
-        datasets = [d.shuffle(seed=42, buffer_size=1024) for d, n in datasets]
+        datasets = [d for d, n in datasets]
+        if shuffle_buffer_size > 0:
+            datasets = [d.shuffle(seed=42, buffer_size=1024) for d in datasets]
         if len(datasets) == 1:
             return datasets[0]
         probabilities = [n / sum(sizes) for n in sizes]

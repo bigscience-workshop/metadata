@@ -85,6 +85,10 @@ class MetadataConfig:
         default_factory=list,
         metadata={"help": "The list of metadata types to use. Metadata is added in order of appearance in this list."},
     )
+    metadata_column_list: List[str] = field(
+        default_factory=list,
+        metadata={"help": "The list of column names containing metadata to use"},
+    )
     local_metadata_special_tokens: Optional[Dict[str, str]] = field(
         default=None,
         metadata={
@@ -109,6 +113,10 @@ class MetadataConfig:
     random_sample_metadata: bool = field(
         default=False,
         metadata={"help": "Whether to random drop metadata, using bsmetadata.metadata_utils.random_sample_metadata."},
+    )
+    random_sample_metadata_calculate_size: int = field(
+        default=-1,
+        metadata={"help": "Number of examples to go through when calculating sampling proportion."},
     )
     metadata_probability: float = field(
         default=1, metadata={"help": "The probability of adding metadata to an input example."}
@@ -140,8 +148,8 @@ class MetadataConfig:
         metadata={"help": "The character sequence to be concatenated at the beginning of the metadata prefix."},
     )
     entity_setting: str = field(
-        default="normal",
-        metadata={"help": "The settings in which you want to use entites. Valid choices: (beg, end, normal)"},
+        default="beg",
+        metadata={"help": "The settings in which you want to use entites. Valid choices: (beg, end)"},
     )
     local_metadata_special_token_start: Optional[Dict[str, str]] = field(
         default=None,
@@ -266,7 +274,9 @@ class HtmlProcessor(MetadataProcessor):
         txt_min_chr_len = cfg.html_parser_config.all_tags_rules.txt_min_chr_len
         tags_exceptions = cfg.html_parser_config.all_tags_rules.tags_exceptions_to_txt_max_min_chr_len
         tags_to_remove_alone = [
-            html_parser.objects.TagToRemove(tag=tag, txt_max_chr_len=txt_max_chr_len, txt_min_chr_len=txt_min_chr_len)
+            html_parser.objects.TagToRemove(
+                tag=tag, content_min_char_length=txt_min_chr_len, content_max_char_length=txt_max_chr_len
+            )
             for (tag, txt_max_chr_len, txt_min_chr_len) in zip(
                 cfg.html_parser_config.tags_to_remove_alone_tag_name,
                 cfg.html_parser_config.tags_to_remove_alone_txt_max_chr_len,
@@ -330,7 +340,7 @@ class TitleProcessor(MetadataProcessor):
     def process_global(self, metadata_attrs: Dict[str, Any]) -> Optional[str]:
         # We represent a title by the title of the corresponding webpage content.
         # Example: "My Thoughts On It » Dad, I want to be an inventor".
-        return "".join([metadata_attrs["key"], self.cfg.metadata_key_value_sep, metadata_attrs["value"]])
+        return "".join(["Title", self.cfg.metadata_key_value_sep, metadata_attrs["value"]])
 
 
 class WebsiteDescriptionProcessor(MetadataProcessor):
@@ -369,7 +379,7 @@ class BasicStartLocalProcessor(MetadataProcessor):
 
 PROCESSORS = {
     "timestamp": TimestampProcessor,
-    "source": DatasourceProcessor,
+    "datasource": DatasourceProcessor,
     "length": GenerationLengthProcessor,
     "entity": EntityProcessor,
     "entity_paragraph": EntityParagraphProcessor,

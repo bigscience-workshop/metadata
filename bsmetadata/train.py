@@ -1,5 +1,4 @@
 import dataclasses
-import gc
 import json
 import logging
 import math
@@ -7,13 +6,15 @@ import os
 import sys
 from dataclasses import dataclass, field
 from functools import partial
-from typing import Optional
+from pathlib import Path
+from typing import List, Optional, Union, get_args, get_origin
 
 import hydra
 import torch
 import torch.nn.functional as F
 import wandb
 from accelerate import Accelerator
+from accelerate.utils import DistributedType, DummyOptim, DummyScheduler
 from hydra.core.config_store import ConfigStore
 from omegaconf import OmegaConf
 from torch.optim import AdamW
@@ -48,10 +49,17 @@ class CFG:
     out_dir: str = field(
         default="output_dir", metadata={"help": "The output directory in which the trained model is saved."}
     )
+    resume_from_checkpoint_dir: Optional[str] = field(
+        default=None, metadata={"help": "The directory where checkpoint to resume from is saved"}
+    )
     model_name: str = field(default="gpt2", metadata={"help": "The name of the pretrained model to use."})
     project_name: str = field(default="metadata_lm", metadata={"help": "The project name."})
     jobid: Optional[str] = field(default=None, metadata={"help": "The jobid of the run."})
     start_with_eval: bool = field(default=False, metadata={"help": "Start by evaluating the model"})
+    extra_steps_to_eval_save_at: List[int] = field(
+        default_factory=(lambda: []),
+        metadata={"help": "A list of additional steps to evaluate and save at."},
+    )
     evaluation_strategy: IntervalStrategy = field(
         default="STEPS",
         metadata={"help": "The evaluation strategy to use."},
@@ -88,9 +96,14 @@ cs.store(name="config", node=CFG)
 
 def show_help(context="", cls=CFG):
     default_instance = cls()
+
     for field_ in dataclasses.fields(cls):
-        if dataclasses.is_dataclass(field_.type):
-            show_help(context=f"{context}{field_.name}.", cls=field_.type)
+        type_ = field_.type
+        origin = get_origin(type_)
+        if origin is Union:  # do this to handle Optional[some_dataclass]
+            type_ = get_args(type_)[0]
+        if dataclasses.is_dataclass(type_):
+            show_help(context=f"{context}{field_.name}.", cls=type_)
         else:
             kwargs = field_.metadata.copy()
             help = kwargs.get("help", "")
@@ -140,9 +153,44 @@ def loss_fn(batch, outputs, metadata_mask=None):
     return loss
 
 
+def save_model_and_tokenizer(accelerator, model, path, tokenizer=None):
+    accelerator.wait_for_everyone()
+    unwrapped_model = accelerator.unwrap_model(model)
+    unwrapped_model.save_pretrained(path, save_function=accelerator.save)
+    if tokenizer:
+        tokenizer.save_pretrained(path, save_function=accelerator.save)
+
+
+@dataclass
+class TrainState:
+    completed_steps: int = 0
+
+    def step(self):
+        self.completed_steps += 1
+
+    def save(self, path):
+        """to json"""
+        with open(path, "w") as f:
+            json.dump(dataclasses.asdict(self), f)
+
+    @classmethod
+    def load(cls, path):
+        """from json"""
+        with open(path, "r") as f:
+            d = json.load(f)
+        return cls(**d)
+
+
 @hydra.main(config_path="hydra_configs", config_name="config")
 def main(args: CFG) -> None:
     print(OmegaConf.to_yaml(args))
+    # write the yaml to a file
+    path = Path(args.out_dir).resolve() / "actual_config.yaml"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w") as f:
+        f.write(OmegaConf.to_yaml(args))
+        logger.info(f"Wrote actual config to {path}")
+
     config_dict = OmegaConf.to_container(args)
 
     # The dataset library use the hash of the arguments to create the cache
@@ -164,17 +212,18 @@ def main(args: CFG) -> None:
     accelerator = Accelerator()
     is_local_main_process = accelerator.is_local_main_process
     tqdm = partial(original_tqdm, disable=not is_local_main_process, position=0)
+    use_deepspeed = accelerator.state.deepspeed_plugin is not None
+    use_deepspeed_optimzer = use_deepspeed or "optimizer" in accelerator.state.deepspeed_plugin.deepspeed_config
+    use_deepspeed_scheduler = use_deepspeed or "scheduler" in accelerator.state.deepspeed_plugin.deepspeed_config
+
+    if accelerator.distributed_type == DistributedType.DEEPSPEED and not use_deepspeed_scheduler:
+        assert False, "Please set scheduler in DeepSpeed config file otherwise it may not be checkpointed properly"
 
     os.makedirs(args.out_dir, exist_ok=True)
 
     config = AutoConfig.from_pretrained(args.model_name)
     config.gradient_checkpointing = args.gradient_checkpointing
     config.use_cache = not args.gradient_checkpointing  # to disable warning
-    # get dataloaders
-    tokenizer = AutoTokenizer.from_pretrained(args.model_name)
-    tokenizer.pad_token = tokenizer.eos_token
-    train_dataloader, eval_dataloaders = get_dataloaders(tokenizer, args.data_config)
-
     # get model
     model = AutoModelForCausalLM.from_pretrained(args.model_name, config=config)
 
@@ -191,21 +240,56 @@ def main(args: CFG) -> None:
             "weight_decay": 0.0,
         },
     ]
-    optimizer = AdamW(optimizer_grouped_parameters, lr=args.learning_rate, betas=(0.9, 0.98), eps=1e-6)
+    if use_deepspeed_optimzer:
+        optimizer = DummyOptim(optimizer_grouped_parameters)
+    else:
+        optimizer = AdamW(optimizer_grouped_parameters, lr=args.learning_rate, betas=(0.9, 0.98), eps=1e-6)
+
+    assert args.max_train_steps is not None, "max_train_steps is required, num_train_epochs is not supported"
+    if use_deepspeed_scheduler:
+        scheduler = DummyScheduler(
+            optimizer, total_num_steps=args.max_train_steps, warmup_num_steps=args.num_warmup_steps
+        )
+        logger.info(
+            f"Using DeepSpeed scheduler, total_num_steps={args.max_train_steps}, warmup_num_steps={args.num_warmup_steps}"
+        )
+    else:
+        scheduler = get_scheduler(
+            name=args.lr_scheduler_type,
+            optimizer=optimizer,
+            num_warmup_steps=args.num_warmup_steps,
+            num_training_steps=args.max_train_steps,
+        )
+    # get dataloaders
+    tokenizer = AutoTokenizer.from_pretrained(args.model_name)
+    tokenizer.pad_token = tokenizer.eos_token
+    train_dataloader, eval_dataloaders = get_dataloaders(tokenizer, args.data_config)
 
     # Prepare everything
-    model, optimizer, train_dataloader = accelerator.prepare(model, optimizer, train_dataloader)
+    model, optimizer, train_dataloader, scheduler = accelerator.prepare(model, optimizer, train_dataloader, scheduler)
     eval_dataloaders = {k: accelerator.prepare(v) for k, v in eval_dataloaders.items()}
+    train_state = TrainState()
 
-    # Note -> the training dataloader needs to be prepared before we grab its length below (cause its length will be
-    # shorter in multiprocess)
+    # If resume_from_checkpoint_dir is not None, we load the resumed state
+    if args.resume_from_checkpoint_dir:
+        path = Path(args.resume_from_checkpoint_dir).resolve()
+        logger.info(f"Loading checkpoint from {path}")
+        if accelerator.distributed_type == DistributedType.DEEPSPEED:
+            # this is a deepspeed method, will load model, optimizer, scheduler
+            # `model` wraps the optimizer and scheduler
+            model.load_checkpoint(path)
+        else:
+            accelerator.load_state(path)
+        train_state = TrainState.load(Path(path) / "train_state.json")
 
+    # set a random dataset size if streaming
+    dl_size = int(1e6) if args.data_config.streaming else len(train_dataloader)
     # Scheduler and math around the number of training steps.
-    num_update_steps_per_epoch = math.ceil(len(train_dataloader) / args.gradient_accumulation_steps)
-    if args.max_train_steps is None:
-        args.max_train_steps = args.num_train_epochs * num_update_steps_per_epoch
-    else:
-        args.num_train_epochs = math.ceil(args.max_train_steps / num_update_steps_per_epoch)
+    num_update_steps_per_epoch = math.ceil(dl_size / args.gradient_accumulation_steps)
+    # if args.max_train_steps is None:
+    # args.max_train_steps = args.num_train_epochs * num_update_steps_per_epoch
+    args.num_train_epochs = math.ceil(args.max_train_steps / num_update_steps_per_epoch)
+    # Note -> the training dataloader will be shorter in multiprocess)
 
     if args.evaluation_strategy == IntervalStrategy.EPOCH and args.eval_num_per_epoch >= 1:
         eval_per_n_step = args.max_train_steps // (args.eval_num_per_epoch * args.num_train_epochs)
@@ -221,13 +305,6 @@ def main(args: CFG) -> None:
     else:  # IntervalStrategy.NO or (args.save_num_per_epoch < 1 and args.save_strategy == IntervalStrategy.EPOCH)
         save_per_n_step = args.max_train_steps + 1  # will never eval
 
-    scheduler = get_scheduler(
-        name=args.lr_scheduler_type,
-        optimizer=optimizer,
-        num_warmup_steps=args.num_warmup_steps,
-        num_training_steps=args.max_train_steps,
-    )
-
     @torch.no_grad()
     def evaluate(eval_dataloader):
         model.eval()
@@ -241,25 +318,31 @@ def main(args: CFG) -> None:
 
             losses.append(accelerator.gather(loss.repeat(args.data_config.per_device_eval_batch_size)))
 
+        model.train()
+        if not losses:
+            # in case the dataloader is empty
+            return
         losses = torch.cat(losses)
         perplexity = math.exp(torch.mean(losses))
-        model.train()
         return {"perplexity": perplexity}
+
+    def evaluate_multiple_dateloaders(eval_dataloaders):
+        for key, eval_dataloader in eval_dataloaders.items():
+            logger.info(f"Evaluating split {key}")
+            metrics = evaluate(eval_dataloader)
+            metrics_logger.log({key: metrics})
+        logger.info("Evaluation finished")
 
     if not args.do_train and not args.do_eval:
         return
 
-    progress_bar = tqdm(range(args.max_train_steps), desc="training")
-    completed_steps = 0
+    progress_bar = tqdm(range(args.max_train_steps), desc="training", initial=train_state.completed_steps)
     metrics_logger = Logger(is_local_main_process, project=args.project_name, config=config_dict)
 
     do_eval = args.do_eval and args.start_with_eval
     if do_eval:
         logger.info("Start with an evaluation")
-        for key, eval_dataloader in eval_dataloaders.items():
-            metrics = evaluate(eval_dataloader)
-            metrics_logger.log({key: metrics})
-        logger.info("Evaluation finished")
+        evaluate_multiple_dateloaders(eval_dataloaders)
 
     if not args.do_train:
         return
@@ -273,10 +356,27 @@ def main(args: CFG) -> None:
         f"  Saving will be done every {save_per_n_step} steps, "
         f"for a total of {args.max_train_steps//save_per_n_step} times."
     )
+
+    def save(path):
+        path = Path(path).resolve()
+        logger.info(f"Saving checkpoint at {path}")
+        if accelerator.distributed_type == DistributedType.DEEPSPEED:
+            model.save_checkpoint(path)
+        else:
+            accelerator.save_state(path)
+        save_model_and_tokenizer(accelerator, model, path)
+        if is_local_main_process:
+            train_state.save(path / "train_state.json")
+
     step_loss = 0
     step = 0
     model.train()
-    for epoch in range(args.num_train_epochs):
+    # for epoch in range(args.num_train_epochs):
+    finished = False
+
+    if not args.data_config.streaming:
+        metrics_logger.log({"train_dataloader_length": len(train_dataloader)})
+    while not finished:
         for batch in train_dataloader:
             step += 1
             # pop labels because we want to calculate loss ourselves
@@ -285,59 +385,57 @@ def main(args: CFG) -> None:
             outputs = model(**batch)
             batch["labels"] = labels
             loss = loss_fn(batch, outputs, metadata_mask)
-            loss = loss / args.gradient_accumulation_steps
-            accelerator.backward(loss)
-            step_loss += loss.detach()
 
-            do_step = step % args.gradient_accumulation_steps == 0 or step == len(train_dataloader) - 1
+            step_loss += loss.detach() / args.gradient_accumulation_steps
+            if use_deepspeed:
+                model.backward(loss)
+                model.step()
+            else:
+                accelerator.backward(loss)
+
+            do_step = step % args.gradient_accumulation_steps == 0
             if do_step:
-                #             accelerator.clip_grad_norm_(model.parameters(), 1.0)
-                optimizer.step()
-                scheduler.step()
-                optimizer.zero_grad()
                 progress_bar.update(1)
-                completed_steps += 1
-                metrics_logger.log(
-                    {
-                        "loss": step_loss,
-                        "lr": optimizer.param_groups[0]["lr"],
-                        "gradient_step": completed_steps,
-                    }
-                )
+                train_state.step()
+                if not use_deepspeed:
+                    optimizer.step()
+                    scheduler.step()
+                    optimizer.zero_grad()
+                metrics = {
+                    "loss": step_loss,
+                    "lr": max(scheduler.get_lr()),
+                    "gradient_step": train_state.completed_steps,
+                }
+                if not args.data_config.streaming:
+                    metrics["epoch"] = step / len(train_dataloader)
+
+                metrics_logger.log(metrics)
                 step_loss = 0
             else:
                 continue
+            completed_steps = train_state.completed_steps
 
-            do_eval = args.do_eval and completed_steps > 0 and completed_steps % eval_per_n_step == 0
-            if do_eval:
-                for key, eval_dataloader in eval_dataloaders.items():
-                    metrics = evaluate(eval_dataloader)
-                    metrics_logger.log({key: metrics})
-                    # logger.info(f"epoch {epoch}: perplexity: {perplexity}")
+            do_eval = (
+                args.do_eval
+                and completed_steps > 0
+                and (completed_steps % eval_per_n_step == 0 or completed_steps in args.extra_steps_to_eval_save_at)
+            )
 
-            do_save = is_local_main_process and completed_steps > 0 and completed_steps % save_per_n_step == 0
+            do_save = completed_steps > 0 and (
+                completed_steps % save_per_n_step == 0 or completed_steps in args.extra_steps_to_eval_save_at
+            )
             if do_save:
-                save_path = os.path.join(args.out_dir, f"checkpoint-{completed_steps}step.pt")
-                logger.info(f"Save model at {save_path}")
-                save_dict = {
-                    "epoch": epoch + 1,
-                    "state_dict": accelerator.unwrap_model(model).state_dict(),
-                    "optimizer": optimizer.state_dict(),
-                    "scheduler": scheduler.state_dict(),
-                }
-                torch.save(save_dict, save_path)
-                del save_dict
-                gc.collect()
+                path = Path(args.out_dir).resolve() / f"checkpoint-{completed_steps}step"
+                save(path)
+            if do_eval:
+                evaluate_multiple_dateloaders(eval_dataloaders)
 
             if completed_steps >= args.max_train_steps:
+                finished = True
                 break
     metrics_logger.close()
     logger.info("Training finished")
-
-    if args.out_dir is not None:
-        accelerator.wait_for_everyone()
-        unwrapped_model = accelerator.unwrap_model(model)
-        unwrapped_model.save_pretrained(args.out_dir, save_function=accelerator.save)
+    save(args.out_dir)
 
 
 if __name__ == "__main__":

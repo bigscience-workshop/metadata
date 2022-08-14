@@ -1,5 +1,5 @@
 export MODEL=gpt2-xl
-export NUM_GPU=8
+export NUM_GPU=2
 
 export DEEPSPEED_CONFIG=$(realpath bsmetadata/deepspeed_configs/v2.json)
 echo "deepspeed_config_file: $DEEPSPEED_CONFIG"
@@ -21,7 +21,4 @@ accelerate launch --config_file accelerate_config.yaml bsmetadata/train.py --con
   model_name=$MODEL \
     data_config.train_file='c4-en-html_cc-main-2019-18_pq0*-010.jsonl.gz' \
     data_config.validation_file='c4-en-html_cc-main-2019-18_pq00-001.jsonl.gz' \
-    data_config.preprocessing_num_workers=48  extra_steps_to_eval_save_at='[2]' \
-    data_config.streaming=True out_dir=/mnt/ssd-1/bigscience-metadata/stream10file
-    #out_dir=/mnt/ssd-1/bigscience-metadata/run1
-    #data_config.train_file='c4-en-html_cc*.jsonl.gz' data_config.streaming=True out_dir=/mnt/ssd-1/bigscience-metadata/run1
+    data_config.preprocessing_num_workers=48  extra_steps_to_eval_save_at='[100]'

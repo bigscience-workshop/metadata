@@ -317,6 +317,8 @@ def main(args: CFG) -> None:
             loss = loss_fn(batch, outputs, metadata_mask)
 
             losses.append(accelerator.gather(loss.repeat(args.data_config.per_device_eval_batch_size)))
+            if step > 3:
+                break
 
         model.train()
         if not losses:
@@ -401,8 +403,10 @@ def main(args: CFG) -> None:
                     optimizer.step()
                     scheduler.step()
                     optimizer.zero_grad()
+
+                step_loss_gathered = accelerator.gather(step_loss).mean().item()
                 metrics = {
-                    "loss": step_loss,
+                    "loss": step_loss_gathered,
                     "lr": max(scheduler.get_lr()),
                     "gradient_step": train_state.completed_steps,
                 }

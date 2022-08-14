@@ -317,8 +317,6 @@ def main(args: CFG) -> None:
             loss = loss_fn(batch, outputs, metadata_mask)
 
             losses.append(accelerator.gather(loss.repeat(args.data_config.per_device_eval_batch_size)))
-            if step > 3:
-                break
 
         losses = torch.cat(losses)
         perplexity = math.exp(torch.mean(losses))

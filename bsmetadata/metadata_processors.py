@@ -231,8 +231,14 @@ class TimestampProcessor(MetadataProcessor):
         # We represent a timestamp using only the year and month.
         # Example: "Year: 2020 | Month: September".
         formatted_datetime = metadata_attrs["value"]
-        if not isinstance(formatted_datetime, datetime.datetime):
-            formatted_datetime = parse(metadata_attrs["value"])
+        if isinstance(formatted_datetime, str):
+            ts_str = metadata_attrs["value"]
+            try:
+                # Unify int sec., long ms/ns, and float ms/ns.
+                ts = float(f"{ts_str[:10]}.{ts_str[10:]}".replace("..", "."))
+                formatted_datetime = datetime.datetime.fromtimestamp(ts)
+            except ValueError:
+                formatted_datetime = parse(ts_str)
         year_str = f"Year: {formatted_datetime.year}"
         month_str = f"Month: {formatted_datetime.strftime('%B')}"
         return self.cfg.metadata_sep.join((year_str, month_str))

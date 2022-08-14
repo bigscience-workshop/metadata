@@ -326,7 +326,7 @@ features = {
         {
             "key": {"_type": "Value", "dtype": "string", "id": None},
             "type": {"_type": "Value", "dtype": "string", "id": None},
-            "value": {"_type": "Value", "dtype": "timestamp[s]", "id": None},
+            "value": {"_type": "Value", "dtype": "string", "id": None},
         }
     ],
     "metadata_title": [

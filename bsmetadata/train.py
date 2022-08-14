@@ -320,12 +320,9 @@ def main(args: CFG) -> None:
             if step > 3:
                 break
 
-        model.train()
-        if not losses:
-            # in case the dataloader is empty
-            return
         losses = torch.cat(losses)
         perplexity = math.exp(torch.mean(losses))
+        model.train()
         return {"perplexity": perplexity}
 
     def evaluate_multiple_dateloaders(eval_dataloaders):

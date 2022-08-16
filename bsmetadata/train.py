@@ -401,8 +401,10 @@ def main(args: CFG) -> None:
                     optimizer.step()
                     scheduler.step()
                     optimizer.zero_grad()
+
+                step_loss_gathered = accelerator.gather(step_loss).mean().item()
                 metrics = {
-                    "loss": step_loss,
+                    "loss": step_loss_gathered,
                     "lr": max(scheduler.get_lr()),
                     "gradient_step": train_state.completed_steps,
                 }

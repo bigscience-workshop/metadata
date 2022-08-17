@@ -198,6 +198,7 @@ def main(args: CFG) -> None:
         f.write(OmegaConf.to_yaml(args))
         logger.info(f"Wrote actual config to {path}")
 
+    config_dict = OmegaConf.to_container(args)
     # The dataset library use the hash of the arguments to create the cache
     # name. Without this transformation the hash of args is not deterministic
     args = OmegaConf.to_object(args)
@@ -209,7 +210,6 @@ def main(args: CFG) -> None:
         assert dataclasses.is_dataclass(args)
         assert dataclasses.is_dataclass(args.data_config)
         assert dataclasses.is_dataclass(args.data_config.metadata_config)
-    config_dict = OmegaConf.to_container(args)
 
     set_seed(args.seed)
     accelerator = Accelerator()

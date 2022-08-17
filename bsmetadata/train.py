@@ -181,6 +181,13 @@ class TrainState:
         return cls(**d)
 
 
+def instantiate_data_class(data_class, args):
+    schema = OmegaConf.structured(data_class)
+    args = OmegaConf.merge(schema, args)
+    args = OmegaConf.to_object(args)
+    return args
+
+
 @hydra.main(config_path="hydra_configs", config_name="config")
 def main(args: CFG) -> None:
     print(OmegaConf.to_yaml(args))
@@ -192,7 +199,6 @@ def main(args: CFG) -> None:
         logger.info(f"Wrote actual config to {path}")
 
     config_dict = OmegaConf.to_container(args)
-
     # The dataset library use the hash of the arguments to create the cache
     # name. Without this transformation the hash of args is not deterministic
     args = OmegaConf.to_object(args)
@@ -200,10 +206,7 @@ def main(args: CFG) -> None:
     # if the yaml file is used to create the config, the args are not dataclass up to this step
     # need to convert them back to dataclass via OmegaConf
     if not dataclasses.is_dataclass(args):
-        schema = OmegaConf.structured(CFG)
-        args = OmegaConf.merge(schema, args)
-        config_dict = OmegaConf.to_container(args)
-        args = OmegaConf.to_object(args)
+        args = instantiate_data_class(CFG, args)
         assert dataclasses.is_dataclass(args)
         assert dataclasses.is_dataclass(args.data_config)
         assert dataclasses.is_dataclass(args.data_config.metadata_config)

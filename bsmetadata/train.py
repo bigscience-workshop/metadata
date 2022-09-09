@@ -378,67 +378,77 @@ def main(args: CFG) -> None:
     finished = False
     if not args.data_config.streaming:
         metrics_logger.log({"train_dataloader_length": len(train_dataloader)})
+    def get_data_iter():
+        while True:
+            for batch in train_dataloader:
+                yield batch
+    data_iter = get_data_iter()
+
+    for _ in tqdm(range(args.gradient_accumulation_steps * train_state.completed_steps), desc='skipping data after resume'):
+        _ = next(data_iter)
 
 
-    while not finished:
-        for batch in train_dataloader:
-            step += 1
-            # pop labels because we want to calculate loss ourselves
-            labels = batch.pop("labels")
-            metadata_mask = batch.pop("metadata_mask", None)
-            outputs = model(**batch)
-            batch["labels"] = labels
-            loss = loss_fn(batch, outputs, metadata_mask)
 
-            step_loss += loss.detach() / args.gradient_accumulation_steps
-            if use_deepspeed:
-                model.backward(loss)
-                model.step()
-            else:
-                accelerator.backward(loss)
+    #while not finished:
+    #    for batch in train_dataloader:
+    for batch in data_iter:
+        step += 1
+        # pop labels because we want to calculate loss ourselves
+        labels = batch.pop("labels")
+        metadata_mask = batch.pop("metadata_mask", None)
+        outputs = model(**batch)
+        batch["labels"] = labels
+        loss = loss_fn(batch, outputs, metadata_mask)
 
-            do_step = step % args.gradient_accumulation_steps == 0
-            if do_step:
-                progress_bar.update(1)
-                train_state.step()
-                if not use_deepspeed:
-                    optimizer.step()
-                    scheduler.step()
-                    optimizer.zero_grad()
+        step_loss += loss.detach() / args.gradient_accumulation_steps
+        if use_deepspeed:
+            model.backward(loss)
+            model.step()
+        else:
+            accelerator.backward(loss)
 
-                step_loss_gathered = accelerator.gather(step_loss).mean().item()
-                metrics = {
-                    "loss": step_loss_gathered,
-                    "lr": max(scheduler.get_lr()),
-                    "gradient_step": train_state.completed_steps,
-                }
-                if not args.data_config.streaming:
-                    metrics["epoch"] = step / len(train_dataloader)
+        do_step = step % args.gradient_accumulation_steps == 0
+        if do_step:
+            progress_bar.update(1)
+            train_state.step()
+            if not use_deepspeed:
+                optimizer.step()
+                scheduler.step()
+                optimizer.zero_grad()
 
-                metrics_logger.log(metrics)
-                step_loss = 0
-            else:
-                continue
-            completed_steps = train_state.completed_steps
+            step_loss_gathered = accelerator.gather(step_loss).mean().item()
+            metrics = {
+                "loss": step_loss_gathered,
+                "lr": max(scheduler.get_lr()),
+                "gradient_step": train_state.completed_steps,
+            }
+            if not args.data_config.streaming:
+                metrics["epoch"] = step / len(train_dataloader)
 
-            do_eval = (
-                args.do_eval
-                and completed_steps > 0
-                and (completed_steps % eval_per_n_step == 0 or completed_steps in args.extra_steps_to_eval_save_at)
-            )
+            metrics_logger.log(metrics)
+            step_loss = 0
+        else:
+            continue
+        completed_steps = train_state.completed_steps
 
-            do_save = completed_steps > 0 and (
-                completed_steps % save_per_n_step == 0 or completed_steps in args.extra_steps_to_eval_save_at
-            )
-            if do_save:
-                path = Path(args.out_dir).resolve() / f"checkpoint-{completed_steps}step"
-                save(path)
-            if do_eval:
-                evaluate_multiple_dateloaders(eval_dataloaders)
+        do_eval = (
+            args.do_eval
+            and completed_steps > 0
+            and (completed_steps % eval_per_n_step == 0 or completed_steps in args.extra_steps_to_eval_save_at)
+        )
 
-            if completed_steps >= args.max_train_steps:
-                finished = True
-                break
+        do_save = completed_steps > 0 and (
+            completed_steps % save_per_n_step == 0 or completed_steps in args.extra_steps_to_eval_save_at
+        )
+        if do_save:
+            path = Path(args.out_dir).resolve() / f"checkpoint-{completed_steps}step"
+            save(path)
+        if do_eval:
+            evaluate_multiple_dateloaders(eval_dataloaders)
+
+        if completed_steps >= args.max_train_steps:
+            finished = True
+            break
     metrics_logger.close()
     logger.info("Training finished")
     save(args.out_dir)

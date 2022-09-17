@@ -396,10 +396,13 @@ def convert_types(features):
 new_features = {}
 final_features = convert_types(features)
 final_features_with_entities = convert_types(features_with_entities)
+dataset_repo_id ="bs-modeling-metadata/c4-en-html-with-metadata"
 
-di = dataset_info("bs-modeling-metadata/c4-en-html-with-metadata")
+di = dataset_info(dataset_repo_id)
 fs = HfFileSystem(di)
 all_files = fs.ls(".")
+#all_files = data_files_with_entities#fs.ls(".")
+dataset_repo_id = "/home/jonathan_chang/c4-en-html-with-metadata"
 
 
 
@@ -415,7 +418,7 @@ def load_dataset_by_files(files, streaming=False):
     datasets = []
     if selected_files_entities:
         dataset_entities = load_dataset(
-            "bs-modeling-metadata/c4-en-html-with-metadata",
+            dataset_repo_id,
             features=Features(final_features_with_entities),
             data_files=selected_files_entities,
             split="train",
@@ -426,7 +429,7 @@ def load_dataset_by_files(files, streaming=False):
 
     if selected_files_no_entities:
         dataset_no_entities = load_dataset(
-            "bs-modeling-metadata/c4-en-html-with-metadata",
+            dataset_repo_id,
             features=Features(final_features),
             data_files=selected_files_no_entities,
             split="train",

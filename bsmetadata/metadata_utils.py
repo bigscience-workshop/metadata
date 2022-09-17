@@ -203,6 +203,7 @@ def random_sample_metadata_v2(
 
     Args:
         examples: The examples to process, with required "metadata".
+        metadata_type_sample_weights: Dict[str, float], metadata_{key} is the column name
 
     Returns:
         A new collection of examples, with some metadata dropped.

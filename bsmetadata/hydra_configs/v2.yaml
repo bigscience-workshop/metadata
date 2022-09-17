@@ -4,6 +4,21 @@ data_config:
   metadata_config:
     random_sample_metadata: true
     random_sample_metadata_calculate_size: 16384
+    random_sample_metadata_weights:
+      html: 1.0
+      timestamp: 11.56111563110182
+      website_desc: 11.033764368362439
+      title: 1.0644297987874418
+      generation_datasource: 1.0
+      entity_paragraph: 11.077104653627899
+
+    #- url: 1.0
+    #- generation_length_sentence
+    #- generation_length_text
+      # 'Generation_datasource': 1.0,
+      # 'Generation_length_sentence': 1.0097672628981422,
+      # 'Generation_length_text': 1.0,
+      # 'Paragraph': 1.0,
     metadata_list:
     - html
     - timestamp

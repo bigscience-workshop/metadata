@@ -121,33 +121,35 @@ def preprocess_datasets(dataset, tokenizer, args, column_names, is_train=True):
         if args.metadata_config.random_sample_metadata:
             logger.info("getting stats for dataset")
 
-            def get_metadata_types(example):
-                results = []
-                for metadata_type in args.metadata_config.metadata_column_list:
-                    if example[f"metadata_{metadata_type}"]:
-                        results.append(metadata_type)
-                return results
-
-            # TODO: for streaming, add an arg to control how much data to control how much data to iterate
-            # and then maybe reset the iterator
-            sample_size = args.metadata_config.random_sample_metadata_calculate_size
-            if args.streaming:
-                sample_dataset = dataset.take(sample_size)
+            if args.metadata_config.random_sample_metadata_weights is not None:
+                metadata_type_sample_weights = args.metadata_config.random_sample_metadata_weights
+                logger.info(f"using metadata_type_sample_weights proviced in args")
             else:
-                sample_dataset = dataset
-                if 0 < sample_size < len(sample_dataset):
-                    ids = np.random.randint(low=0, high=len(dataset), size=sample_size)
-                    sample_dataset = sample_dataset.select(ids)
-            metadata_type_counter = Counter(
-                chain.from_iterable(
-                    get_metadata_types(x)
-                    for x in tqdm(
-                        sample_dataset, desc="iterate over training set to count metadata types", total=sample_size
+                def get_metadata_types(example):
+                    results = []
+                    for metadata_type in args.metadata_config.metadata_column_list:
+                        if example[f"metadata_{metadata_type}"]:
+                            results.append(metadata_type)
+                    return results
+
+                sample_size = args.metadata_config.random_sample_metadata_calculate_size
+                if args.streaming:
+                    sample_dataset = dataset.take(sample_size)
+                else:
+                    sample_dataset = dataset
+                    if 0 < sample_size < len(sample_dataset):
+                        ids = np.random.randint(low=0, high=len(dataset), size=sample_size)
+                        sample_dataset = sample_dataset.select(ids)
+                metadata_type_counter = Counter(
+                    chain.from_iterable(
+                        get_metadata_types(x)
+                        for x in tqdm(
+                            sample_dataset, desc="iterate over training set to count metadata types", total=sample_size
+                        )
                     )
                 )
-            )
-            metadata_type_weight_sum = sum(metadata_type_counter.values())
-            metadata_type_sample_weights = {k: metadata_type_weight_sum / v for k, v in metadata_type_counter.items()}
+                metadata_type_weight_sum = sum(metadata_type_counter.values())
+                metadata_type_sample_weights = {k: metadata_type_weight_sum / v for k, v in metadata_type_counter.items()}
             logger.info(f"Metadata type sample weights: {metadata_type_sample_weights}")
 
             logger.info("Randomly sampling metadata")

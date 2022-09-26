@@ -376,9 +376,10 @@ def main(args: CFG) -> None:
     model.train()
     # for epoch in range(args.num_train_epochs):
     finished = False
-
     if not args.data_config.streaming:
         metrics_logger.log({"train_dataloader_length": len(train_dataloader)})
+
+
     while not finished:
         for batch in train_dataloader:
             step += 1

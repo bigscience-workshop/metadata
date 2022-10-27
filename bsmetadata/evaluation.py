@@ -123,21 +123,23 @@ if __name__ == "__main__":
     # Config preprocess function
     cfg = data_config.metadata_config
     cfg.metadata_probability = 1.0
+    cfg.entity_setting = "beg"
+    cfg.metadata_list.append("entity")
     preprocess_fn = functools.partial(add_metadata_and_chunk_examples, tokenizer=tokenizer, cfg=cfg)
 
     # Validation datasets
     dataset_paths = [
-        "bs-modeling-metadata/c4-en-html-with-validation_metadata_html",
+        # "bs-modeling-metadata/c4-en-html-with-validation_metadata_html",
         "bs-modeling-metadata/c4-en-html-with-validation_metadata_entity",
-        "bs-modeling-metadata/c4-en-html-with-validation_metadata_entity_paragraph",
-        "bs-modeling-metadata/c4-en-html-with-validation_metadata_website_desc",
-        "bs-modeling-metadata/c4-en-html-with-validation_metadata_generation_datasource",
-        "bs-modeling-metadata/c4-en-html-with-validation_metadata_timestamp",
-        "bs-modeling-metadata/c4-en-html-with-validation_metadata_title",
-        "bs-modeling-metadata/c4-en-html-with-validation_metadata_generation_length_sentence",
-        "bs-modeling-metadata/c4-en-html-with-validation_metadata_generation_length_text",
-        "bs-modeling-metadata/c4-en-html-with-validation_metadata_url",
-        "bs-modeling-metadata/c4-en-html-with-validation_metadata_paragraph",
+        # "bs-modeling-metadata/c4-en-html-with-validation_metadata_entity_paragraph",
+        # "bs-modeling-metadata/c4-en-html-with-validation_metadata_website_desc",
+        # "bs-modeling-metadata/c4-en-html-with-validation_metadata_generation_datasource",
+        # "bs-modeling-metadata/c4-en-html-with-validation_metadata_timestamp",
+        # "bs-modeling-metadata/c4-en-html-with-validation_metadata_title",
+        # "bs-modeling-metadata/c4-en-html-with-validation_metadata_generation_length_sentence",
+        # "bs-modeling-metadata/c4-en-html-with-validation_metadata_generation_length_text",
+        # "bs-modeling-metadata/c4-en-html-with-validation_metadata_url",
+        # "bs-modeling-metadata/c4-en-html-with-validation_metadata_paragraph",
     ]
 
     for path in dataset_paths:

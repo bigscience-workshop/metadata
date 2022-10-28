@@ -16,33 +16,33 @@ wheel         = "^0.37.1"                                                       
 pyarrow       = "^7.0.0"                                                                           # Our custom `Features` need >=6, yet 7 is probably better for bugfixes.
 numpy         = [{ version = "<1.22", python = "<3.8" }, { version = ">=1.22", python = ">=3.8" }]
 pandas        = [{ version = "<1.4", python = "<3.8" }, { version = ">=1.4", python = ">=3.8" }]
-datasets      = ">=1.18.4"                                                                         # Our custom `Features` need this; pip will likely update it to 2.0.0 and it's ok.
+datasets      = ">=1.18.4"                                                                         # Our custom `Features` need this; pip will likely update it to 2.6.1 and it's ok.
 lxml          = "4.6.5"
 htmlmin       = "0.1.12"
 torch         = { version = "1.9.0", optional = true }                                             # Techincally an extra, but flair for REL only works with torch != 1.8.
 tokenizers    = "!=0.12.0"                                                                         # A yanked version
-transformers  = "^4.6.0"                                                                           # Poetry will likely update it to 4.17.0, but it is probably ok and good for bugfixes.
-accelerate    = ">=0.4.0,<1"                                                                       # Poetry will likely update it to 0.5.1, but it is probably ok and good for bugfixes.
-hydra-core    = ">=1.1,<1.2"                                                                       # Poetry will likely update it to 1.1.1, but it is probably ok and good for bugfixes.
-wandb         = ">=0.10.32,<1"                                                                     # Poetry will likely update it to 0.12.11, but it is probably ok and good for bugfixes.
+transformers  = "^4.22"                                                                            # It implies "huggingface-hub>=0.9.0,<1.0" since 4.22.
+accelerate    = ">=0.4.0,<1"                                                                       # Poetry will likely update it to 0.13.2, but it is probably ok and good for bugfixes.
+hydra-core    = ">=1.1,<1.2"                                                                       # Poetry will likely update it to 1.1.2, but it is probably ok and good for bugfixes.
+wandb         = ">=0.10.32,<1"                                                                     # Poetry will likely update it to 0.13.4, but it is probably ok and good for bugfixes.
 REL           = { git = "https://github.com/manandey/REL.git", branch = "main", optional = true }
+bs-dateutil   = { git = "https://github.com/cccntu/dateutil.git", tag = "2.8.5", optional = true }
 gensim        = { version = "^3.8.3", optional = true }                                            # Technically secondary, but gensim>=4 breaks wikipedia2vec.
 wikipedia2vec = { version = "1.0.5", optional = true }
 nltk          = { version = "3.6.7", optional = true }
-bs-dateutil   = { git = "https://github.com/cccntu/dateutil.git", rev = "2.8.5", optional = true }
 loguru        = "^0.6.0"
+deepspeed     = ">=0.6.1"
 
 [tool.poetry.extras]
-preprocessing = ["lxml", "htmlmin", "REL", "bs-dateutil", "wikipedia2vec", "nltk"]
+preprocessing = ["lxml", "htmlmin", "REL", "bs-dateutil", "gensim", "wikipedia2vec", "nltk"]
 torch         = ["torch"]
 
 [tool.poetry.dev-dependencies]
-isort           = ">=5.5.4"
-black           = "^22.3.0" # For `"click>=8.1.0"`
-flake8          = ">=3.8.3"
-pytest          = "6.2.4"
-huggingface-hub = "^0.5.1"
+isort  = ">=5.5.4"
+black  = "^22.3.0" # For `"click>=8.1.0"`
+flake8 = ">=3.8.3"
+pytest = "6.2.4"
 
 [build-system]
-requires      = ["poetry-core>=1.1.0a7", "setuptools>=62.0.0", "wheel>=0.37.1"]
+requires      = ["poetry-core", "setuptools>=62.0.0", "wheel>=0.37.1"]
 build-backend = "poetry.core.masonry.api"

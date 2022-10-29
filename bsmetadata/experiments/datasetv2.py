@@ -1,3 +1,4 @@
+import os
 from fnmatch import fnmatch
 
 import datasets
@@ -402,8 +403,9 @@ di = dataset_info(dataset_repo_id)
 fs = HfFileSystem(di)
 all_files = fs.ls(".")
 #all_files = data_files_with_entities#fs.ls(".")
-dataset_repo_id = "/home/jonathan_chang/c4-en-html-with-metadata"
-
+local_dataset = os.environ.get("DATASET_DIR", None)
+if local_dataset is None:
+    dataset_repo_id = local_dataset
 
 
 def get_files(pattern):

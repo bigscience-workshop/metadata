@@ -34,3 +34,4 @@ jobs:
                   python -m pytest tests/test_preprocessing_utils.py
                   python -m pytest tests/preprocessing_tools
                   python -m pytest tests/test_website_post_processor.py
+                  python -m pytest tests/test_parse_date.py

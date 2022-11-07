@@ -18,6 +18,7 @@ import copy
 import logging
 import re
 from abc import ABC, abstractmethod
+from datetime import datetime as DateTime
 from typing import Any, Dict, List, Optional, Union
 from urllib.parse import unquote, urlparse, urlsplit
 
@@ -61,6 +62,15 @@ def remove_improbable_date(x):
     if x is not None and (x.year < 1983 or x.year > 2021):
         return None
     return x
+
+
+def convert_str_to_datetime(timestamp_str: str) -> DateTime:
+    """A temporarily special treatment that converts a roughly 11-to-13-digit integer/float string to datetime."""
+    try:
+        # Unify int sec., long ms/ns, and float ms/ns FOR OUR CASES.
+        return DateTime.fromtimestamp(float(f"{timestamp_str[:-3]}.{timestamp_str[-3:]}".replace("..", ".")))
+    except ValueError:
+        return parse(timestamp_str)
 
 
 OneToOneFeature = Dict[str, Value]

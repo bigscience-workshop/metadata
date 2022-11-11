@@ -161,6 +161,10 @@ class MetadataConfig:
             "help": "A dictionary whose keys correspond to a local metadata type and value to the associated key will be appended to the corresponding local metadata token."
         },
     )
+    local_metadata_special_token_state: bool = field(
+        default=False,
+        metadata={"help": "If True, local metadata special tokens will be set as special tokens in the tokenizer"},
+    )
     max_seq_len: int = field(
         default=512, metadata={"help": "The maximum number of tokens to use for each training chunk."}
     )

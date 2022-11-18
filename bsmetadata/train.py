@@ -266,11 +266,19 @@ def main(args: CFG) -> None:
     # get dataloaders
     tokenizer = AutoTokenizer.from_pretrained(args.model_name)
     tokenizer.pad_token = tokenizer.eos_token
-    train_dataloader, eval_dataloaders = get_dataloaders(tokenizer, args.data_config)
+    if args.data_config.experiment == 'with_metadata_datasetv2_tf':
+        from bsmetadata.experiments.with_metadata_datasetv2_tf import get_dataloader, get_dummy_dataloader
+        train_dataloader, format_fn = get_dataloader(tokenizer=tokenizer, args=args.data_config, num_gpus=accelerator.num_processes, gpu_id=accelerator.process_index)
+        dummy_dataloader = get_dummy_dataloader(args.data_config.per_device_train_batch_size)
+        eval_dataloaders = dict()
+        model, optimizer, dummy_dataloader, scheduler = accelerator.prepare(model, optimizer, dummy_dataloader, scheduler)
+    else:
+        format_fn = lambda x: x
+        train_dataloader, eval_dataloaders = get_dataloaders(tokenizer, args.data_config)
 
-    # Prepare everything
-    model, optimizer, train_dataloader, scheduler = accelerator.prepare(model, optimizer, train_dataloader, scheduler)
-    eval_dataloaders = {k: accelerator.prepare(v) for k, v in eval_dataloaders.items()}
+        # Prepare everything
+        model, optimizer, train_dataloader, scheduler = accelerator.prepare(model, optimizer, train_dataloader, scheduler)
+        eval_dataloaders = {k: accelerator.prepare(v) for k, v in eval_dataloaders.items()}
     train_state = TrainState()
 
     # If resume_from_checkpoint_dir is not None, we load the resumed state
@@ -381,7 +389,12 @@ def main(args: CFG) -> None:
     def get_data_iter():
         while True:
             for batch in train_dataloader:
+                batch = format_fn(batch)
+                if args.data_config.experiment == 'with_metadata_datasetv2_tf':
+                    batch = {k: v.to(accelerator.device) for k, v in batch.items()}
                 yield batch
+
+
     data_iter = get_data_iter()
 
     for _ in tqdm(range(args.gradient_accumulation_steps * train_state.completed_steps), desc='skipping data after resume'):
@@ -400,7 +413,8 @@ def main(args: CFG) -> None:
         batch["labels"] = labels
         loss = loss_fn(batch, outputs, metadata_mask)
 
-        step_loss += loss.detach() / args.gradient_accumulation_steps
+
+        step_loss += loss.detach() / args.gradient_accumulation_steps # this is only used for logging
         if use_deepspeed:
             model.backward(loss)
             model.step()

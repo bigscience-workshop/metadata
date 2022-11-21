@@ -8,14 +8,7 @@ from datasets import load_dataset
 from huggingface_hub import hf_hub_download
 from omegaconf import OmegaConf
 from tqdm.auto import tqdm
-from transformers import (
-    AutoConfig,
-    AutoModelForCausalLM,
-    AutoTokenizer,
-    default_data_collator,
-    get_scheduler,
-    set_seed,
-)
+from transformers import AutoModelForCausalLM, AutoTokenizer, default_data_collator
 from transformers.modeling_outputs import CausalLMOutputWithCrossAttentions
 
 from bsmetadata.metadata_utils import add_metadata_and_chunk_examples

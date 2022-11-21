@@ -8,7 +8,14 @@ from datasets import load_dataset
 from huggingface_hub import hf_hub_download
 from omegaconf import OmegaConf
 from tqdm.auto import tqdm
-from transformers import AutoModelForCausalLM, AutoTokenizer, default_data_collator
+from transformers import (
+    AutoConfig,
+    AutoModelForCausalLM,
+    AutoTokenizer,
+    default_data_collator,
+    get_scheduler,
+    set_seed,
+)
 from transformers.modeling_outputs import CausalLMOutputWithCrossAttentions
 
 from bsmetadata.metadata_utils import add_metadata_and_chunk_examples
@@ -89,7 +96,12 @@ if __name__ == "__main__":
         default="bs-modeling-metadata/checkpoints_v0.4",
         help="Repository ID for the model to compute perplexity for",
     )
-    parser.add_argument("--local_model_dir", type=str, help="Optional path to a local model directory")
+    parser.add_argument(
+        "--subfolder",
+        type=str,
+        default="checkpoint-10000step",
+        help="subfolder in the respository with the specific checkpoint to evaluate perplexity for",
+    )
     parser.add_argument(
         "--output_file", type=str, default="evaluation.txt", help="Path to the file the perplexity is written to"
     )
@@ -110,10 +122,7 @@ if __name__ == "__main__":
 
     # Load model
     print("Loading model...")
-    if args.local_model_dir:
-        model = AutoModelForCausalLM.from_pretrained(args.local_model_dir)
-    else:
-        model = AutoModelForCausalLM.from_pretrained(args.repo_id, use_auth_token=True)
+    model = AutoModelForCausalLM.from_pretrained(args.repo_id, subfolder=args.subfolder, use_auth_token=True)
     model.eval().cuda() if not args.no_cuda else model.eval()
 
     # Load tokenizer

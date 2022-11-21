@@ -13,14 +13,12 @@
 """
 This script provides functions for processing different kinds of metadata.
 """
-import datetime
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import unquote_plus
 
-from dateutil.parser import parse
-
 from bsmetadata.preprocessing_tools import html_parser
+from bsmetadata.preprocessing_utils import convert_str_to_datetime
 
 
 @dataclass
@@ -163,6 +161,10 @@ class MetadataConfig:
             "help": "A dictionary whose keys correspond to a local metadata type and value to the associated key will be appended to the corresponding local metadata token."
         },
     )
+    local_metadata_special_token_state: bool = field(
+        default=False,
+        metadata={"help": "If True, local metadata special tokens will be set as special tokens in the tokenizer"},
+    )
     max_seq_len: int = field(
         default=512, metadata={"help": "The maximum number of tokens to use for each training chunk."}
     )
@@ -232,13 +234,7 @@ class TimestampProcessor(MetadataProcessor):
         # Example: "Year: 2020 | Month: September".
         formatted_datetime = metadata_attrs["value"]
         if isinstance(formatted_datetime, str):
-            ts_str = metadata_attrs["value"]
-            try:
-                # Unify int sec., long ms/ns, and float ms/ns.
-                ts = float(f"{ts_str[:10]}.{ts_str[10:]}".replace("..", "."))
-                formatted_datetime = datetime.datetime.fromtimestamp(ts)
-            except ValueError:
-                formatted_datetime = parse(ts_str)
+            formatted_datetime = convert_str_to_datetime(formatted_datetime)
         year_str = f"Year: {formatted_datetime.year}"
         month_str = f"Month: {formatted_datetime.strftime('%B')}"
         return self.cfg.metadata_sep.join((year_str, month_str))

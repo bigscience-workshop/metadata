@@ -6,6 +6,7 @@ import os
 import sys
 from dataclasses import dataclass, field
 from functools import partial
+from itertools import chain
 from pathlib import Path
 from typing import List, Optional, Union, get_args, get_origin
 
@@ -19,7 +20,7 @@ from hydra.core.config_store import ConfigStore
 from omegaconf import OmegaConf
 from torch.optim import AdamW
 from tqdm.auto import tqdm as original_tqdm
-from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer, get_scheduler, set_seed
+from transformers import AddedToken, AutoConfig, AutoModelForCausalLM, AutoTokenizer, get_scheduler, set_seed
 from transformers.trainer_utils import IntervalStrategy
 
 from bsmetadata.input_pipeline import DataConfig, get_dataloaders
@@ -264,7 +265,22 @@ def main(args: CFG) -> None:
             num_training_steps=args.max_train_steps,
         )
     # get dataloaders
-    tokenizer = AutoTokenizer.from_pretrained(args.model_name)
+    if args.data_config.metadata_config.local_metadata_special_token_state:
+        new_tokens = list(
+            chain.from_iterable(
+                (start_token, end_token)
+                for start_token, end_token in zip(
+                    args.data_config.metadata_config.local_metadata_special_token_start.values(),
+                    args.data_config.metadata_config.local_metadata_special_token_end.values(),
+                )
+            )
+        )
+        new_tokens = [
+            AddedToken(token, rstrip=False, lstrip=False, single_word=False, normalized=False) for token in new_tokens
+        ]
+        tokenizer = AutoTokenizer.from_pretrained(args.model_name, additional_special_tokens=new_tokens)
+    else:
+        tokenizer = AutoTokenizer.from_pretrained(args.model_name)
     tokenizer.pad_token = tokenizer.eos_token
     train_dataloader, eval_dataloaders = get_dataloaders(tokenizer, args.data_config)
 

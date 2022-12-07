@@ -222,4 +222,4 @@ if __name__ == "__main__":
         with open(args.output_file, "a", encoding="utf8") as f:
             f.write(f"=== RESULT [{metadata_type}] ===\n")
             f.write("Perplexity (metadata): {:>6,.3f}\n".format(final_metadata_ppl))
-            f.write("Perplexity (normal):   {:>6,.3f}\n\n".format(final_metadata_ppl))
+            f.write("Perplexity (normal):   {:>6,.3f}\n\n".format(final_normal_ppl))

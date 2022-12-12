@@ -24,10 +24,15 @@ from urllib.parse import unquote, urlparse, urlsplit
 
 from bs_dateutil.parser import ParserError, parse
 from datasets import Value
-from REL.entity_disambiguation import EntityDisambiguation
-from REL.mention_detection import MentionDetection
-from REL.ner import load_flair_ner
-from REL.utils import process_results
+
+
+try:
+    from REL.entity_disambiguation import EntityDisambiguation
+    from REL.mention_detection import MentionDetection
+    from REL.ner import load_flair_ner
+    from REL.utils import process_results
+except ImportError:
+    REL_available = False
 
 from bsmetadata.paragraph_by_metadata_html import get_paragraphs
 from bsmetadata.preprocessing_tools import html_parser
@@ -373,6 +378,8 @@ class EntityPreprocessor(
         col_to_store_metadata="metadata",
         col_text="text",
     ):
+        if not REL_available:
+            raise ImportError("REL is not available. Please install the extra with `pip install -e '.[entity]'`")
         self.base_url = base_url
         self.wiki_version = "wiki_2019"
         self.mention_detection = MentionDetection(self.base_url, self.wiki_version)

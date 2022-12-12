@@ -4,11 +4,21 @@ from collections import defaultdict
 from typing import Optional
 
 import nltk
-from wikipedia2vec.dump_db import DumpDB
+
+
+try:
+    from wikipedia2vec.dump_db import DumpDB
+except ImportError:
+    wikipedia2vec_available = False
 
 
 class WikipediaDescUtils:
     def __init__(self, path_wiki_db) -> None:
+        if not wikipedia2vec_available:
+            raise ImportError(
+                "Please install wikipedia2vec to use this feature. "
+                "You can do so by running `pip install -e .'website_description'`."
+            )
         self.cache = defaultdict(str)
         self.wiki_dump_db = DumpDB(path_wiki_db)
         self.redirects_map = {

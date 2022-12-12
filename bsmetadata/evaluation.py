@@ -1,17 +1,32 @@
 import argparse
 import functools
+import itertools
 from typing import Dict
 
+import rich
 import torch
 import torch.nn.functional as F
 from datasets import load_dataset
 from huggingface_hub import hf_hub_download
 from omegaconf import OmegaConf
+from rich.console import Console
+from rich.text import Text
 from tqdm.auto import tqdm
+
+from bsmetadata.metadata_utils import add_metadata_and_chunk_examples
 from transformers import AutoModelForCausalLM, AutoTokenizer, default_data_collator
 from transformers.modeling_outputs import CausalLMOutputWithCrossAttentions
 
-from bsmetadata.metadata_utils import add_metadata_and_chunk_examples
+
+def format_by_one_mask(input_ids, mask):
+    i = 0
+    data = []
+    for key, igroup in itertools.groupby(mask):
+        size = len(list(igroup))
+        text = tokenizer.decode(input_ids[i : i + size])
+        i += size
+        data.append((text, "green" if key else None))
+    return Text.assemble(*data)
 
 
 @torch.no_grad()
@@ -112,6 +127,10 @@ if __name__ == "__main__":
     config_file_path = hf_hub_download(repo_id=args.repo_id, filename="actual_config.yaml", use_auth_token=True)
     repo_args = OmegaConf.load(config_file_path)
     data_config = repo_args.data_config
+    data_config.metadata_config.treat_local_metadata_as_regular_text = False
+    with open(args.output_file, "a", encoding="utf8") as f:
+        # dump the yaml
+        OmegaConf.save(config=repo_args, f=f)
 
     # Load model
     print("Loading model...")
@@ -196,6 +215,14 @@ if __name__ == "__main__":
                 metadata_batch = default_data_collator([metadata_example])
                 if not args.no_cuda:
                     normal_batch = {k: v.cuda() for k, v in normal_batch.items()}
+                    if n_examples == 1:
+                        ex = format_by_one_mask(normal_batch["input_ids"][0], normal_batch["attention_mask"][0])
+                        rich.print("Normal example:")
+                        rich.print(ex)
+
+                        ex = format_by_one_mask(metadata_batch["input_ids"][0], metadata_batch["metadata_mask"][0])
+                        rich.print("Metadata example:")
+                        rich.print(ex)
                     metadata_batch = {k: v.cuda() for k, v in metadata_batch.items()}
 
                 # Calculate ppl
@@ -203,6 +230,8 @@ if __name__ == "__main__":
                 total_normal_ppl += float(normal_ppl) * normal_example_len
                 metadata_ppl = get_ppl(metadata_batch)
                 total_metadata_ppl += float(metadata_ppl) * metadata_example_len
+            if n_examples >= 1024:
+                break
 
         if exit_flag:
             continue

@@ -20,9 +20,9 @@ from dataclasses import asdict, dataclass, field
 from typing import Any, DefaultDict, Dict, List, Optional, Tuple
 
 import numpy as np
-from transformers import PreTrainedTokenizerFast
 
 from bsmetadata.metadata_processors import PROCESSORS, MetadataConfig, MetadataProcessor
+from transformers import PreTrainedTokenizerFast
 
 
 logger = logging.getLogger(__name__)
@@ -203,6 +203,7 @@ def random_sample_metadata_v2(
 
     Args:
         examples: The examples to process, with required "metadata".
+        metadata_type_sample_weights: Dict[str, float], metadata_{key} is the column name
 
     Returns:
         A new collection of examples, with some metadata dropped.

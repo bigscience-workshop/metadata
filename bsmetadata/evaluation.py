@@ -230,6 +230,9 @@ if __name__ == "__main__":
                 total_normal_ppl += float(normal_ppl) * normal_example_len
                 metadata_ppl = get_ppl(metadata_batch)
                 total_metadata_ppl += float(metadata_ppl) * metadata_example_len
+
+                if n_examples == 1:
+                    rich.print(f"Normal ppl: {normal_ppl}, Metadata ppl: {metadata_ppl}")
             if n_examples >= 1024:
                 break
 

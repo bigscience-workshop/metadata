@@ -12,17 +12,17 @@ from typing import List, Optional, Union, get_args, get_origin
 import hydra
 import torch
 import torch.nn.functional as F
-import wandb
 from accelerate import Accelerator
 from accelerate.utils import DistributedType, DummyOptim, DummyScheduler
 from hydra.core.config_store import ConfigStore
 from omegaconf import OmegaConf
 from torch.optim import AdamW
 from tqdm.auto import tqdm as original_tqdm
+
+import wandb
+from bsmetadata.input_pipeline import DataConfig, get_dataloaders
 from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer, get_scheduler, set_seed
 from transformers.trainer_utils import IntervalStrategy
-
-from bsmetadata.input_pipeline import DataConfig, get_dataloaders
 
 
 logger = logging.getLogger(__name__)
@@ -266,18 +266,28 @@ def main(args: CFG) -> None:
     # get dataloaders
     tokenizer = AutoTokenizer.from_pretrained(args.model_name)
     tokenizer.pad_token = tokenizer.eos_token
-    if args.data_config.experiment == 'with_metadata_datasetv2_tf':
+    if args.data_config.experiment == "with_metadata_datasetv2_tf":
         from bsmetadata.experiments.with_metadata_datasetv2_tf import get_dataloader, get_dummy_dataloader
-        train_dataloader, format_fn = get_dataloader(tokenizer=tokenizer, args=args.data_config, num_gpus=accelerator.num_processes, gpu_id=accelerator.process_index)
+
+        train_dataloader, format_fn = get_dataloader(
+            tokenizer=tokenizer,
+            args=args.data_config,
+            num_gpus=accelerator.num_processes,
+            gpu_id=accelerator.process_index,
+        )
         dummy_dataloader = get_dummy_dataloader(args.data_config.per_device_train_batch_size)
         eval_dataloaders = dict()
-        model, optimizer, dummy_dataloader, scheduler = accelerator.prepare(model, optimizer, dummy_dataloader, scheduler)
+        model, optimizer, dummy_dataloader, scheduler = accelerator.prepare(
+            model, optimizer, dummy_dataloader, scheduler
+        )
     else:
         format_fn = lambda x: x
         train_dataloader, eval_dataloaders = get_dataloaders(tokenizer, args.data_config)
 
         # Prepare everything
-        model, optimizer, train_dataloader, scheduler = accelerator.prepare(model, optimizer, train_dataloader, scheduler)
+        model, optimizer, train_dataloader, scheduler = accelerator.prepare(
+            model, optimizer, train_dataloader, scheduler
+        )
         eval_dataloaders = {k: accelerator.prepare(v) for k, v in eval_dataloaders.items()}
     train_state = TrainState()
 
@@ -386,23 +396,23 @@ def main(args: CFG) -> None:
     finished = False
     if not args.data_config.streaming:
         metrics_logger.log({"train_dataloader_length": len(train_dataloader)})
+
     def get_data_iter():
         while True:
             for batch in train_dataloader:
                 batch = format_fn(batch)
-                if args.data_config.experiment == 'with_metadata_datasetv2_tf':
+                if args.data_config.experiment == "with_metadata_datasetv2_tf":
                     batch = {k: v.to(accelerator.device) for k, v in batch.items()}
                 yield batch
 
-
     data_iter = get_data_iter()
 
-    for _ in tqdm(range(args.gradient_accumulation_steps * train_state.completed_steps), desc='skipping data after resume'):
+    for _ in tqdm(
+        range(args.gradient_accumulation_steps * train_state.completed_steps), desc="skipping data after resume"
+    ):
         _ = next(data_iter)
 
-
-
-    #while not finished:
+    # while not finished:
     #    for batch in train_dataloader:
     for batch in data_iter:
         step += 1
@@ -413,8 +423,7 @@ def main(args: CFG) -> None:
         batch["labels"] = labels
         loss = loss_fn(batch, outputs, metadata_mask)
 
-
-        step_loss += loss.detach() / args.gradient_accumulation_steps # this is only used for logging
+        step_loss += loss.detach() / args.gradient_accumulation_steps  # this is only used for logging
         if use_deepspeed:
             model.backward(loss)
             model.step()

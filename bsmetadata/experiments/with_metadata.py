@@ -6,9 +6,9 @@ from itertools import chain
 from datasets import config, load_dataset
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
-from transformers import default_data_collator
 
 from bsmetadata.metadata_utils import add_metadata_and_chunk_examples, get_metadata_types, random_sample_metadata
+from transformers import default_data_collator
 
 
 logger = logging.getLogger(__name__)

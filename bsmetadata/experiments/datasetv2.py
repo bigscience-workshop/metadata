@@ -397,12 +397,12 @@ def convert_types(features):
 new_features = {}
 final_features = convert_types(features)
 final_features_with_entities = convert_types(features_with_entities)
-dataset_repo_id ="bs-modeling-metadata/c4-en-html-with-metadata"
+dataset_repo_id = "bs-modeling-metadata/c4-en-html-with-metadata"
 
 di = dataset_info(dataset_repo_id)
 fs = HfFileSystem(di)
 all_files = fs.ls(".")
-#all_files = data_files_with_entities#fs.ls(".")
+# all_files = data_files_with_entities#fs.ls(".")
 local_dataset = os.environ.get("DATASET_DIR", None)
 if local_dataset is None:
     dataset_repo_id = local_dataset

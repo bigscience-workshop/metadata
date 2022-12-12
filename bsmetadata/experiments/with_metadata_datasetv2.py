@@ -9,12 +9,12 @@ import numpy as np
 from datasets import DatasetDict
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
-from transformers import default_data_collator
 
 from bsmetadata.experiments.datasetv2 import get_files, load_dataset_by_files
 from bsmetadata.experiments.without_metadata import preprocess_no_metadata
 from bsmetadata.metadata_processors import PROCESSORS
 from bsmetadata.metadata_utils import add_metadata_and_chunk_examples, random_sample_metadata_v2
+from transformers import default_data_collator
 
 
 logger = logging.getLogger(__name__)
@@ -125,6 +125,7 @@ def preprocess_datasets(dataset, tokenizer, args, column_names, is_train=True):
                 metadata_type_sample_weights = args.metadata_config.random_sample_metadata_weights
                 logger.info(f"using metadata_type_sample_weights proviced in args")
             else:
+
                 def get_metadata_types(example):
                     results = []
                     for metadata_type in args.metadata_config.metadata_column_list:
@@ -149,7 +150,9 @@ def preprocess_datasets(dataset, tokenizer, args, column_names, is_train=True):
                     )
                 )
                 metadata_type_weight_sum = sum(metadata_type_counter.values())
-                metadata_type_sample_weights = {k: metadata_type_weight_sum / v for k, v in metadata_type_counter.items()}
+                metadata_type_sample_weights = {
+                    k: metadata_type_weight_sum / v for k, v in metadata_type_counter.items()
+                }
             logger.info(f"Metadata type sample weights: {metadata_type_sample_weights}")
 
             logger.info("Randomly sampling metadata")

@@ -1,7 +1,8 @@
 import unittest
 from datetime import datetime as DateTime
+from datetime import timezone
 
-from bsmetadata.preprocessing_utils import TimestampPreprocessor, parse_date
+from bsmetadata.preprocessing_utils import TimestampPreprocessor, convert_str_to_datetime, parse_date
 
 
 class TestDateutil(unittest.TestCase):
@@ -26,6 +27,23 @@ class TestDateutil(unittest.TestCase):
         self.assertTrue(date is None)
         date = parse_date("2021 jan")
         self.assertTrue(date is None)
+
+    def test_convert_str_to_datetime(self):
+        date = convert_str_to_datetime("99999999999").astimezone(timezone.utc)
+        self.assertEqual(date, DateTime(1973, 3, 3, 9, 46, 39, 999000, tzinfo=timezone.utc))
+        date = convert_str_to_datetime("99999999.999").astimezone(timezone.utc)
+        self.assertEqual(date, DateTime(1973, 3, 3, 9, 46, 39, 999000, tzinfo=timezone.utc))
+
+        date = convert_str_to_datetime("999999999999").astimezone(timezone.utc)
+        self.assertEqual(date, DateTime(2001, 9, 9, 1, 46, 39, 999000, tzinfo=timezone.utc))
+        date = convert_str_to_datetime("999999999.999").astimezone(timezone.utc)
+        self.assertEqual(date, DateTime(2001, 9, 9, 1, 46, 39, 999000, tzinfo=timezone.utc))
+
+        # The "999001" is due to the floating-point precision.
+        date = convert_str_to_datetime("9999999999999").astimezone(timezone.utc)
+        self.assertEqual(date, DateTime(2286, 11, 20, 17, 46, 39, 999001, tzinfo=timezone.utc))
+        date = convert_str_to_datetime("9999999999.999").astimezone(timezone.utc)
+        self.assertEqual(date, DateTime(2286, 11, 20, 17, 46, 39, 999001, tzinfo=timezone.utc))
 
 
 class TestTimestampPreprocessor(unittest.TestCase):

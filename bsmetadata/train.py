@@ -409,7 +409,7 @@ def main(args: CFG) -> None:
     step = 0
     model.train()
     # for epoch in range(args.num_train_epochs):
-    finished = False
+    # finished = False
     if not args.data_config.streaming:
         metrics_logger.log({"train_dataloader_length": len(train_dataloader)})
 
@@ -486,7 +486,7 @@ def main(args: CFG) -> None:
             evaluate_multiple_dateloaders(eval_dataloaders)
 
         if completed_steps >= args.max_train_steps:
-            finished = True
+            # finished = True
             break
     metrics_logger.close()
     logger.info("Training finished")

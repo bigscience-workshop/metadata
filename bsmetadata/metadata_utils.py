@@ -127,14 +127,23 @@ def add_metadata_and_chunk_examples(
             max_text_len, text_with_local_metadata_encoded.input_ids, token_level_metadata_mask
         ):
             if cfg.apply_cm3_loss_to_sequences:
-                span_start, span_end = random.randint(0, len(text_chunk_encoded)), random.randint(0, len(text_chunk_encoded))
-                if span_end < span_start:
-                    span_start, span_end = span_end, span_start
+                span_ids = sorted([random.randint(0, len(text_chunk_encoded)) for x in range(2)])
+                span_start, span_end = span_ids[0], span_ids[1]
                 if span_end - span_start > 0:
-                    text_chunk_encoded = text_chunk_encoded[:span_start] + [tokenizer.mask_token_id] + \
-                        text_chunk_encoded[span_end:] + [tokenizer.mask_token_id] + text_chunk_encoded[span_start: span_end]
-                    chunk_metadata_mask = chunk_metadata_mask[:span_start] + [1] + \
-                        chunk_metadata_mask[span_end:] + [1] + chunk_metadata_mask[span_start: span_end]
+                    text_chunk_encoded = (
+                        text_chunk_encoded[:span_start]
+                        + [tokenizer.mask_token_id]
+                        + text_chunk_encoded[span_end:]
+                        + [tokenizer.mask_token_id]
+                        + text_chunk_encoded[span_start:span_end]
+                    )
+                    chunk_metadata_mask = (
+                        chunk_metadata_mask[:span_start]
+                        + [1]
+                        + chunk_metadata_mask[span_end:]
+                        + [1]
+                        + chunk_metadata_mask[span_start:span_end]
+                    )
 
             total_len = prefix_len + len(text_chunk_encoded)
             padding_len = max_text_len - len(text_chunk_encoded)

@@ -176,9 +176,7 @@ class MetadataConfig:
     )
     apply_cm3_loss_to_sequences: bool = field(
         default=False,
-        metadata={
-            "help": "If True, the CM3 loss will be applied to training input sequences. "
-        },
+        metadata={"help": "If True, the CM3 loss will be applied to training input sequences. "},
     )
     html_parser_config: Optional[HTMLParserConfig] = HTMLParserConfig(
         AllTagsRules(

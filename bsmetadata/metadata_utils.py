@@ -20,9 +20,9 @@ from dataclasses import asdict, dataclass, field
 from typing import Any, DefaultDict, Dict, List, Optional, Tuple
 
 import numpy as np
+from transformers import PreTrainedTokenizerFast
 
 from bsmetadata.metadata_processors import PROCESSORS, MetadataConfig, MetadataProcessor
-from transformers import PreTrainedTokenizerFast
 
 
 logger = logging.getLogger(__name__)

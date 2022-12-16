@@ -13,6 +13,7 @@ from typing import List, Optional, Union, get_args, get_origin
 import hydra
 import torch
 import torch.nn.functional as F
+import wandb
 from accelerate import Accelerator
 from accelerate.utils import DistributedType, DummyOptim, DummyScheduler
 from hydra.core.config_store import ConfigStore
@@ -22,7 +23,6 @@ from tqdm.auto import tqdm as original_tqdm
 from transformers import AddedToken, AutoConfig, AutoModelForCausalLM, AutoTokenizer, get_scheduler, set_seed
 from transformers.trainer_utils import IntervalStrategy
 
-import wandb
 from bsmetadata.input_pipeline import DataConfig, get_dataloaders
 
 
@@ -297,7 +297,10 @@ def main(args: CFG) -> None:
             model, optimizer, dummy_dataloader, scheduler
         )
     else:
-        format_fn = lambda x: x
+
+        def format_fn(x):
+            return x
+
         train_dataloader, eval_dataloaders = get_dataloaders(tokenizer, args.data_config)
 
         # Prepare everything
@@ -409,7 +412,7 @@ def main(args: CFG) -> None:
     step = 0
     model.train()
     # for epoch in range(args.num_train_epochs):
-    finished = False
+    # finished = False
     if not args.data_config.streaming:
         metrics_logger.log({"train_dataloader_length": len(train_dataloader)})
 
@@ -486,7 +489,7 @@ def main(args: CFG) -> None:
             evaluate_multiple_dateloaders(eval_dataloaders)
 
         if completed_steps >= args.max_train_steps:
-            finished = True
+            # finished = True
             break
     metrics_logger.close()
     logger.info("Training finished")

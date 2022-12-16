@@ -297,7 +297,10 @@ def main(args: CFG) -> None:
             model, optimizer, dummy_dataloader, scheduler
         )
     else:
-        format_fn = lambda x: x
+
+        def format_fn(x):
+            return x
+
         train_dataloader, eval_dataloaders = get_dataloaders(tokenizer, args.data_config)
 
         # Prepare everything

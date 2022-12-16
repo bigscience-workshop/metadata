@@ -116,6 +116,12 @@ class MetadataConfig:
         default=-1,
         metadata={"help": "Number of examples to go through when calculating sampling proportion."},
     )
+    random_sample_metadata_weights: Optional[Dict[str, float]] = field(
+        default=None,
+        metadata={
+            "help": "A dictionary whose keys correspond to column name (minus the `metadata_` prefix) and value correspond to the "
+        },
+    )
     metadata_probability: float = field(
         default=1, metadata={"help": "The probability of adding metadata to an input example."}
     )

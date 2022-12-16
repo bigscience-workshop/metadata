@@ -13,7 +13,6 @@ from typing import List, Optional, Union, get_args, get_origin
 import hydra
 import torch
 import torch.nn.functional as F
-import wandb
 from accelerate import Accelerator
 from accelerate.utils import DistributedType, DummyOptim, DummyScheduler
 from hydra.core.config_store import ConfigStore
@@ -23,6 +22,7 @@ from tqdm.auto import tqdm as original_tqdm
 from transformers import AddedToken, AutoConfig, AutoModelForCausalLM, AutoTokenizer, get_scheduler, set_seed
 from transformers.trainer_utils import IntervalStrategy
 
+import wandb
 from bsmetadata.input_pipeline import DataConfig, get_dataloaders
 
 
@@ -282,11 +282,29 @@ def main(args: CFG) -> None:
     else:
         tokenizer = AutoTokenizer.from_pretrained(args.model_name)
     tokenizer.pad_token = tokenizer.eos_token
-    train_dataloader, eval_dataloaders = get_dataloaders(tokenizer, args.data_config)
+    if args.data_config.experiment == "with_metadata_datasetv2_tf":
+        from bsmetadata.experiments.with_metadata_datasetv2_tf import get_dataloader, get_dummy_dataloader
 
-    # Prepare everything
-    model, optimizer, train_dataloader, scheduler = accelerator.prepare(model, optimizer, train_dataloader, scheduler)
-    eval_dataloaders = {k: accelerator.prepare(v) for k, v in eval_dataloaders.items()}
+        train_dataloader, format_fn = get_dataloader(
+            tokenizer=tokenizer,
+            args=args.data_config,
+            num_gpus=accelerator.num_processes,
+            gpu_id=accelerator.process_index,
+        )
+        dummy_dataloader = get_dummy_dataloader(args.data_config.per_device_train_batch_size)
+        eval_dataloaders = dict()
+        model, optimizer, dummy_dataloader, scheduler = accelerator.prepare(
+            model, optimizer, dummy_dataloader, scheduler
+        )
+    else:
+        format_fn = lambda x: x
+        train_dataloader, eval_dataloaders = get_dataloaders(tokenizer, args.data_config)
+
+        # Prepare everything
+        model, optimizer, train_dataloader, scheduler = accelerator.prepare(
+            model, optimizer, train_dataloader, scheduler
+        )
+        eval_dataloaders = {k: accelerator.prepare(v) for k, v in eval_dataloaders.items()}
     train_state = TrainState()
 
     # If resume_from_checkpoint_dir is not None, we load the resumed state
@@ -392,68 +410,84 @@ def main(args: CFG) -> None:
     model.train()
     # for epoch in range(args.num_train_epochs):
     finished = False
-
     if not args.data_config.streaming:
         metrics_logger.log({"train_dataloader_length": len(train_dataloader)})
-    while not finished:
-        for batch in train_dataloader:
-            step += 1
-            # pop labels because we want to calculate loss ourselves
-            labels = batch.pop("labels")
-            metadata_mask = batch.pop("metadata_mask", None)
-            outputs = model(**batch)
-            batch["labels"] = labels
-            loss = loss_fn(batch, outputs, metadata_mask)
 
-            step_loss += loss.detach() / args.gradient_accumulation_steps
-            if use_deepspeed:
-                model.backward(loss)
-                model.step()
-            else:
-                accelerator.backward(loss)
+    def get_data_iter():
+        while True:
+            for batch in train_dataloader:
+                batch = format_fn(batch)
+                if args.data_config.experiment == "with_metadata_datasetv2_tf":
+                    batch = {k: v.to(accelerator.device) for k, v in batch.items()}
+                yield batch
 
-            do_step = step % args.gradient_accumulation_steps == 0
-            if do_step:
-                progress_bar.update(1)
-                train_state.step()
-                if not use_deepspeed:
-                    optimizer.step()
-                    scheduler.step()
-                    optimizer.zero_grad()
+    data_iter = get_data_iter()
 
-                step_loss_gathered = accelerator.gather(step_loss).mean().item()
-                metrics = {
-                    "loss": step_loss_gathered,
-                    "lr": max(scheduler.get_lr()),
-                    "gradient_step": train_state.completed_steps,
-                }
-                if not args.data_config.streaming:
-                    metrics["epoch"] = step / len(train_dataloader)
+    for _ in tqdm(
+        range(args.gradient_accumulation_steps * train_state.completed_steps), desc="skipping data after resume"
+    ):
+        _ = next(data_iter)
 
-                metrics_logger.log(metrics)
-                step_loss = 0
-            else:
-                continue
-            completed_steps = train_state.completed_steps
+    # while not finished:
+    #    for batch in train_dataloader:
+    for batch in data_iter:
+        step += 1
+        # pop labels because we want to calculate loss ourselves
+        labels = batch.pop("labels")
+        metadata_mask = batch.pop("metadata_mask", None)
+        outputs = model(**batch)
+        batch["labels"] = labels
+        loss = loss_fn(batch, outputs, metadata_mask)
 
-            do_eval = (
-                args.do_eval
-                and completed_steps > 0
-                and (completed_steps % eval_per_n_step == 0 or completed_steps in args.extra_steps_to_eval_save_at)
-            )
+        step_loss += loss.detach() / args.gradient_accumulation_steps  # this is only used for logging
+        if use_deepspeed:
+            model.backward(loss)
+            model.step()
+        else:
+            accelerator.backward(loss)
 
-            do_save = completed_steps > 0 and (
-                completed_steps % save_per_n_step == 0 or completed_steps in args.extra_steps_to_eval_save_at
-            )
-            if do_save:
-                path = Path(args.out_dir).resolve() / f"checkpoint-{completed_steps}step"
-                save(path)
-            if do_eval:
-                evaluate_multiple_dateloaders(eval_dataloaders)
+        do_step = step % args.gradient_accumulation_steps == 0
+        if do_step:
+            progress_bar.update(1)
+            train_state.step()
+            if not use_deepspeed:
+                optimizer.step()
+                scheduler.step()
+                optimizer.zero_grad()
 
-            if completed_steps >= args.max_train_steps:
-                finished = True
-                break
+            step_loss_gathered = accelerator.gather(step_loss).mean().item()
+            metrics = {
+                "loss": step_loss_gathered,
+                "lr": max(scheduler.get_lr()),
+                "gradient_step": train_state.completed_steps,
+            }
+            if not args.data_config.streaming:
+                metrics["epoch"] = step / len(train_dataloader)
+
+            metrics_logger.log(metrics)
+            step_loss = 0
+        else:
+            continue
+        completed_steps = train_state.completed_steps
+
+        do_eval = (
+            args.do_eval
+            and completed_steps > 0
+            and (completed_steps % eval_per_n_step == 0 or completed_steps in args.extra_steps_to_eval_save_at)
+        )
+
+        do_save = completed_steps > 0 and (
+            completed_steps % save_per_n_step == 0 or completed_steps in args.extra_steps_to_eval_save_at
+        )
+        if do_save:
+            path = Path(args.out_dir).resolve() / f"checkpoint-{completed_steps}step"
+            save(path)
+        if do_eval:
+            evaluate_multiple_dateloaders(eval_dataloaders)
+
+        if completed_steps >= args.max_train_steps:
+            finished = True
+            break
     metrics_logger.close()
     logger.info("Training finished")
     save(args.out_dir)

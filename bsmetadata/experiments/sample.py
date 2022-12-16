@@ -2,9 +2,9 @@ from dataclasses import dataclass
 
 from datasets import load_dataset
 from torch.utils.data import DataLoader
-from transformers import PreTrainedTokenizerBase
 
 from bsmetadata.input_pipeline import DataConfig
+from transformers import PreTrainedTokenizerBase
 
 
 @dataclass

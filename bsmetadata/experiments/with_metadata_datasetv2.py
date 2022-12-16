@@ -123,7 +123,7 @@ def preprocess_datasets(dataset, tokenizer, args, column_names, is_train=True):
 
             if args.metadata_config.random_sample_metadata_weights is not None:
                 metadata_type_sample_weights = args.metadata_config.random_sample_metadata_weights
-                logger.info(f"using metadata_type_sample_weights proviced in args")
+                logger.info(f"using {metadata_type_sample_weights} proviced in args")
             else:
 
                 def get_metadata_types(example):

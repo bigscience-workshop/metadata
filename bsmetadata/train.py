@@ -278,10 +278,16 @@ def main(args: CFG) -> None:
         new_tokens = [
             AddedToken(token, rstrip=False, lstrip=False, single_word=False, normalized=False) for token in new_tokens
         ]
-        tokenizer = AutoTokenizer.from_pretrained(args.model_name, additional_special_tokens=new_tokens)
     else:
-        tokenizer = AutoTokenizer.from_pretrained(args.model_name)
+        new_tokens = []
+
+    new_tokens += [AddedToken("<MASK>", rstrip=False, lstrip=False, single_word=False, normalized=False)]
+    tokenizer = AutoTokenizer.from_pretrained(args.model_name, additional_special_tokens=new_tokens)
+
+    tokenizer.mask_token = "<MASK>"
+    tokenizer.mask_token_id = tokenizer.convert_tokens_to_ids(tokenizer.mask_token)
     tokenizer.pad_token = tokenizer.eos_token
+
     if args.data_config.experiment == "with_metadata_datasetv2_tf":
         from bsmetadata.experiments.with_metadata_datasetv2_tf import get_dataloader, get_dummy_dataloader
 

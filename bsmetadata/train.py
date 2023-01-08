@@ -136,7 +136,7 @@ def loss_fn(batch, outputs, metadata_mask=None):
     shift_logits = lm_logits[..., :-1, :].contiguous()
     shift_labels = labels[..., 1:].contiguous()
     if metadata_mask is not None:
-        loss_mask = torch.logical_and(attention_mask, ~metadata_mask)
+        loss_mask = torch.logical_and(attention_mask, ~(metadata_mask.bool()))
     else:
         loss_mask = attention_mask
     shift_mask = loss_mask[..., 1:].contiguous()

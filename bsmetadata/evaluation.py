@@ -37,7 +37,7 @@ def ppl_fn(
     shift_labels = labels[..., 1:].contiguous()
 
     if metadata_mask is not None:
-        loss_mask = torch.logical_and(attention_mask, ~metadata_mask)
+        loss_mask = torch.logical_and(attention_mask, ~(metadata_mask.bool()))
     else:
         loss_mask = attention_mask
 

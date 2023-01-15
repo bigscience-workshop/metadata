@@ -217,8 +217,8 @@ def main(args: CFG) -> None:
     is_local_main_process = accelerator.is_local_main_process
     tqdm = partial(original_tqdm, disable=not is_local_main_process, position=0)
     use_deepspeed = accelerator.state.deepspeed_plugin is not None
-    use_deepspeed_optimzer = use_deepspeed or "optimizer" in accelerator.state.deepspeed_plugin.deepspeed_config
-    use_deepspeed_scheduler = use_deepspeed or "scheduler" in accelerator.state.deepspeed_plugin.deepspeed_config
+    use_deepspeed_optimzer = use_deepspeed and "optimizer" in accelerator.state.deepspeed_plugin.deepspeed_config
+    use_deepspeed_scheduler = use_deepspeed and "scheduler" in accelerator.state.deepspeed_plugin.deepspeed_config
 
     if accelerator.distributed_type == DistributedType.DEEPSPEED and not use_deepspeed_scheduler:
         assert False, "Please set scheduler in DeepSpeed config file otherwise it may not be checkpointed properly"

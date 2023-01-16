@@ -75,9 +75,9 @@ data_config:
     local_metadata_special_token_end:
         entity_paragraph: " </ENTITY_CHAIN> "
     local_metadata_special_token_state: true
-  experiment: with_metadata_datasetv2
-  per_device_eval_batch_size: 32
-  per_device_train_batch_size: 32
+  experiment: with_metadata_datasetv2_tf
+  per_device_eval_batch_size: 8
+  per_device_train_batch_size: 8
   dataset_name: bs-modeling-metadata/c4-en-html-with-metadata
   dataset_config_name: null
   train_file: c4-en-html_cc-main-2019-18_pq00-001.jsonl.gz
@@ -108,9 +108,9 @@ eval_num_per_epoch: 3
 eval_steps: 2000
 save_strategy: STEPS
 save_num_per_epoch: 3
-save_steps: 2000
+save_steps: 150
 do_train: true
 do_eval: true
 gradient_checkpointing: true
-resume_from_checkpoint_dir: null 
-gradient_accumulation_steps: 1
+resume_from_checkpoint_dir: null
+gradient_accumulation_steps: 16

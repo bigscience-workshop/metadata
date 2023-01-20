@@ -110,7 +110,7 @@ threadpoolctl==3.1.0 ; python_full_version >= "3.7.11" and python_version < "3.9
 tokenizers==0.13.1 ; python_full_version >= "3.7.11" and python_version < "3.9"
 toml==0.10.2 ; python_full_version >= "3.7.11" and python_version < "3.9"
 tomli==2.0.1 ; python_full_version >= "3.7.11" and python_version < "3.9"
-torch==1.9.0 ; python_full_version >= "3.7.11" and python_version < "3.9"
+#torch==1.9.0 ; python_full_version >= "3.7.11" and python_version < "3.9"
 tqdm==4.64.1 ; python_full_version >= "3.7.11" and python_version < "3.9"
 transformers==4.23.1 ; python_full_version >= "3.7.11" and python_version < "3.9"
 typed-ast==1.5.4 ; python_version < "3.8" and implementation_name == "cpython" and python_full_version >= "3.7.11"

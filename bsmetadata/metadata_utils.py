@@ -20,9 +20,9 @@ from dataclasses import asdict, dataclass, field
 from typing import Any, DefaultDict, Dict, List, Optional, Tuple
 
 import numpy as np
-from transformers import PreTrainedTokenizerFast
 
 from bsmetadata.metadata_processors import PROCESSORS, MetadataConfig, MetadataProcessor
+from transformers import PreTrainedTokenizerFast
 
 
 logger = logging.getLogger(__name__)
@@ -100,7 +100,7 @@ def add_metadata_and_chunk_examples(
             char_level_metadata_mask = [False] * len(text_with_local_metadata)
 
         if metadata_prefix_encoded:
-            text_with_local_metadata = " " + text_with_local_metadata
+            text_with_local_metadata = "" + text_with_local_metadata
             char_level_metadata_mask = [False] + char_level_metadata_mask
 
         text_with_local_metadata_encoded = tokenizer.encode_plus(text_with_local_metadata)

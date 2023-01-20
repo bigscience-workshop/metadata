@@ -51,10 +51,14 @@ def ppl_fn(
     shift_logits = lm_logits[..., :-1, :].contiguous()
     shift_labels = labels[..., 1:].contiguous()
     if metadata_mask is not None:
+        metadata_mask = metadata_mask.bool()
+        nonmetadata_cumsum = torch.cumsum(~metadata_mask, dim=-1)
+        first_nonmetadata = nonmetadata_cumsum == 1
         rich.print(f"{~(metadata_mask.bool())=}")
         rich.print("(attention_mask.bool())")
         rich.print(attention_mask.bool())
         loss_mask = torch.logical_and(attention_mask.bool(), ~(metadata_mask.bool()))
+        loss_mask = torch.logical_and(loss_mask, ~first_nonmetadata)
         rich.print(f"{loss_mask=}")
     else:
         loss_mask = attention_mask.bool()
@@ -313,6 +317,7 @@ if __name__ == "__main__":
                 # total_metadata_ppl += float(metadata_ppl) * metadata_example_len
                 if n_examples == 1:
                     loss, mask, shift_labels = normal_ppl
+                    print("normal ppl")
                     printed = 0
                     for i, (l, m, sl) in enumerate(zip(loss, mask, shift_labels)):
                         if m:
@@ -328,6 +333,7 @@ if __name__ == "__main__":
 
                     loss, mask, shift_labels = metadata_ppl
                     printed = 0
+                    print("metadata ppl")
                     for i, (l, m, sl) in enumerate(zip(loss, mask, shift_labels)):
                         if m:
                             if printed < 10:

@@ -31,7 +31,11 @@ def format_by_one_mask(input_ids, mask, tokenizer):
 
 @torch.no_grad()
 def ppl_fn(
-    batch: Dict[str, torch.Tensor], outputs: CausalLMOutputWithCrossAttentions, metadata_mask: torch.Tensor = None
+    batch: Dict[str, torch.Tensor], 
+    outputs: CausalLMOutputWithCrossAttentions, 
+    metadata_mask: torch.Tensor = None,
+    save_data: bool = False,
+    idx: int = None,
 ) -> torch.Tensor:
     """Calculates the perplexity for a given batch.
 
@@ -39,6 +43,8 @@ def ppl_fn(
         batch: A dict with keys "input_ids" and "attention_mask".
         outputs: The model outputs for the batch.
         metadata_mask: 1 for tokens corresponding to metadata and 0 for all other tokens.
+        save_data: Whether to tokens & losses.
+        idx: The index of the batch.
 
     Returns:
         The perplexity of the given batch.
@@ -113,8 +119,22 @@ def ppl_fn(
         shift_labels.view(-1),
         reduction="none",
     ).view(b, -1)
+
+    if save_data:
+        # Save the non-masked tokens & their loss
+        suffix = "_meta" if metadata_mask is not None else ""
+        torch.save(
+            batch["input_ids"],
+            f"{idx}_input_ids{suffix}.pt",
+        )
+        torch.save(
+            loss.cpu().squeeze(),
+            f"{idx}_loss{suffix}.pt",
+        )
+
     loss = loss.cpu().squeeze().numpy().tolist()
     shift_mask = shift_mask.cpu().squeeze().numpy().tolist()
+
     return loss, shift_mask, shift_labels.cpu().squeeze().numpy().tolist()
     return loss, shift_mask
 
@@ -129,7 +149,11 @@ def ppl_fn(
 
 
 @torch.no_grad()
-def get_ppl(batch: Dict[str, torch.Tensor]) -> torch.Tensor:
+def get_ppl(
+    batch: Dict[str, torch.Tensor],
+    save_data: bool = False,
+    idx: int = None,
+) -> torch.Tensor:
     """Prepares the arguments for perplexity calculation and passes them to the perplexity function.
 
     Args:
@@ -137,7 +161,8 @@ def get_ppl(batch: Dict[str, torch.Tensor]) -> torch.Tensor:
             - the input ids are a list of token ids corresponding to the input text with metadata;
             - the attention mask is 0 for padding tokens and 1 everywhere else;
             - the metadata mask is 1 for tokens corresponding to metadata and 0 for all other tokens.
-
+        save_data: Whether to save tokens & losses
+        idx: The index of the batch for saving
     Returns:
         The perplexity of the given batch.
     """
@@ -145,7 +170,7 @@ def get_ppl(batch: Dict[str, torch.Tensor]) -> torch.Tensor:
     metadata_mask = batch.pop("metadata_mask", None)
     outputs = model(**batch)
     batch["labels"] = labels
-    ppl = ppl_fn(batch, outputs, metadata_mask)
+    ppl = ppl_fn(batch, outputs, metadata_mask, save_data=save_data, idx=idx)
     return ppl
 
 
@@ -171,6 +196,11 @@ if __name__ == "__main__":
         "--test",
         action="store_true",
         help="If set to true, the script runs in test mode and only takes 10 examples per dataset",
+    )
+    parser.add_argument(
+        "--save_data",
+        action="store_true",
+        help="If set to true, save tokens & losses",
     )
     parser.add_argument(
         "--local",
@@ -255,7 +285,7 @@ if __name__ == "__main__":
         split = "validation" if not args.test else "validation[:10]"
         validation_dataset = load_dataset(path, use_auth_token=True, split=split)
 
-        for example in tqdm(validation_dataset, desc=f"Calculating perplexity for {metadata_type}..."):
+        for idx, example in tqdm(enumerate(validation_dataset), desc=f"Calculating perplexity for {metadata_type}..."):
             # Preprocess examples
             examples = {k: [v] for k, v in example.items()}
             try:
@@ -311,9 +341,9 @@ if __name__ == "__main__":
                     rich.print(tokenizer.decode(metadata_batch["input_ids"][0]))
 
                 # Calculate ppl
-                normal_ppl = get_ppl(normal_batch)
+                normal_ppl = get_ppl(normal_batch, save_data=args.save_data, idx=idx)
                 # total_normal_ppl += float(normal_ppl) * normal_example_len
-                metadata_ppl = get_ppl(metadata_batch)
+                metadata_ppl = get_ppl(metadata_batch, save_data=args.save_data, idx=idx)
                 # total_metadata_ppl += float(metadata_ppl) * metadata_example_len
                 if n_examples == 1:
                     loss, mask, shift_labels = normal_ppl

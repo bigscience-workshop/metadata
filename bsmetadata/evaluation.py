@@ -1,3 +1,4 @@
+%%writefile bsmetadata/evaluation.py
 import argparse
 import functools
 import itertools
@@ -60,12 +61,12 @@ def ppl_fn(
         metadata_mask = metadata_mask.bool()
         nonmetadata_cumsum = torch.cumsum(~metadata_mask, dim=-1)
         first_nonmetadata = nonmetadata_cumsum == 1
-        rich.print(f"{~(metadata_mask.bool())=}")
-        rich.print("(attention_mask.bool())")
-        rich.print(attention_mask.bool())
+        # rich.print(f"{~(metadata_mask.bool())=}")
+        # rich.print("(attention_mask.bool())")
+        # rich.print(attention_mask.bool())
         loss_mask = torch.logical_and(attention_mask.bool(), ~(metadata_mask.bool()))
         loss_mask = torch.logical_and(loss_mask, ~first_nonmetadata)
-        rich.print(f"{loss_mask=}")
+        # rich.print(f"{loss_mask=}")
     else:
         loss_mask = attention_mask.bool()
     shift_mask = loss_mask[..., 1:].contiguous()
@@ -110,8 +111,8 @@ def ppl_fn(
     # if metadata_mask is not None:
     #    shift_metadata_mask = metadata_mask[..., 1:].contiguous().bool()
     #    shift_mask = torch.logical_and(shift_mask, ~shift_metadata_mask)
-    rich.print(f"shift_mask{shift_mask}")
-    rich.print(f"{shift_mask.sum()=}")
+    # rich.print(f"shift_mask{shift_mask}")
+    # rich.print(f"{shift_mask.sum()=}")
 
     # Flatten the tokens
     loss = F.cross_entropy(
@@ -132,11 +133,10 @@ def ppl_fn(
             f"{idx}_loss{suffix}.pt",
         )
 
-    loss = loss.cpu().squeeze().numpy().tolist()
-    shift_mask = shift_mask.cpu().squeeze().numpy().tolist()
-
-    return loss, shift_mask, shift_labels.cpu().squeeze().numpy().tolist()
-    return loss, shift_mask
+    #loss = loss.cpu().squeeze().numpy().tolist()
+    #shift_mask = shift_mask.cpu().squeeze().numpy().tolist()
+    #return loss, shift_mask, shift_labels.cpu().squeeze().numpy().tolist()
+    #return loss, shift_mask
 
     # Normalize to avoid an overflow when there are many tokens
     normed_loss_weights = shift_mask / shift_mask.sum()
@@ -307,6 +307,10 @@ if __name__ == "__main__":
             # rich.print(f"{normal_example['attention_mask']=}")
             # import sys
             # sys.exit()
+            #print(metadata_example)
+            if "input_ids" not in metadata_example:
+                print("Skipping")
+                continue
             metadata_example_len = len(metadata_example["input_ids"])
             min_seq_len = min(normal_example_len, metadata_example_len)
             max_seq_len = max(normal_example_len, metadata_example_len)
@@ -316,6 +320,8 @@ if __name__ == "__main__":
             # 2) examples fitting the model sequence length
             if len(processed_examples["input_ids"]) == 1 and min_seq_len > 0 and max_seq_len <= 1024:
                 # Keep track of considered examples and total length
+                if n_examples % 10 == 0:
+                    print("n_examples completed.")
                 n_examples += 1
                 total_normal_len += normal_example_len
                 total_metadata_len += metadata_example_len
@@ -330,48 +336,51 @@ if __name__ == "__main__":
                     metadata_batch = {k: v.cuda() for k, v in metadata_batch.items()}
                 if n_examples == 1:
                     ex = format_by_one_mask(normal_batch["input_ids"][0], normal_batch["attention_mask"][0], tokenizer)
-                    rich.print(f"Normal example:")
-                    rich.print(ex)
+                    #rich.print(f"Normal example:")
+                    #rich.print(ex)
 
                     ex = format_by_one_mask(
                         metadata_batch["input_ids"][0], metadata_batch["metadata_mask"][0], tokenizer
                     )
-                    rich.print(f"Metadata example:")
-                    rich.print(ex)
-                    rich.print(tokenizer.decode(metadata_batch["input_ids"][0]))
+                    #rich.print(f"Metadata example:")
+                    #rich.print(ex)
+                    #rich.print(tokenizer.decode(metadata_batch["input_ids"][0]))
 
                 # Calculate ppl
-                normal_ppl = get_ppl(normal_batch, save_data=args.save_data, idx=idx)
-                # total_normal_ppl += float(normal_ppl) * normal_example_len
-                metadata_ppl = get_ppl(metadata_batch, save_data=args.save_data, idx=idx)
-                # total_metadata_ppl += float(metadata_ppl) * metadata_example_len
-                if n_examples == 1:
+                normal_ppl = get_ppl(normal_batch, save_data=args.save_data, idx=idx)#[0]
+                #print("PPL")
+                #print(normal_ppl)
+                total_normal_ppl += float(normal_ppl) * normal_example_len
+                metadata_ppl = get_ppl(metadata_batch, save_data=args.save_data, idx=idx)#[0]
+                #print(metadata_ppl)
+                total_metadata_ppl += float(metadata_ppl) * metadata_example_len
+                if False:#n_examples == 1:
                     loss, mask, shift_labels = normal_ppl
-                    print("normal ppl")
+                    # print("normal ppl")
                     printed = 0
                     for i, (l, m, sl) in enumerate(zip(loss, mask, shift_labels)):
                         if m:
                             if printed < 10:
-                                rich.print(f"Loss {json.dumps(tokenizer.decode(sl))}: {l}")
+                                # rich.print(f"Loss {json.dumps(tokenizer.decode(sl))}: {l}")
                                 printed += 1
 
                     unmasked_labels = [label for label, m in zip(shift_labels, mask) if m]
                     # print(f"first 10 unmasked labels: {[tokenizer.decode(x) for x in unmasked_labels[:10]]}")
-                    print(f"first 10 unmasked labels: {tokenizer.decode(unmasked_labels[:10])}")
+                    # print(f"first 10 unmasked labels: {tokenizer.decode(unmasked_labels[:10])}")
                     # ex = format_by_one_mask(normal_batch["input_ids"][0], mask, tokenizer)
                     # rich.print(ex)
 
                     loss, mask, shift_labels = metadata_ppl
                     printed = 0
-                    print("metadata ppl")
+                    # print("metadata ppl")
                     for i, (l, m, sl) in enumerate(zip(loss, mask, shift_labels)):
                         if m:
                             if printed < 10:
-                                rich.print(f"Loss {json.dumps(tokenizer.decode(sl))}: {l}")
+                                # rich.print(f"Loss {json.dumps(tokenizer.decode(sl))}: {l}")
                                 printed += 1
 
                     unmasked_labels = [label for label, m in zip(shift_labels, mask) if m]
-                    print(f"first 10 unmasked labels: {tokenizer.decode(unmasked_labels[:10])}")
+                    # print(f"first 10 unmasked labels: {tokenizer.decode(unmasked_labels[:10])}")
                     # ex = format_by_one_mask(metadata_batch["input_ids"][0], mask, tokenizer)
                     # rich.print(ex)
 
@@ -386,11 +395,11 @@ if __name__ == "__main__":
                     # rich.print(f"Metadata example: (ppl={metadata_ppl[0]})")
                     # rich.print(f"Normal example: (mask={normal_ppl[1]})")
                     # rich.print(f"Metadata example: (mask={metadata_ppl[1]})")
-                    import sys
+                    # import sys
 
-                    sys.exit()
+                    # sys.exit()
 
-                if n_examples > 1000:
+                if n_examples > 100:
                     break
 
         if exit_flag:

@@ -8,6 +8,8 @@ import nltk
 
 try:
     from wikipedia2vec.dump_db import DumpDB
+
+    wikipedia2vec_available = True
 except ImportError:
     wikipedia2vec_available = False
 

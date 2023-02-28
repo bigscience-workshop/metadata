@@ -31,6 +31,8 @@ try:
     from REL.mention_detection import MentionDetection
     from REL.ner import load_flair_ner
     from REL.utils import process_results
+
+    REL_available = True
 except ImportError:
     REL_available = False
 

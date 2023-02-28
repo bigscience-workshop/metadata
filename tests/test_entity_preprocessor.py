@@ -7,7 +7,6 @@ from bsmetadata.preprocessing_utils import EntityPreprocessor
 
 class TestEntityPreprocessor(unittest.TestCase):
     def test_extract_entities(self):
-
         my_dict = {
             "text": [
                 "Paris is the beautiful place to visit",

@@ -171,7 +171,6 @@ class ConsecutiveTagCleaner:
             and "previous_tag" in root.attrib
             and root[0].tag == root.attrib["previous_tag"]
         ):  # has 1 child
-
             if tag in self.block_elements:
                 root[0].tag = self.fake_tag_block
             elif tag in INLINE_ELEMENTS_SPACING:

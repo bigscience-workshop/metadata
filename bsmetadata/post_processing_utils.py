@@ -43,11 +43,9 @@ class WebsiteDescPostProcessor(MetadataPostProcessor):
         self,
         col_to_process="metadata",
     ) -> None:
-
         super().__init__(col_to_process=col_to_process)
 
     def post_process(self, examples: Dict[str, List]) -> Dict[str, List]:
-
         example_metadata_list = examples[self.col_to_process]
         # Iterate through the metadata associated with all examples in this batch.
 

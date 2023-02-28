@@ -37,9 +37,9 @@
         "reduce_scatter": true,
         "reduce_bucket_size": 500000000,
         "contiguous_gradients": true,
-        "cpu_offload": false
+        "cpu_offload": true
     },
-    "gradient_accumulation_steps": 1,
+    "gradient_accumulation_steps": 16,
     "gradient_clipping": "auto",
     "steps_per_print": 100,
     "train_batch_size": 256,

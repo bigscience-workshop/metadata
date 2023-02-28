@@ -47,7 +47,6 @@ class WikipediaDescUtils:
         return text
 
     def extract_wiki_desc(self, keyword: str) -> Optional:
-
         title = self.fetch_wikipedia_title_from_keyword(keyword)
         desc = self.fetch_wikipedia_description_for_title(title)
         return desc
@@ -59,7 +58,6 @@ class WikipediaDescUtils:
         return self.cache[keyword]
 
     def fetch_entity_description_from_keyword(self, keyword: str) -> str:
-
         title = string.capwords(keyword)
         text = self.fetch_wikipedia_description_for_title(title)
 

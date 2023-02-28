@@ -234,7 +234,6 @@ class HtmlPreprocessor(MetadataTagger):
         for example_doc_html, example_metadata in zip(
             examples[self.col_html], new_metadata
         ):  # if metadata already exists
-
             plain_text, metadata, additional_columns = html_parser.get_clean_text_and_metadata(
                 example_doc_html,
                 tags_to_remove_with_content=tags_to_remove_with_content,
@@ -286,7 +285,6 @@ class WebsiteDescPreprocessor(MetadataTagger):
         return features
 
     def tag(self, examples: Dict[str, List]) -> Dict[str, List[OneToOneFeature]]:
-
         example_metadata_list = (
             examples[self.col_to_store_metadata]
             if self.col_to_store_metadata in examples
@@ -311,7 +309,6 @@ class WebsiteDescPreprocessor(MetadataTagger):
         return examples
 
     def _extract_website_desc_from_url(self, url: str) -> Optional:
-
         keyword = fetch_keyword_from_url(url)
         return self.website_utils.fetch_website_description_from_keyword(keyword)
 
@@ -477,7 +474,6 @@ class GenerationLengthPreprocessor(MetadataTagger):
 
     @property
     def new_columns_minimal_features(self) -> Dict[str, List[OneToOneFeature]]:
-
         if self.mode == "text":
             features = {
                 self.col_to_store_metadata: [
@@ -724,7 +720,6 @@ class TitlePreprocessor(MetadataTagger):
 
         # Iterate through the metadata associated with all examples in this batch.
         for example_title, example_metadata in zip(examples[self.col_title], example_metadata_list):
-
             # The number of titles retrieved on a page is not necessarily equal to 1. Here the choice is made to keep only the first title retrieved when there is one.
             if not example_title:
                 continue
@@ -826,7 +821,6 @@ class EntityParagraphPreprocessor(MetadataTagger):
         for example_entity, example_paragraph, example_metadata in zip(
             examples[self.col_entity], examples[self.col_paragraph], example_metadata_list
         ):
-
             if not example_entity or not example_paragraph:
                 continue
 

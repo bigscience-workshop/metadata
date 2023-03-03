@@ -14,10 +14,15 @@ from tqdm.notebook import tqdm
 from transformers import AutoModelForCausalLM, AutoTokenizer, default_data_collator
 from transformers.modeling_outputs import CausalLMOutputWithCrossAttentions
 
-from bsmetadata.metadata_processors import DatasourceProcessor, GenerationLengthProcessor
-from bsmetadata.metadata_processors import PROCESSORS, MetadataConfig, MetadataProcessor
-from bsmetadata.metadata_utils import add_metadata_and_chunk_examples, convert_v2_dataset_to_v1_format_v1_compatible
 from bsmetadata import metadata_utils
+from bsmetadata.metadata_processors import (
+    PROCESSORS,
+    DatasourceProcessor,
+    GenerationLengthProcessor,
+    MetadataConfig,
+    MetadataProcessor,
+)
+from bsmetadata.metadata_utils import add_metadata_and_chunk_examples, convert_v2_dataset_to_v1_format_v1_compatible
 
 
 set_verbosity_error()

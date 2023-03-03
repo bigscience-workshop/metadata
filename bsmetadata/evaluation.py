@@ -202,7 +202,7 @@ if __name__ == "__main__":
         "--baseline",
         type=str,
         default="gpt2-xl",
-        help=f"If set, the script evaluates with gpt2 instead of the metadata-enchanced model",
+        help="If set, the script evaluates with gpt2 instead of the metadata-enchanced model",
     )
     parser.add_argument(
         "--prompt",

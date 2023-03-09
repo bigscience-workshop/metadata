@@ -1,9 +1,9 @@
-%%writefile bsmetadata/evaluation.py
+# %%writefile bsmetadata/evaluation.py
 import argparse
 import functools
 import itertools
 import json
-from typing import Dict
+from typing import Any, Dict, Optional
 
 import rich
 import torch
@@ -13,10 +13,18 @@ from huggingface_hub import hf_hub_download
 from omegaconf import OmegaConf
 from rich.text import Text
 from tqdm.auto import tqdm
-
-from bsmetadata.metadata_utils import add_metadata_and_chunk_examples
 from transformers import AutoModelForCausalLM, AutoTokenizer, default_data_collator
 from transformers.modeling_outputs import CausalLMOutputWithCrossAttentions
+
+from bsmetadata import metadata_utils
+from bsmetadata.metadata_processors import (
+    PROCESSORS,
+    DatasourceProcessor,
+    GenerationLengthProcessor,
+    MetadataConfig,
+    MetadataProcessor,
+)
+from bsmetadata.metadata_utils import add_metadata_and_chunk_examples, convert_v2_dataset_to_v1_format_v1_compatible
 
 
 def format_by_one_mask(input_ids, mask, tokenizer):
@@ -32,8 +40,8 @@ def format_by_one_mask(input_ids, mask, tokenizer):
 
 @torch.no_grad()
 def ppl_fn(
-    batch: Dict[str, torch.Tensor], 
-    outputs: CausalLMOutputWithCrossAttentions, 
+    batch: Dict[str, torch.Tensor],
+    outputs: CausalLMOutputWithCrossAttentions,
     metadata_mask: torch.Tensor = None,
     save_data: bool = False,
     idx: int = None,
@@ -133,10 +141,10 @@ def ppl_fn(
             f"{idx}_loss{suffix}.pt",
         )
 
-    #loss = loss.cpu().squeeze().numpy().tolist()
-    #shift_mask = shift_mask.cpu().squeeze().numpy().tolist()
-    #return loss, shift_mask, shift_labels.cpu().squeeze().numpy().tolist()
-    #return loss, shift_mask
+    # loss = loss.cpu().squeeze().numpy().tolist()
+    # shift_mask = shift_mask.cpu().squeeze().numpy().tolist()
+    # return loss, shift_mask, shift_labels.cpu().squeeze().numpy().tolist()
+    # return loss, shift_mask
 
     # Normalize to avoid an overflow when there are many tokens
     normed_loss_weights = shift_mask / shift_mask.sum()
@@ -172,6 +180,69 @@ def get_ppl(
     batch["labels"] = labels
     ppl = ppl_fn(batch, outputs, metadata_mask, save_data=save_data, idx=idx)
     return ppl
+
+
+def datasource_process_global_for_prompt(self, metadata_attrs: Dict[str, Any]) -> Optional[str]:
+    # We represent the DATASOURCE by using meaningful information of the URL.
+    # URL: http://www.example.de/2015/forum/article/21-new-project
+    # Example: example.de > forum > article > new project
+    return "".join(["Data source", self.cfg.metadata_key_value_sep, metadata_attrs["value"]])
+
+
+def generation_length_process_global_for_prompt(self, metadata_attrs: Dict[str, Any]) -> Optional[str]:
+    # We represent the length of a text by the number of characters.
+    # Example: Length: 123
+    return "".join(["Number of characters", self.cfg.metadata_key_value_sep, metadata_attrs["value"]])
+
+
+def create_metadata_prompt(example: Dict[str, Any], cfg: MetadataConfig) -> str:
+    """Creates a prompt containing all global metadata information (including URLs, timestamps, etc)
+    and/or local metadata special tokens
+    Args:
+        example: The example to create a metadata prefix for.
+        cfg: The data config to use.
+    Returns:
+        A string containing the metadata prefix.
+    """
+    LIST_LIKE_METADATA_PROMPT_FIELDS = {
+        "entity": "Entities",
+        "entity_paragraph": "Entity Paragraphs",
+    }
+    example = convert_v2_dataset_to_v1_format_v1_compatible(example=example)
+    processed_metadata = {}
+    for metadata in example["metadata"]:
+        key, type_ = metadata["key"], metadata["type"]
+        if key not in cfg.metadata_list:
+            # rich.print(f"metadata key not in metadata_list, skipping. {key}, {cfg.metadata_list}")
+            continue
+
+        if type_ == "global":
+            processor = PROCESSORS.get(key, MetadataProcessor)(cfg)
+            processed_metadata[key] = processor.process_global(metadata)
+        elif key in LIST_LIKE_METADATA_PROMPT_FIELDS:
+            if key not in processed_metadata:
+                processed_metadata[key] = set()  # Same entities may occurr at different positions
+            processed_metadata[key].add(metadata["value"])
+        elif (
+            cfg.add_local_metadata_special_tokens_in_prefix
+            and cfg.local_metadata_special_tokens
+            and key in cfg.local_metadata_special_tokens
+        ):
+            processed_metadata[key] = cfg.local_metadata_special_tokens[key]
+        else:
+            processed_metadata[key] = key.title()
+
+    for list_like_metadata in LIST_LIKE_METADATA_PROMPT_FIELDS:
+        if list_like_metadata in processed_metadata:
+            processed_metadata[list_like_metadata] = (
+                LIST_LIKE_METADATA_PROMPT_FIELDS[list_like_metadata]
+                + cfg.metadata_key_value_sep
+                + ", ".join(v.replace("_", " ") for v in processed_metadata[list_like_metadata])
+            )
+
+    sorted_metadata = [processed_metadata.get(md, None) for md in cfg.metadata_list]
+    sorted_metadata = [md for md in sorted_metadata if md is not None]
+    return cfg.metadata_sep.join(sorted_metadata) + cfg.metadata_prefix_sep if sorted_metadata else ""
 
 
 if __name__ == "__main__":
@@ -218,6 +289,11 @@ if __name__ == "__main__":
         action="store_true",
         help="If set to true, will load gpt2-xl",
     )
+    parser.add_argument(
+        "--prompt",
+        action="store_true",
+        help="If set to true, the script evaluates metadata in prompt style",
+    )
 
     args = parser.parse_args()
     print(f"Parameters: {args}")
@@ -252,10 +328,18 @@ if __name__ == "__main__":
     cfg.metadata_probability = 1.0
     cfg.entity_setting = "beg"
     cfg.metadata_list.append("entity")
+    cfg.metadata_list.append("paragraph")
+
+    if args.prompt:
+        cfg.metadata_sep = "; "  # Instead of " | "
+        cfg.metadata_prefix_sep = ""  # Instead of " |||"; there's already an implicit " "
+        DatasourceProcessor.process_global = datasource_process_global_for_prompt
+        GenerationLengthProcessor.process_global = generation_length_process_global_for_prompt
+        metadata_utils.create_metadata_prefix = create_metadata_prompt
+
     preprocess_fn = functools.partial(add_metadata_and_chunk_examples, tokenizer=tokenizer, cfg=cfg)
 
     # Validation datasets
-
     dataset_paths = [
         "bs-modeling-metadata/c4-en-html-with-validation_metadata_html",
         "bs-modeling-metadata/c4-en-html-with-validation_metadata_entity",
@@ -307,7 +391,7 @@ if __name__ == "__main__":
             # rich.print(f"{normal_example['attention_mask']=}")
             # import sys
             # sys.exit()
-            #print(metadata_example)
+            # print(metadata_example)
             if "input_ids" not in metadata_example:
                 print("Skipping")
                 continue
@@ -336,25 +420,25 @@ if __name__ == "__main__":
                     metadata_batch = {k: v.cuda() for k, v in metadata_batch.items()}
                 if n_examples == 1:
                     ex = format_by_one_mask(normal_batch["input_ids"][0], normal_batch["attention_mask"][0], tokenizer)
-                    #rich.print(f"Normal example:")
-                    #rich.print(ex)
+                    # rich.print(f"Normal example:")
+                    # rich.print(ex)
 
                     ex = format_by_one_mask(
                         metadata_batch["input_ids"][0], metadata_batch["metadata_mask"][0], tokenizer
                     )
-                    #rich.print(f"Metadata example:")
-                    #rich.print(ex)
-                    #rich.print(tokenizer.decode(metadata_batch["input_ids"][0]))
+                    # rich.print(f"Metadata example:")
+                    # rich.print(ex)
+                    # rich.print(tokenizer.decode(metadata_batch["input_ids"][0]))
 
                 # Calculate ppl
-                normal_ppl = get_ppl(normal_batch, save_data=args.save_data, idx=idx)#[0]
-                #print("PPL")
-                #print(normal_ppl)
+                normal_ppl = get_ppl(normal_batch, save_data=args.save_data, idx=idx)  # [0]
+                # print("PPL")
+                # print(normal_ppl)
                 total_normal_ppl += float(normal_ppl) * normal_example_len
-                metadata_ppl = get_ppl(metadata_batch, save_data=args.save_data, idx=idx)#[0]
-                #print(metadata_ppl)
+                metadata_ppl = get_ppl(metadata_batch, save_data=args.save_data, idx=idx)  # [0]
+                # print(metadata_ppl)
                 total_metadata_ppl += float(metadata_ppl) * metadata_example_len
-                if False:#n_examples == 1:
+                if False:  # n_examples == 1:
                     loss, mask, shift_labels = normal_ppl
                     # print("normal ppl")
                     printed = 0

@@ -506,7 +506,7 @@ if __name__ == "__main__":
 
                     # sys.exit()
 
-                if n_examples > 100:
+                if n_examples > 1000:
                     break
 
         if exit_flag:

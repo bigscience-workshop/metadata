@@ -174,6 +174,10 @@ class MetadataConfig:
     max_seq_len: int = field(
         default=512, metadata={"help": "The maximum number of tokens to use for each training chunk."}
     )
+    apply_cm3_loss_to_sequences: bool = field(
+        default=False,
+        metadata={"help": "If True, the CM3 loss will be applied to training input sequences. "},
+    )
     html_parser_config: Optional[HTMLParserConfig] = HTMLParserConfig(
         AllTagsRules(
             attributes_to_keep=None,

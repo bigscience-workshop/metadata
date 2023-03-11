@@ -120,10 +120,31 @@ def add_metadata_and_chunk_examples(
         # Create chunks of `max_seq_len` tokens.
         prefix_len = len(metadata_prefix_encoded)
         max_text_len = cfg.max_seq_len - prefix_len
+        if cfg.apply_cm3_loss_to_sequences:
+            max_text_len -= 2
 
         for text_chunk_encoded, chunk_metadata_mask in chunks(
             max_text_len, text_with_local_metadata_encoded.input_ids, token_level_metadata_mask
         ):
+            if cfg.apply_cm3_loss_to_sequences:
+                span_ids = sorted([random.randint(0, len(text_chunk_encoded)) for x in range(2)])
+                span_start, span_end = span_ids[0], span_ids[1]
+                if span_end - span_start > 0:
+                    text_chunk_encoded = (
+                        text_chunk_encoded[:span_start]
+                        + [tokenizer.mask_token_id]
+                        + text_chunk_encoded[span_end:]
+                        + [tokenizer.mask_token_id]
+                        + text_chunk_encoded[span_start:span_end]
+                    )
+                    chunk_metadata_mask = (
+                        chunk_metadata_mask[:span_start]
+                        + [1]
+                        + chunk_metadata_mask[span_end:]
+                        + [1]
+                        + chunk_metadata_mask[span_start:span_end]
+                    )
+
             total_len = prefix_len + len(text_chunk_encoded)
             padding_len = max_text_len - len(text_chunk_encoded)
 

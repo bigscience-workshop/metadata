@@ -1,3 +1,4 @@
+# %%writefile bsmetadata/metadata_utils.py
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -99,9 +100,9 @@ def add_metadata_and_chunk_examples(
             text_with_local_metadata = example["text"]
             char_level_metadata_mask = [False] * len(text_with_local_metadata)
 
-        if metadata_prefix_encoded:
-            text_with_local_metadata = "" + text_with_local_metadata
-            char_level_metadata_mask = [False] + char_level_metadata_mask
+        # if metadata_prefix_encoded:
+        #     text_with_local_metadata = "" + text_with_local_metadata
+        #     char_level_metadata_mask = [False] + char_level_metadata_mask
 
         text_with_local_metadata_encoded = tokenizer.encode_plus(text_with_local_metadata)
 

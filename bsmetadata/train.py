@@ -231,6 +231,25 @@ def main(args: CFG) -> None:
     # get model
     model = AutoModelForCausalLM.from_pretrained(args.model_name, config=config)
 
+    if args.data_config.metadata_config.local_metadata_special_token_state:
+        new_tokens = list(
+            chain.from_iterable(
+                (start_token, end_token)
+                for start_token, end_token in zip(
+                    args.data_config.metadata_config.local_metadata_special_token_start.values(),
+                    args.data_config.metadata_config.local_metadata_special_token_end.values(),
+                )
+            )
+        )
+        new_tokens = [
+            AddedToken(token, rstrip=False, lstrip=False, single_word=False, normalized=False) for token in new_tokens
+        ]
+        tokenizer = AutoTokenizer.from_pretrained(args.model_name, additional_special_tokens=new_tokens)
+        model.resize_token_embeddings(len(tokenizer))
+    else:
+        tokenizer = AutoTokenizer.from_pretrained(args.model_name)
+    tokenizer.pad_token = tokenizer.eos_token
+
     # Optimizer
     # Split weights in two groups, one with weight decay and the other not.
     no_decay = ["bias", "LayerNorm.weight"]
@@ -265,23 +284,6 @@ def main(args: CFG) -> None:
             num_training_steps=args.max_train_steps,
         )
     # get dataloaders
-    if args.data_config.metadata_config.local_metadata_special_token_state:
-        new_tokens = list(
-            chain.from_iterable(
-                (start_token, end_token)
-                for start_token, end_token in zip(
-                    args.data_config.metadata_config.local_metadata_special_token_start.values(),
-                    args.data_config.metadata_config.local_metadata_special_token_end.values(),
-                )
-            )
-        )
-        new_tokens = [
-            AddedToken(token, rstrip=False, lstrip=False, single_word=False, normalized=False) for token in new_tokens
-        ]
-        tokenizer = AutoTokenizer.from_pretrained(args.model_name, additional_special_tokens=new_tokens)
-    else:
-        tokenizer = AutoTokenizer.from_pretrained(args.model_name)
-    tokenizer.pad_token = tokenizer.eos_token
     if args.data_config.experiment == "with_metadata_datasetv2_tf":
         from bsmetadata.experiments.with_metadata_datasetv2_tf import get_dataloader, get_dummy_dataloader
 

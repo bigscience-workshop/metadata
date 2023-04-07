@@ -506,7 +506,7 @@ if __name__ == "__main__":
 
                     # sys.exit()
 
-                if n_examples > 1000:
+                if n_examples > 2000:
                     break
 
         if exit_flag:
@@ -522,7 +522,7 @@ if __name__ == "__main__":
                 examples_mean_loss = torch.tensor(examples_mean_loss)
                 examples_len = torch.tensor(examples_len)
                 weight = examples_len / examples_len.sum()
-                return torch.exp2((examples_mean_loss * weight).sum()).item()
+                return torch.exp((examples_mean_loss * weight).sum()).item()
 
             torch.save({
                 'total_normal_ppl': total_normal_ppl,

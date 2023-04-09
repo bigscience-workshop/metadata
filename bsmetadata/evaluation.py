@@ -40,7 +40,7 @@ def format_by_one_mask(input_ids, mask, tokenizer):
 
 
 @torch.no_grad()
-def ppl_fn(
+def mean_loss_fn(
     batch: Dict[str, torch.Tensor],
     outputs: CausalLMOutputWithCrossAttentions,
     metadata_mask: torch.Tensor = None,
@@ -57,7 +57,7 @@ def ppl_fn(
         idx: The index of the batch.
 
     Returns:
-        The perplexity of the given batch.
+        The normalized loss of the given batch.
     """
     b = outputs.logits.size(0)
     lm_logits = outputs.logits
@@ -172,7 +172,7 @@ def ppl_fn(
 
 
 @torch.no_grad()
-def get_ppl(
+def get_mean_loss(
     batch: Dict[str, torch.Tensor],
     save_data: bool = False,
     idx: int = None,
@@ -187,14 +187,14 @@ def get_ppl(
         save_data: Whether to save tokens & losses
         idx: The index of the batch for saving
     Returns:
-        The perplexity of the given batch.
+        The normalized loss of the given batch.
     """
     labels = batch.pop("labels")
     metadata_mask = batch.pop("metadata_mask", None)
     outputs = model(**batch)
     batch["labels"] = labels
-    ppl = ppl_fn(batch, outputs, metadata_mask, save_data=save_data, idx=idx)
-    return ppl
+    nll = mean_loss_fn(batch, outputs, metadata_mask, save_data=save_data, idx=idx)
+    return nll
 
 
 def datasource_process_global_for_prompt(self, metadata_attrs: Dict[str, Any]) -> Optional[str]:
@@ -382,9 +382,9 @@ if __name__ == "__main__":
     for path in dataset_paths:
         n_examples = 0
         total_normal_len = []
-        total_normal_ppl = []
+        total_normal_nll = []
         total_metadata_len = []
-        total_metadata_ppl = []
+        total_metadata_nll = []
         exit_flag = False
 
         # Load validation dataset from hugging face
@@ -433,7 +433,7 @@ if __name__ == "__main__":
             if len(processed_examples["input_ids"]) == 1 and min_seq_len > 0 and max_seq_len <= 1024:
                 # Keep track of considered examples and total length
                 if n_examples % 10 == 0:
-                    print(f"\r{n_examples:0{max_n_examples_ord)}} examples completed. ", end="")
+                    print(f"\r{n_examples:0{max_n_examples_ord}} examples completed. ", end="")
                 n_examples += 1
 
                 # Prepare batches
@@ -456,19 +456,22 @@ if __name__ == "__main__":
                     # rich.print(ex)
                     # rich.print(tokenizer.decode(metadata_batch["input_ids"][0]))
 
-                # Calculate ppl
-                normal_ppl, normal_example_len = get_ppl(normal_batch, save_data=args.save_data, idx=idx)  # [0]
+                # Calculate nll (natural-log loss)
+                normal_nll, normal_example_len = get_mean_loss(normal_batch, save_data=args.save_data, idx=idx)  # [0]
                 # print("PPL")
                 # print(normal_ppl)
-                total_normal_ppl.append(normal_ppl)  # * normal_example_len
-                metadata_ppl, metadata_example_len = get_ppl(metadata_batch, save_data=args.save_data, idx=idx)  # [0]
+                total_normal_nll.append(normal_nll)  # * normal_example_len
+                metadata_nll, metadata_example_len = get_mean_loss(
+                    metadata_batch, save_data=args.save_data, idx=idx
+                )  # [0]
                 # print(metadata_ppl)
-                total_metadata_ppl.append(metadata_ppl)  # * metadata_example_len
+                total_metadata_nll.append(metadata_nll)  # * metadata_example_len
 
                 total_normal_len.append(normal_example_len)
                 total_metadata_len.append(metadata_example_len)
 
-                data.append({"idx": idx, "normal_ppl": normal_ppl, "metadata_ppl": metadata_ppl})
+                data.append({"idx": idx, "normal_nll": normal_nll, "metadata_nll": metadata_nll})
+                # Ignore the block below
                 if False:  # n_examples == 1:
                     loss, mask, shift_labels = normal_ppl
                     # print("normal ppl")
@@ -535,15 +538,15 @@ if __name__ == "__main__":
 
             torch.save(
                 {
-                    "total_normal_ppl": total_normal_ppl,
-                    "total_metadata_ppl": total_metadata_ppl,
+                    "total_normal_nll": total_normal_nll,
+                    "total_metadata_nll": total_metadata_nll,
                     "total_normal_len": total_normal_len,
                     "total_metadata_len": total_metadata_len,
                 },
                 "eva.data2",
             )
-            final_normal_ppl = ppl(total_normal_ppl, total_normal_len)
-            final_metadata_ppl = ppl(total_metadata_ppl, total_metadata_len)
+            final_normal_ppl = ppl(total_normal_nll, total_normal_len)
+            final_metadata_ppl = ppl(total_metadata_nll, total_metadata_len)
         else:
             final_metadata_ppl = final_normal_ppl = 0
 

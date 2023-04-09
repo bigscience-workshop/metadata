@@ -327,7 +327,7 @@ if __name__ == "__main__":
             config_file_path = hf_hub_download(
                 repo_id=args.repo_id, filename="actual_config.yaml", use_auth_token=True
             )
-        except:
+        except Exception:
             config_file_path = "bsmetadata/hydra_configs/v2.yaml"
     repo_args = OmegaConf.load(config_file_path)
     data_config = repo_args.data_config
@@ -473,7 +473,7 @@ if __name__ == "__main__":
                 data.append({"idx": idx, "normal_nll": normal_nll, "metadata_nll": metadata_nll})
                 # Ignore the block below
                 if False:  # n_examples == 1:
-                    loss, mask, shift_labels = normal_ppl
+                    loss, mask, shift_labels = normal_nll
                     # print("normal ppl")
                     printed = 0
                     for i, (l, m, sl) in enumerate(zip(loss, mask, shift_labels)):
@@ -488,7 +488,7 @@ if __name__ == "__main__":
                     # ex = format_by_one_mask(normal_batch["input_ids"][0], mask, tokenizer)
                     # rich.print(ex)
 
-                    loss, mask, shift_labels = metadata_ppl
+                    loss, mask, shift_labels = metadata_nll
                     printed = 0
                     # print("metadata ppl")
                     for i, (l, m, sl) in enumerate(zip(loss, mask, shift_labels)):

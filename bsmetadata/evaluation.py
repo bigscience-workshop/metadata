@@ -265,33 +265,39 @@ if __name__ == "__main__":
     parser.add_argument(
         "--repo_id",
         type=str,
-        default="bs-modeling-metadata/checkpoints_v0.4",
+        default="bs-modeling-metadata/checkpoints_all_04_23",
         help="Repository ID for the model to compute perplexity for",
     )
     parser.add_argument(
         "--subfolder",
         type=str,
-        default="checkpoint-10000step",
+        default="checkpoint-2000step",
         help="subfolder in the respository with the specific checkpoint to evaluate perplexity for",
+    )
+    parser.add_argument(
+        "--config_file_path",
+        type=str,
+        help="The path actual_config.yaml if available, otherwise repo_id/actual_config.yaml or git clone's v2.yaml",
     )
     parser.add_argument(
         "--output_file", type=str, default="evaluation.txt", help="Path to the file the perplexity is written to"
     )
     parser.add_argument("--no_cuda", action="store_true", help="If set to true, all computations are performed on CPU")
     parser.add_argument(
-        "--test",
-        action="store_true",
-        help="If set to true, the script runs in test mode and only takes 10 examples per dataset",
-    )
-    parser.add_argument(
         "--save_data",
         action="store_true",
         help="If set to true, save tokens & losses",
     )
     parser.add_argument(
-        "--local",
+        "--test",
         action="store_true",
         help="If set to true, the script runs in test mode and only takes 10 examples per dataset",
+    )
+    parser.add_argument(
+        "--max_n_examples",
+        type=int,
+        default=1500,
+        help="how many examples per metadata type to evaluate",
     )
     parser.add_argument(
         "--metadata_to_test",
@@ -314,12 +320,15 @@ if __name__ == "__main__":
     print(f"Parameters: {args}")
 
     # Load config
-    if args.local:
-        import os
-
-        config_file_path = os.path.join(args.repo_id, "actual_config.yaml")
+    if args.config_file_path:
+        config_file_path = args.config_file_path
     else:
-        config_file_path = hf_hub_download(repo_id=args.repo_id, filename="actual_config.yaml", use_auth_token=True)
+        try:
+            config_file_path = hf_hub_download(
+                repo_id=args.repo_id, filename="actual_config.yaml", use_auth_token=True
+            )
+        except:
+            config_file_path = "bsmetadata/hydra_configs/v2.yaml"
     repo_args = OmegaConf.load(config_file_path)
     data_config = repo_args.data_config
 
@@ -385,6 +394,7 @@ if __name__ == "__main__":
         validation_dataset = load_dataset(path, use_auth_token=True, split=split)
 
         data = []
+        max_n_examples_ord = len(str(args.max_n_examples))
         for idx, example in tqdm(enumerate(validation_dataset), desc=f"Calculating perplexity for {metadata_type}..."):
             # for idx in [136,]:
             example = validation_dataset[idx]
@@ -423,7 +433,7 @@ if __name__ == "__main__":
             if len(processed_examples["input_ids"]) == 1 and min_seq_len > 0 and max_seq_len <= 1024:
                 # Keep track of considered examples and total length
                 if n_examples % 10 == 0:
-                    print("n_examples completed.")
+                    print(f"\r{n_examples:0{max_n_examples_ord)}} examples completed. ", end="")
                 n_examples += 1
 
                 # Prepare batches
@@ -504,7 +514,7 @@ if __name__ == "__main__":
 
                     # sys.exit()
 
-                if n_examples > 2000:
+                if n_examples > args.max_n_examples:
                     break
 
         if exit_flag:

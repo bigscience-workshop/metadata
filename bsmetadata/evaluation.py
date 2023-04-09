@@ -40,7 +40,7 @@ def format_by_one_mask(input_ids, mask, tokenizer):
 
 
 @torch.no_grad()
-def ppl_fn(
+def mean_loss_fn(
     batch: Dict[str, torch.Tensor],
     outputs: CausalLMOutputWithCrossAttentions,
     metadata_mask: torch.Tensor = None,
@@ -57,7 +57,7 @@ def ppl_fn(
         idx: The index of the batch.
 
     Returns:
-        The perplexity of the given batch.
+        The normalized loss of the given batch.
     """
     b = outputs.logits.size(0)
     lm_logits = outputs.logits
@@ -172,7 +172,7 @@ def ppl_fn(
 
 
 @torch.no_grad()
-def get_ppl(
+def get_mean_loss(
     batch: Dict[str, torch.Tensor],
     save_data: bool = False,
     idx: int = None,
@@ -187,14 +187,14 @@ def get_ppl(
         save_data: Whether to save tokens & losses
         idx: The index of the batch for saving
     Returns:
-        The perplexity of the given batch.
+        The normalized loss of the given batch.
     """
     labels = batch.pop("labels")
     metadata_mask = batch.pop("metadata_mask", None)
     outputs = model(**batch)
     batch["labels"] = labels
-    ppl = ppl_fn(batch, outputs, metadata_mask, save_data=save_data, idx=idx)
-    return ppl
+    nll = mean_loss_fn(batch, outputs, metadata_mask, save_data=save_data, idx=idx)
+    return nll
 
 
 def datasource_process_global_for_prompt(self, metadata_attrs: Dict[str, Any]) -> Optional[str]:
@@ -265,33 +265,39 @@ if __name__ == "__main__":
     parser.add_argument(
         "--repo_id",
         type=str,
-        default="bs-modeling-metadata/checkpoints_v0.4",
+        default="bs-modeling-metadata/checkpoints_all_04_23",
         help="Repository ID for the model to compute perplexity for",
     )
     parser.add_argument(
         "--subfolder",
         type=str,
-        default="checkpoint-10000step",
+        default="checkpoint-2000step",
         help="subfolder in the respository with the specific checkpoint to evaluate perplexity for",
+    )
+    parser.add_argument(
+        "--config_file_path",
+        type=str,
+        help="The path actual_config.yaml if available, otherwise repo_id/actual_config.yaml or git clone's v2.yaml",
     )
     parser.add_argument(
         "--output_file", type=str, default="evaluation.txt", help="Path to the file the perplexity is written to"
     )
     parser.add_argument("--no_cuda", action="store_true", help="If set to true, all computations are performed on CPU")
     parser.add_argument(
-        "--test",
-        action="store_true",
-        help="If set to true, the script runs in test mode and only takes 10 examples per dataset",
-    )
-    parser.add_argument(
         "--save_data",
         action="store_true",
         help="If set to true, save tokens & losses",
     )
     parser.add_argument(
-        "--local",
+        "--test",
         action="store_true",
         help="If set to true, the script runs in test mode and only takes 10 examples per dataset",
+    )
+    parser.add_argument(
+        "--max_n_examples",
+        type=int,
+        default=1500,
+        help="how many examples per metadata type to evaluate",
     )
     parser.add_argument(
         "--metadata_to_test",
@@ -314,12 +320,15 @@ if __name__ == "__main__":
     print(f"Parameters: {args}")
 
     # Load config
-    if args.local:
-        import os
-
-        config_file_path = os.path.join(args.repo_id, "actual_config.yaml")
+    if args.config_file_path:
+        config_file_path = args.config_file_path
     else:
-        config_file_path = hf_hub_download(repo_id=args.repo_id, filename="actual_config.yaml", use_auth_token=True)
+        try:
+            config_file_path = hf_hub_download(
+                repo_id=args.repo_id, filename="actual_config.yaml", use_auth_token=True
+            )
+        except Exception:
+            config_file_path = "bsmetadata/hydra_configs/v2.yaml"
     repo_args = OmegaConf.load(config_file_path)
     data_config = repo_args.data_config
 
@@ -373,9 +382,9 @@ if __name__ == "__main__":
     for path in dataset_paths:
         n_examples = 0
         total_normal_len = []
-        total_normal_ppl = []
+        total_normal_nll = []
         total_metadata_len = []
-        total_metadata_ppl = []
+        total_metadata_nll = []
         exit_flag = False
 
         # Load validation dataset from hugging face
@@ -385,6 +394,7 @@ if __name__ == "__main__":
         validation_dataset = load_dataset(path, use_auth_token=True, split=split)
 
         data = []
+        max_n_examples_ord = len(str(args.max_n_examples))
         for idx, example in tqdm(enumerate(validation_dataset), desc=f"Calculating perplexity for {metadata_type}..."):
             # for idx in [136,]:
             example = validation_dataset[idx]
@@ -423,7 +433,7 @@ if __name__ == "__main__":
             if len(processed_examples["input_ids"]) == 1 and min_seq_len > 0 and max_seq_len <= 1024:
                 # Keep track of considered examples and total length
                 if n_examples % 10 == 0:
-                    print("n_examples completed.")
+                    print(f"\r{n_examples:0{max_n_examples_ord}} examples completed. ", end="")
                 n_examples += 1
 
                 # Prepare batches
@@ -446,21 +456,24 @@ if __name__ == "__main__":
                     # rich.print(ex)
                     # rich.print(tokenizer.decode(metadata_batch["input_ids"][0]))
 
-                # Calculate ppl
-                normal_ppl, normal_example_len = get_ppl(normal_batch, save_data=args.save_data, idx=idx)  # [0]
+                # Calculate nll (natural-log loss)
+                normal_nll, normal_example_len = get_mean_loss(normal_batch, save_data=args.save_data, idx=idx)  # [0]
                 # print("PPL")
                 # print(normal_ppl)
-                total_normal_ppl.append(normal_ppl)  # * normal_example_len
-                metadata_ppl, metadata_example_len = get_ppl(metadata_batch, save_data=args.save_data, idx=idx)  # [0]
+                total_normal_nll.append(normal_nll)  # * normal_example_len
+                metadata_nll, metadata_example_len = get_mean_loss(
+                    metadata_batch, save_data=args.save_data, idx=idx
+                )  # [0]
                 # print(metadata_ppl)
-                total_metadata_ppl.append(metadata_ppl)  # * metadata_example_len
+                total_metadata_nll.append(metadata_nll)  # * metadata_example_len
 
                 total_normal_len.append(normal_example_len)
                 total_metadata_len.append(metadata_example_len)
 
-                data.append({"idx": idx, "normal_ppl": normal_ppl, "metadata_ppl": metadata_ppl})
+                data.append({"idx": idx, "normal_nll": normal_nll, "metadata_nll": metadata_nll})
+                # Ignore the block below
                 if False:  # n_examples == 1:
-                    loss, mask, shift_labels = normal_ppl
+                    loss, mask, shift_labels = normal_nll
                     # print("normal ppl")
                     printed = 0
                     for i, (l, m, sl) in enumerate(zip(loss, mask, shift_labels)):
@@ -475,7 +488,7 @@ if __name__ == "__main__":
                     # ex = format_by_one_mask(normal_batch["input_ids"][0], mask, tokenizer)
                     # rich.print(ex)
 
-                    loss, mask, shift_labels = metadata_ppl
+                    loss, mask, shift_labels = metadata_nll
                     printed = 0
                     # print("metadata ppl")
                     for i, (l, m, sl) in enumerate(zip(loss, mask, shift_labels)):
@@ -504,7 +517,7 @@ if __name__ == "__main__":
 
                     # sys.exit()
 
-                if n_examples > 2000:
+                if n_examples > args.max_n_examples:
                     break
 
         if exit_flag:
@@ -525,15 +538,15 @@ if __name__ == "__main__":
 
             torch.save(
                 {
-                    "total_normal_ppl": total_normal_ppl,
-                    "total_metadata_ppl": total_metadata_ppl,
+                    "total_normal_nll": total_normal_nll,
+                    "total_metadata_nll": total_metadata_nll,
                     "total_normal_len": total_normal_len,
                     "total_metadata_len": total_metadata_len,
                 },
                 "eva.data2",
             )
-            final_normal_ppl = ppl(total_normal_ppl, total_normal_len)
-            final_metadata_ppl = ppl(total_metadata_ppl, total_metadata_len)
+            final_normal_ppl = ppl(total_normal_nll, total_normal_len)
+            final_metadata_ppl = ppl(total_metadata_nll, total_metadata_len)
         else:
             final_metadata_ppl = final_normal_ppl = 0
 

@@ -13,6 +13,7 @@ from typing import List, Optional, Union, get_args, get_origin
 import hydra
 import torch
 import torch.nn.functional as F
+import wandb
 from accelerate import Accelerator
 from accelerate.utils import DistributedType, DummyOptim, DummyScheduler
 from hydra.core.config_store import ConfigStore
@@ -22,7 +23,6 @@ from tqdm.auto import tqdm as original_tqdm
 from transformers import AddedToken, AutoConfig, AutoModelForCausalLM, AutoTokenizer, get_scheduler, set_seed
 from transformers.trainer_utils import IntervalStrategy
 
-import wandb
 from bsmetadata.input_pipeline import DataConfig, get_dataloaders
 
 
@@ -136,7 +136,7 @@ def loss_fn(batch, outputs, metadata_mask=None):
     shift_logits = lm_logits[..., :-1, :].contiguous()
     shift_labels = labels[..., 1:].contiguous()
     if metadata_mask is not None:
-        loss_mask = torch.logical_and(attention_mask, ~metadata_mask)
+        loss_mask = torch.logical_and(attention_mask, ~(metadata_mask.bool()))
     else:
         loss_mask = attention_mask
     shift_mask = loss_mask[..., 1:].contiguous()
@@ -217,8 +217,8 @@ def main(args: CFG) -> None:
     is_local_main_process = accelerator.is_local_main_process
     tqdm = partial(original_tqdm, disable=not is_local_main_process, position=0)
     use_deepspeed = accelerator.state.deepspeed_plugin is not None
-    use_deepspeed_optimzer = use_deepspeed or "optimizer" in accelerator.state.deepspeed_plugin.deepspeed_config
-    use_deepspeed_scheduler = use_deepspeed or "scheduler" in accelerator.state.deepspeed_plugin.deepspeed_config
+    use_deepspeed_optimzer = use_deepspeed and "optimizer" in accelerator.state.deepspeed_plugin.deepspeed_config
+    use_deepspeed_scheduler = use_deepspeed and "scheduler" in accelerator.state.deepspeed_plugin.deepspeed_config
 
     if accelerator.distributed_type == DistributedType.DEEPSPEED and not use_deepspeed_scheduler:
         assert False, "Please set scheduler in DeepSpeed config file otherwise it may not be checkpointed properly"
@@ -230,6 +230,25 @@ def main(args: CFG) -> None:
     config.use_cache = not args.gradient_checkpointing  # to disable warning
     # get model
     model = AutoModelForCausalLM.from_pretrained(args.model_name, config=config)
+
+    if args.data_config.metadata_config.local_metadata_special_token_state:
+        new_tokens = list(
+            chain.from_iterable(
+                (start_token, end_token)
+                for start_token, end_token in zip(
+                    args.data_config.metadata_config.local_metadata_special_token_start.values(),
+                    args.data_config.metadata_config.local_metadata_special_token_end.values(),
+                )
+            )
+        )
+        new_tokens = [
+            AddedToken(token, rstrip=False, lstrip=False, single_word=False, normalized=False) for token in new_tokens
+        ]
+        tokenizer = AutoTokenizer.from_pretrained(args.model_name, additional_special_tokens=new_tokens)
+        model.resize_token_embeddings(len(tokenizer))
+    else:
+        tokenizer = AutoTokenizer.from_pretrained(args.model_name)
+    tokenizer.pad_token = tokenizer.eos_token
 
     # Optimizer
     # Split weights in two groups, one with weight decay and the other not.
@@ -265,23 +284,6 @@ def main(args: CFG) -> None:
             num_training_steps=args.max_train_steps,
         )
     # get dataloaders
-    if args.data_config.metadata_config.local_metadata_special_token_state:
-        new_tokens = list(
-            chain.from_iterable(
-                (start_token, end_token)
-                for start_token, end_token in zip(
-                    args.data_config.metadata_config.local_metadata_special_token_start.values(),
-                    args.data_config.metadata_config.local_metadata_special_token_end.values(),
-                )
-            )
-        )
-        new_tokens = [
-            AddedToken(token, rstrip=False, lstrip=False, single_word=False, normalized=False) for token in new_tokens
-        ]
-        tokenizer = AutoTokenizer.from_pretrained(args.model_name, additional_special_tokens=new_tokens)
-    else:
-        tokenizer = AutoTokenizer.from_pretrained(args.model_name)
-    tokenizer.pad_token = tokenizer.eos_token
     if args.data_config.experiment == "with_metadata_datasetv2_tf":
         from bsmetadata.experiments.with_metadata_datasetv2_tf import get_dataloader, get_dummy_dataloader
 
@@ -297,7 +299,10 @@ def main(args: CFG) -> None:
             model, optimizer, dummy_dataloader, scheduler
         )
     else:
-        format_fn = lambda x: x
+
+        def format_fn(x):
+            return x
+
         train_dataloader, eval_dataloaders = get_dataloaders(tokenizer, args.data_config)
 
         # Prepare everything
@@ -409,7 +414,7 @@ def main(args: CFG) -> None:
     step = 0
     model.train()
     # for epoch in range(args.num_train_epochs):
-    finished = False
+    # finished = False
     if not args.data_config.streaming:
         metrics_logger.log({"train_dataloader_length": len(train_dataloader)})
 
@@ -486,7 +491,7 @@ def main(args: CFG) -> None:
             evaluate_multiple_dateloaders(eval_dataloaders)
 
         if completed_steps >= args.max_train_steps:
-            finished = True
+            # finished = True
             break
     metrics_logger.close()
     logger.info("Training finished")

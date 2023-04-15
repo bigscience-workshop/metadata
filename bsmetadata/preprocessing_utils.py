@@ -24,10 +24,17 @@ from urllib.parse import unquote, urlparse, urlsplit
 
 from bs_dateutil.parser import ParserError, parse
 from datasets import Value
-from REL.entity_disambiguation import EntityDisambiguation
-from REL.mention_detection import MentionDetection
-from REL.ner import load_flair_ner
-from REL.utils import process_results
+
+
+try:
+    from REL.entity_disambiguation import EntityDisambiguation
+    from REL.mention_detection import MentionDetection
+    from REL.ner import load_flair_ner
+    from REL.utils import process_results
+
+    REL_available = True
+except ImportError:
+    REL_available = False
 
 from bsmetadata.paragraph_by_metadata_html import get_paragraphs
 from bsmetadata.preprocessing_tools import html_parser
@@ -229,7 +236,6 @@ class HtmlPreprocessor(MetadataTagger):
         for example_doc_html, example_metadata in zip(
             examples[self.col_html], new_metadata
         ):  # if metadata already exists
-
             plain_text, metadata, additional_columns = html_parser.get_clean_text_and_metadata(
                 example_doc_html,
                 tags_to_remove_with_content=tags_to_remove_with_content,
@@ -281,7 +287,6 @@ class WebsiteDescPreprocessor(MetadataTagger):
         return features
 
     def tag(self, examples: Dict[str, List]) -> Dict[str, List[OneToOneFeature]]:
-
         example_metadata_list = (
             examples[self.col_to_store_metadata]
             if self.col_to_store_metadata in examples
@@ -306,7 +311,6 @@ class WebsiteDescPreprocessor(MetadataTagger):
         return examples
 
     def _extract_website_desc_from_url(self, url: str) -> Optional:
-
         keyword = fetch_keyword_from_url(url)
         return self.website_utils.fetch_website_description_from_keyword(keyword)
 
@@ -373,6 +377,8 @@ class EntityPreprocessor(
         col_to_store_metadata="metadata",
         col_text="text",
     ):
+        if not REL_available:
+            raise ImportError("REL is not available. Please install the extra with `pip install -e '.[entity]'`")
         self.base_url = base_url
         self.wiki_version = "wiki_2019"
         self.mention_detection = MentionDetection(self.base_url, self.wiki_version)
@@ -470,7 +476,6 @@ class GenerationLengthPreprocessor(MetadataTagger):
 
     @property
     def new_columns_minimal_features(self) -> Dict[str, List[OneToOneFeature]]:
-
         if self.mode == "text":
             features = {
                 self.col_to_store_metadata: [
@@ -717,7 +722,6 @@ class TitlePreprocessor(MetadataTagger):
 
         # Iterate through the metadata associated with all examples in this batch.
         for example_title, example_metadata in zip(examples[self.col_title], example_metadata_list):
-
             # The number of titles retrieved on a page is not necessarily equal to 1. Here the choice is made to keep only the first title retrieved when there is one.
             if not example_title:
                 continue
@@ -819,7 +823,6 @@ class EntityParagraphPreprocessor(MetadataTagger):
         for example_entity, example_paragraph, example_metadata in zip(
             examples[self.col_entity], examples[self.col_paragraph], example_metadata_list
         ):
-
             if not example_entity or not example_paragraph:
                 continue
 

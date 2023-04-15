@@ -7,7 +7,6 @@ from bsmetadata.post_processing_utils import WebsiteDescPostProcessor
 
 class TestWebsitePostProcessor(unittest.TestCase):
     def test_extract_datasource(self):
-
         website_metadata = [
             [{"key": "website_description", "type": "global", "value": "Remove this example."}],
             [

@@ -20,9 +20,9 @@ from dataclasses import asdict, dataclass, field
 from typing import Any, DefaultDict, Dict, List, Optional, Tuple
 
 import numpy as np
+from transformers import PreTrainedTokenizerFast
 
 from bsmetadata.metadata_processors import PROCESSORS, MetadataConfig, MetadataProcessor
-from transformers import PreTrainedTokenizerFast
 
 
 logger = logging.getLogger(__name__)
@@ -208,7 +208,7 @@ def random_sample_metadata_v2(
     Returns:
         A new collection of examples, with some metadata dropped.
     """
-    only_metadata_types = list(metadata_type_sample_weights.keys())
+    only_metadata_types = [key for key in metadata_type_sample_weights.keys() if f"metadata_{key}" in examples]
     for i in range(len(examples["text"])):
         example = {k: v[i] for k, v in examples.items()}
         metadata_types = [key for key in only_metadata_types if example[f"metadata_{key}"]]

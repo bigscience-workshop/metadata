@@ -1,4 +1,4 @@
-check_dirs := .
+check_dirs := bsmetadata
 
 # this target runs checks on all files
 quality:

@@ -128,7 +128,6 @@ def add_metadata_and_chunk_examples(
                 total_len = len(text_chunk_encoded)
                 padding_len = cfg.max_seq_len - len(text_chunk_encoded)
                 attention_mask = [1] * total_len + [0] * padding_len
-                text_chunk_encoded = text_chunk_encoded + [tokenizer.eos_token_id] * padding_len
                 input_ids = text_chunk_encoded + [tokenizer.eos_token_id] * padding_len
                 metadata_mask = [0] * total_len
                 linearized_examples["input_ids"].append(input_ids)

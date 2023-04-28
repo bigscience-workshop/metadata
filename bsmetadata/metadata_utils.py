@@ -204,7 +204,7 @@ def random_sample_metadata(
 def random_sample_metadata_v2(
     examples: Dict[str, List],
     metadata_type_sample_weights: Dict[str, float],
-    html_overall_sample_rate: float,
+    html_overall_sample_rate: float = 1.0,
 ) -> Dict[str, List]:
     """Randomly drop some of the metadata from the provided examples.
     Uniformly decide the number of metadata types to keep. And sample the metadata types to keep.

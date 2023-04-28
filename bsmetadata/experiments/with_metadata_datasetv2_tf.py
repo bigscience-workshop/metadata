@@ -54,7 +54,11 @@ def get_dataset(file_paths, num_gpus, gpu_id, data_config, tokenizer):
 
         examples = {k: [v] for k, v in example.items()}
         metadata_type_sample_weights = data_config.metadata_config.random_sample_metadata_weights
-        examples = random_sample_metadata_v2(examples, metadata_type_sample_weights=metadata_type_sample_weights)
+        examples = random_sample_metadata_v2(
+            examples,
+            metadata_type_sample_weights=metadata_type_sample_weights,
+            html_overall_sample_rate=data_config.metadata_config.html_overall_sample_rate,
+        )
         # example = {k: v[0] for k, v in examples.items()}
 
         result = add_metadata_and_chunk_examples(examples, tokenizer, data_config.metadata_config)

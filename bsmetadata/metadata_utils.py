@@ -124,12 +124,19 @@ def add_metadata_and_chunk_examples(
         for text_chunk_encoded, chunk_metadata_mask in chunks(
             max_text_len, text_with_local_metadata_encoded.input_ids, token_level_metadata_mask
         ):
-            total_len = prefix_len + len(text_chunk_encoded)
-            padding_len = max_text_len - len(text_chunk_encoded)
+            if cfg.without_metadata_same_context:
+                total_len = len(text_chunk_encoded)
+                padding_len = cfg.max_seq_len - len(text_chunk_encoded)
+                attention_mask = [1] * total_len + [0] * padding_len
+                input_ids = text_chunk_encoded + [tokenizer.eos_token_id] * padding_len
+                metadata_mask = [0] * total_len
+            else:
+                total_len = prefix_len + len(text_chunk_encoded)
+                padding_len = max_text_len - len(text_chunk_encoded)
 
-            input_ids = metadata_prefix_encoded + text_chunk_encoded + [tokenizer.eos_token_id] * padding_len
-            attention_mask = [1] * total_len + [0] * padding_len
-            metadata_mask = [1] * prefix_len + [int(x) for x in chunk_metadata_mask] + [0] * padding_len
+                input_ids = metadata_prefix_encoded + text_chunk_encoded + [tokenizer.eos_token_id] * padding_len
+                attention_mask = [1] * total_len + [0] * padding_len
+                metadata_mask = [1] * prefix_len + [int(x) for x in chunk_metadata_mask] + [0] * padding_len
 
             linearized_examples["input_ids"].append(input_ids)
             linearized_examples["attention_mask"].append(attention_mask)
@@ -197,6 +204,7 @@ def random_sample_metadata(
 def random_sample_metadata_v2(
     examples: Dict[str, List],
     metadata_type_sample_weights: Dict[str, float],
+    html_overall_sample_rate: float,
 ) -> Dict[str, List]:
     """Randomly drop some of the metadata from the provided examples.
     Uniformly decide the number of metadata types to keep. And sample the metadata types to keep.
@@ -209,6 +217,8 @@ def random_sample_metadata_v2(
         A new collection of examples, with some metadata dropped.
     """
     only_metadata_types = [key for key in metadata_type_sample_weights.keys() if f"metadata_{key}" in examples]
+    if random.random() < (1 - html_overall_sample_rate) and "html" in only_metadata_types:
+        only_metadata_types.remove("html")
     for i in range(len(examples["text"])):
         example = {k: v[i] for k, v in examples.items()}
         metadata_types = [key for key in only_metadata_types if example[f"metadata_{key}"]]

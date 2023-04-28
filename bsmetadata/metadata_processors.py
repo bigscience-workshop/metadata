@@ -171,6 +171,18 @@ class MetadataConfig:
         default=False,
         metadata={"help": "If True, local metadata special tokens will be set as special tokens in the tokenizer"},
     )
+    html_overall_sample_rate: float = field(
+        default=1.0,
+        metadata={
+            "help": "The overall probability of having html metadata for an input example. This is applied before any sampling."
+        },
+    )
+    without_metadata_same_context: bool = field(
+        default=False,
+        metadata={
+            "help": "If True, no metadata will be added, but the same context in each example will be present as in the 'with metadata' case specifed by the config"
+        },
+    )
     max_seq_len: int = field(
         default=512, metadata={"help": "The maximum number of tokens to use for each training chunk."}
     )

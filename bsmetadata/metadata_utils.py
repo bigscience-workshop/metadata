@@ -209,6 +209,9 @@ def random_sample_metadata_v2(
         A new collection of examples, with some metadata dropped.
     """
     only_metadata_types = [key for key in metadata_type_sample_weights.keys() if f"metadata_{key}" in examples]
+    # Remove Html 3/4 of the time.
+    if random.random() < 0.75 and 'html' in only_metadata_types:
+        only_metadata_types.remove('html')
     for i in range(len(examples["text"])):
         example = {k: v[i] for k, v in examples.items()}
         metadata_types = [key for key in only_metadata_types if example[f"metadata_{key}"]]

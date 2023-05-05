@@ -351,7 +351,7 @@ if __name__ == "__main__":
     # tokenizer = AutoTokenizer.from_pretrained(repo_args.model_name)
     # tokenizer.pad_token = tokenizer.eos_token
 
-    tokenizer = AutoTokenizer.from_pretrained("bs-modeling-metadata/checkpoints_all_04_23", subfolder="tokenizer")
+    tokenizer = AutoTokenizer.from_pretrained("bs-modeling-metadata/checkpoints_all_04_23", subfolder='tokenizer', use_auth_token=True)
 
     # Config preprocess function
     cfg = data_config.metadata_config

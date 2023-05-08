@@ -62,8 +62,8 @@ def mean_loss_fn(
     b = outputs.logits.size(0)
     lm_logits = outputs.logits
 
-    lm_logits[:, :, 50257] = float("-inf")
-    lm_logits[:, :, 50258] = float("-inf")
+    # lm_logits[:, :, 50257] = float("-inf")
+    # lm_logits[:, :, 50258] = float("-inf")
 
     labels = batch["labels"]
     attention_mask = batch["attention_mask"]

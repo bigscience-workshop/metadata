@@ -348,10 +348,13 @@ if __name__ == "__main__":
     model.eval().cuda() if not args.no_cuda else model.eval()
 
     # Load tokenizer
-    # tokenizer = AutoTokenizer.from_pretrained(repo_args.model_name)
-    # tokenizer.pad_token = tokenizer.eos_token
-
-    tokenizer = AutoTokenizer.from_pretrained("bs-modeling-metadata/checkpoints_all_04_23", subfolder='tokenizer', use_auth_token=True)
+    if args.untrained:
+        tokenizer = AutoTokenizer.from_pretrained(repo_args.model_name)
+        tokenizer.pad_token = tokenizer.eos_token
+    else:
+        tokenizer = AutoTokenizer.from_pretrained(
+            "bs-modeling-metadata/checkpoints_all_04_23", subfolder="tokenizer", use_auth_token=True
+        )
 
     # Config preprocess function
     cfg = data_config.metadata_config

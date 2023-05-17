@@ -87,7 +87,7 @@ def get_dataset(file_paths, num_gpus, gpu_id, data_config, tokenizer):
     return data
 
 
-def get_dataloader(*, tokenizer, args, num_gpus, gpu_id,train=True):
+def get_dataloader(*, tokenizer, args, num_gpus, gpu_id, train=True):
     """returns a tensorflow dataloader"""
     data_config = args
     local_dir = Path(data_config.dataset_name)
@@ -99,22 +99,21 @@ def get_dataloader(*, tokenizer, args, num_gpus, gpu_id,train=True):
     file_paths = list(Path(local_dir).glob(data_config.train_file))
     assert len(file_paths) > 0, f"no files found for {data_config.train_file}"
 
-
     files_with_entities = [x for x in file_paths if x.name in data_files_with_entities]
     files_without_entities = [x for x in file_paths if x.name not in data_files_with_entities]
     print(f"{len(files_with_entities)} files with entities")
     print(f"{len(files_without_entities)} files without entities")
 
     if train:
-        files_with_entities = [x for x in files_with_entities if
-                               'c4-en-html_cc-main-2019-18_pq00-000.jsonl.gz' not in x.name]
+        files_with_entities = [
+            x for x in files_with_entities if "c4-en-html_cc-main-2019-18_pq00-000.jsonl.gz" not in x.name
+        ]
     else:
-        files_with_entities = [x for x in files_with_entities if
-                               'c4-en-html_cc-main-2019-18_pq00-000.jsonl.gz' in x.name]
+        files_with_entities = [
+            x for x in files_with_entities if "c4-en-html_cc-main-2019-18_pq00-000.jsonl.gz" in x.name
+        ]
 
     data_with_entities = get_dataset(files_with_entities, num_gpus, gpu_id, data_config, tokenizer)
-
-
 
     data = tf.data.Dataset.sample_from_datasets(
         [data_with_entities],

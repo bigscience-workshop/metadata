@@ -386,13 +386,12 @@ def main(args: CFG) -> None:
             )
             for k, v in results.items():
                 metrics_logger.log({k: v})
-            logger.info("Evaluation finished")
         else:
             for key, eval_dataloader in eval_dataloaders.items():
                 logger.info(f"Evaluating split {key}")
                 metrics = evaluate(eval_dataloader)
                 metrics_logger.log({key: metrics})
-            logger.info("Evaluation finished")
+        logger.info("Evaluation finished")
 
     if not args.do_train and not args.do_eval:
         return

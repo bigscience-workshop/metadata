@@ -264,6 +264,252 @@ def create_metadata_prompt(example: Dict[str, Any], cfg: MetadataConfig) -> str:
     return cfg.metadata_sep.join(sorted_metadata) + cfg.metadata_prefix_sep if sorted_metadata else ""
 
 
+def evaluate_main(
+    metadata_to_test: str = "title,html,entity_paragraph,website_desc,generation_datasource,timestamp",
+    output_file: str = "evaluation.txt",
+    repo_id: str = None,
+    subfolder: str = None,
+    test: bool = False,
+    max_n_examples: int = 1500,
+    prompt: bool = False,
+    no_cuda: bool = False,
+    save_data: bool = False,
+    untrained: bool = False,
+    config_file_path: str = None,
+    model: str = None,
+    tokenizer: str = None,
+) -> dict:
+    if config_file_path is None:
+        try:
+            config_file_path = hf_hub_download(repo_id=repo_id, filename="actual_config.yaml", use_auth_token=True)
+        except Exception:
+            config_file_path = "bsmetadata/hydra_configs/v2.yaml"
+    repo_args = OmegaConf.load(config_file_path)
+    data_config = repo_args.data_config
+
+    # make sure loss (ppl) masking is on for local metadata
+    data_config.metadata_config.treat_local_metadata_as_regular_text = False
+
+    # Load model
+    print("Loading model...")
+    if model is None or tokenizer is None:
+        if untrained:
+            model = AutoModelForCausalLM.from_pretrained("gpt2-xl")
+            tokenizer = AutoTokenizer.from_pretrained(repo_args.model_name)
+            tokenizer.pad_token = tokenizer.eos_token
+        else:
+            model = AutoModelForCausalLM.from_pretrained(repo_id, subfolder=subfolder, use_auth_token=True)
+            tokenizer = AutoTokenizer.from_pretrained(
+                "bs-modeling-metadata/checkpoints_all_04_23", subfolder="tokenizer", use_auth_token=True
+            )
+    model.eval().cuda() if not no_cuda else model.eval()
+
+    # Config preprocess function
+    cfg = data_config.metadata_config
+    cfg.metadata_probability = 1.0
+    cfg.entity_setting = "beg"
+    cfg.metadata_list.append("entity")
+    cfg.metadata_list.append("paragraph")
+
+    if prompt:
+        cfg.metadata_sep = "; "  # Instead of " | "
+        cfg.metadata_prefix_sep = ""  # Instead of " |||"; there's already an implicit " "
+        DatasourceProcessor.process_global = datasource_process_global_for_prompt
+        GenerationLengthProcessor.process_global = generation_length_process_global_for_prompt
+        metadata_utils.create_metadata_prefix = create_metadata_prompt
+
+    preprocess_fn = functools.partial(add_metadata_and_chunk_examples, tokenizer=tokenizer, cfg=cfg)
+
+    # Validation datasets
+    dataset_paths = [
+        "bs-modeling-metadata/c4-en-html-with-validation_metadata_html",
+        "bs-modeling-metadata/c4-en-html-with-validation_metadata_entity",
+        "bs-modeling-metadata/c4-en-html-with-validation_metadata_entity_paragraph",
+        "bs-modeling-metadata/c4-en-html-with-validation_metadata_website_desc",
+        "bs-modeling-metadata/c4-en-html-with-validation_metadata_generation_datasource",
+        "bs-modeling-metadata/c4-en-html-with-validation_metadata_timestamp",
+        "bs-modeling-metadata/c4-en-html-with-validation_metadata_title",
+        "bs-modeling-metadata/c4-en-html-with-validation_metadata_generation_length_sentence",
+        "bs-modeling-metadata/c4-en-html-with-validation_metadata_generation_length_text",
+        "bs-modeling-metadata/c4-en-html-with-validation_metadata_url",
+        "bs-modeling-metadata/c4-en-html-with-validation_metadata_paragraph",
+    ]
+    dataset_paths = [path for path in dataset_paths if path.split("_metadata_")[1] in metadata_to_test.split(",")]
+    results = {}
+    for path in dataset_paths:
+        n_examples = 0
+        total_normal_len = []
+        total_normal_nll = []
+        total_metadata_len = []
+        total_metadata_nll = []
+        exit_flag = False
+
+        # Load validation dataset from hugging face
+        metadata_type = path.split("_metadata_")[1]
+        print(f"Loading {metadata_type} data...")
+        split = "validation" if not test else "validation[:10]"
+        validation_dataset = load_dataset(path, use_auth_token=True, split=split)
+
+        data = []
+        max_n_examples_ord = len(str(max_n_examples))
+        for idx, example in tqdm(enumerate(validation_dataset), desc=f"Calculating perplexity for {metadata_type}..."):
+            # for idx in [136,]:
+            example = validation_dataset[idx]
+            # Preprocess examples
+            examples = {k: [v] for k, v in example.items()}
+            try:
+                processed_examples = preprocess_fn(examples)
+            except Exception as e:
+                # Write error to output file and continue with next dataset
+                print(e)
+                with open(output_file, "a", encoding="utf8") as f:
+                    f.write(f"=== RESULT [{metadata_type}] ===\n")
+                    f.write(f"{e}\n\n")
+                exit_flag = True
+                break
+
+            # Get token sequence length
+            normal_example = tokenizer(examples["text"][0])
+            normal_example_len = len(normal_example["input_ids"])
+            metadata_example = {k: v[0] for k, v in processed_examples.items()}
+            # rich.print(f"{metadata_example['attention_mask']=}")
+            # rich.print(f"{normal_example['attention_mask']=}")
+            # import sys
+            # sys.exit()
+            # print(metadata_example)
+            if "input_ids" not in metadata_example:
+                print("Skipping")
+                continue
+            metadata_example_len = len(metadata_example["input_ids"])
+            min_seq_len = min(normal_example_len, metadata_example_len)
+            max_seq_len = max(normal_example_len, metadata_example_len)
+
+            # For fair comparison, only choose
+            # 1) processed_examples with exactly one example
+            # 2) examples fitting the model sequence length
+            if len(processed_examples["input_ids"]) == 1 and min_seq_len > 0 and max_seq_len <= 1024:
+                # Keep track of considered examples and total length
+                if n_examples % 10 == 0:
+                    print(f"\r{n_examples:0{max_n_examples_ord}} examples completed. ", end="")
+                n_examples += 1
+
+                # Prepare batches
+                normal_example["labels"] = normal_example["input_ids"]
+                normal_batch = default_data_collator([normal_example])
+                metadata_example["labels"] = metadata_example["input_ids"]
+                metadata_batch = default_data_collator([metadata_example])
+                if not no_cuda:
+                    normal_batch = {k: v.cuda() for k, v in normal_batch.items()}
+                    metadata_batch = {k: v.cuda() for k, v in metadata_batch.items()}
+                if n_examples == 1:
+                    ex = format_by_one_mask(normal_batch["input_ids"][0], normal_batch["attention_mask"][0], tokenizer)
+                    # rich.print(f"Normal example:")
+                    # rich.print(ex)
+
+                    ex = format_by_one_mask(
+                        metadata_batch["input_ids"][0], metadata_batch["metadata_mask"][0], tokenizer
+                    )
+                    # rich.print(f"Metadata example:")
+                    # rich.print(ex)
+                    # rich.print(tokenizer.decode(metadata_batch["input_ids"][0]))
+
+                # Calculate nll (natural-log loss)
+                normal_nll, normal_example_len = get_mean_loss(normal_batch, save_data=save_data, idx=idx)  # [0]
+                # print("PPL")
+                # print(normal_ppl)
+                total_normal_nll.append(normal_nll)  # * normal_example_len
+                metadata_nll, metadata_example_len = get_mean_loss(metadata_batch, save_data=save_data, idx=idx)  # [0]
+                # print(metadata_ppl)
+                total_metadata_nll.append(metadata_nll)  # * metadata_example_len
+
+                total_normal_len.append(normal_example_len)
+                total_metadata_len.append(metadata_example_len)
+
+                data.append({"idx": idx, "normal_nll": normal_nll, "metadata_nll": metadata_nll})
+                # Ignore the block below
+                if False:  # n_examples == 1:
+                    loss, mask, shift_labels = normal_nll
+                    # print("normal ppl")
+                    printed = 0
+                    for i, (l, m, sl) in enumerate(zip(loss, mask, shift_labels)):
+                        if m:
+                            if printed < 10:
+                                # rich.print(f"Loss {json.dumps(tokenizer.decode(sl))}: {l}")
+                                printed += 1
+
+                    unmasked_labels = [label for label, m in zip(shift_labels, mask) if m]
+                    # print(f"first 10 unmasked labels: {[tokenizer.decode(x) for x in unmasked_labels[:10]]}")
+                    # print(f"first 10 unmasked labels: {tokenizer.decode(unmasked_labels[:10])}")
+                    # ex = format_by_one_mask(normal_batch["input_ids"][0], mask, tokenizer)
+                    # rich.print(ex)
+
+                    loss, mask, shift_labels = metadata_nll
+                    printed = 0
+                    # print("metadata ppl")
+                    for i, (l, m, sl) in enumerate(zip(loss, mask, shift_labels)):
+                        if m:
+                            if printed < 10:
+                                # rich.print(f"Loss {json.dumps(tokenizer.decode(sl))}: {l}")
+                                printed += 1
+
+                    unmasked_labels = [label for label, m in zip(shift_labels, mask) if m]
+                    # print(f"first 10 unmasked labels: {tokenizer.decode(unmasked_labels[:10])}")
+                    # ex = format_by_one_mask(metadata_batch["input_ids"][0], mask, tokenizer)
+                    # rich.print(ex)
+
+                    # ex = format_by_one_mask(normal_batch["input_ids"][0], normal_batch["attention_mask"][0], tokenizer)
+                    # rich.print(ex)
+                    # rich.print(f"Normal example: (ppl={normal_ppl[0]})")
+
+                    # ex = format_by_one_mask(
+                    #    metadata_batch["input_ids"][0], metadata_batch["metadata_mask"][0], tokenizer
+                    # )
+                    # rich.print(ex)
+                    # rich.print(f"Metadata example: (ppl={metadata_ppl[0]})")
+                    # rich.print(f"Normal example: (mask={normal_ppl[1]})")
+                    # rich.print(f"Metadata example: (mask={metadata_ppl[1]})")
+                    # import sys
+
+                    # sys.exit()
+
+                if n_examples > max_n_examples:
+                    break
+
+        if exit_flag:
+            continue
+
+        # Get number of skipped examples
+        skipped_examples = len(validation_dataset) - n_examples
+        print(f"Skipped {skipped_examples} of {len(validation_dataset)} examples")
+
+        # Get average ppl weighted by token sequence length
+        if n_examples > 0:
+
+            def ppl(examples_mean_loss, examples_len):
+                examples_mean_loss = torch.tensor(examples_mean_loss)
+                examples_len = torch.tensor(examples_len)
+                weight = examples_len / examples_len.sum()
+                return torch.exp((examples_mean_loss * weight).sum()).item()
+
+            torch.save(
+                {
+                    "total_normal_nll": total_normal_nll,
+                    "total_metadata_nll": total_metadata_nll,
+                    "total_normal_len": total_normal_len,
+                    "total_metadata_len": total_metadata_len,
+                },
+                "eva.data2",
+            )
+            final_normal_ppl = ppl(total_normal_nll, total_normal_len)
+            final_metadata_ppl = ppl(total_metadata_nll, total_metadata_len)
+        else:
+            final_metadata_ppl = final_normal_ppl = 0
+
+        results[metadata_type] = {"final_normal_ppl": final_normal_ppl, "final_metadata_ppl": final_metadata_ppl}
+        torch.save(data, "eva.data")
+    return results
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -322,241 +568,23 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     print(f"Parameters: {args}")
-
+    results = evaluate_main(
+        args.repo_id,
+        args.subfolder,
+        args.config_file_path,
+        args.output_file,
+        args.save_data,
+        args.test,
+        args.max_n_examples,
+        args.metadata_to_test,
+        args.untrained,
+        args.prompt,
+        args.no_cuda,
+    )
     # Load config
-    if args.config_file_path:
-        config_file_path = args.config_file_path
-    else:
-        try:
-            config_file_path = hf_hub_download(
-                repo_id=args.repo_id, filename="actual_config.yaml", use_auth_token=True
-            )
-        except Exception:
-            config_file_path = "bsmetadata/hydra_configs/v2.yaml"
-    repo_args = OmegaConf.load(config_file_path)
-    data_config = repo_args.data_config
-
-    # make sure loss (ppl) masking is on for local metadata
-    data_config.metadata_config.treat_local_metadata_as_regular_text = False
-
-    # Load model
-    print("Loading model...")
-    if args.untrained:
-        model = AutoModelForCausalLM.from_pretrained("gpt2-xl")
-    else:
-        model = AutoModelForCausalLM.from_pretrained(args.repo_id, subfolder=args.subfolder, use_auth_token=True)
-    model.eval().cuda() if not args.no_cuda else model.eval()
-
-    # Load tokenizer
-    tokenizer = AutoTokenizer.from_pretrained(repo_args.model_name)
-    tokenizer.pad_token = tokenizer.eos_token
-
-    # Config preprocess function
-    cfg = data_config.metadata_config
-    cfg.metadata_probability = 1.0
-    cfg.entity_setting = "beg"
-    cfg.metadata_list.append("entity")
-    cfg.metadata_list.append("paragraph")
-
-    if args.prompt:
-        cfg.metadata_sep = "; "  # Instead of " | "
-        cfg.metadata_prefix_sep = ""  # Instead of " |||"; there's already an implicit " "
-        DatasourceProcessor.process_global = datasource_process_global_for_prompt
-        GenerationLengthProcessor.process_global = generation_length_process_global_for_prompt
-        metadata_utils.create_metadata_prefix = create_metadata_prompt
-
-    preprocess_fn = functools.partial(add_metadata_and_chunk_examples, tokenizer=tokenizer, cfg=cfg)
-
-    # Validation datasets
-    dataset_paths = [
-        "bs-modeling-metadata/c4-en-html-with-validation_metadata_html",
-        "bs-modeling-metadata/c4-en-html-with-validation_metadata_entity",
-        "bs-modeling-metadata/c4-en-html-with-validation_metadata_entity_paragraph",
-        "bs-modeling-metadata/c4-en-html-with-validation_metadata_website_desc",
-        "bs-modeling-metadata/c4-en-html-with-validation_metadata_generation_datasource",
-        "bs-modeling-metadata/c4-en-html-with-validation_metadata_timestamp",
-        "bs-modeling-metadata/c4-en-html-with-validation_metadata_title",
-        "bs-modeling-metadata/c4-en-html-with-validation_metadata_generation_length_sentence",
-        "bs-modeling-metadata/c4-en-html-with-validation_metadata_generation_length_text",
-        "bs-modeling-metadata/c4-en-html-with-validation_metadata_url",
-        "bs-modeling-metadata/c4-en-html-with-validation_metadata_paragraph",
-    ]
-    dataset_paths = [path for path in dataset_paths if path.split("_metadata_")[1] in args.metadata_to_test.split(",")]
-
-    for path in dataset_paths:
-        n_examples = 0
-        total_normal_len = []
-        total_normal_nll = []
-        total_metadata_len = []
-        total_metadata_nll = []
-        exit_flag = False
-
-        # Load validation dataset from hugging face
-        metadata_type = path.split("_metadata_")[1]
-        print(f"Loading {metadata_type} data...")
-        split = "validation" if not args.test else "validation[:10]"
-        validation_dataset = load_dataset(path, use_auth_token=True, split=split)
-
-        data = []
-        max_n_examples_ord = len(str(args.max_n_examples))
-        for idx, example in tqdm(enumerate(validation_dataset), desc=f"Calculating perplexity for {metadata_type}..."):
-            # for idx in [136,]:
-            example = validation_dataset[idx]
-            # Preprocess examples
-            examples = {k: [v] for k, v in example.items()}
-            try:
-                processed_examples = preprocess_fn(examples)
-            except Exception as e:
-                # Write error to output file and continue with next dataset
-                print(e)
-                with open(args.output_file, "a", encoding="utf8") as f:
-                    f.write(f"=== RESULT [{metadata_type}] ===\n")
-                    f.write(f"{e}\n\n")
-                exit_flag = True
-                break
-
-            # Get token sequence length
-            normal_example = tokenizer(examples["text"][0])
-            normal_example_len = len(normal_example["input_ids"])
-            metadata_example = {k: v[0] for k, v in processed_examples.items()}
-            # rich.print(f"{metadata_example['attention_mask']=}")
-            # rich.print(f"{normal_example['attention_mask']=}")
-            # import sys
-            # sys.exit()
-            # print(metadata_example)
-            if "input_ids" not in metadata_example:
-                print("Skipping")
-                continue
-            metadata_example_len = len(metadata_example["input_ids"])
-            min_seq_len = min(normal_example_len, metadata_example_len)
-            max_seq_len = max(normal_example_len, metadata_example_len)
-
-            # For fair comparison, only choose
-            # 1) processed_examples with exactly one example
-            # 2) examples fitting the model sequence length
-            if len(processed_examples["input_ids"]) == 1 and min_seq_len > 0 and max_seq_len <= 1024:
-                # Keep track of considered examples and total length
-                if n_examples % 10 == 0:
-                    print(f"\r{n_examples:0{max_n_examples_ord}} examples completed. ", end="")
-                n_examples += 1
-
-                # Prepare batches
-                normal_example["labels"] = normal_example["input_ids"]
-                normal_batch = default_data_collator([normal_example])
-                metadata_example["labels"] = metadata_example["input_ids"]
-                metadata_batch = default_data_collator([metadata_example])
-                if not args.no_cuda:
-                    normal_batch = {k: v.cuda() for k, v in normal_batch.items()}
-                    metadata_batch = {k: v.cuda() for k, v in metadata_batch.items()}
-                if n_examples == 1:
-                    ex = format_by_one_mask(normal_batch["input_ids"][0], normal_batch["attention_mask"][0], tokenizer)
-                    # rich.print(f"Normal example:")
-                    # rich.print(ex)
-
-                    ex = format_by_one_mask(
-                        metadata_batch["input_ids"][0], metadata_batch["metadata_mask"][0], tokenizer
-                    )
-                    # rich.print(f"Metadata example:")
-                    # rich.print(ex)
-                    # rich.print(tokenizer.decode(metadata_batch["input_ids"][0]))
-
-                # Calculate nll (natural-log loss)
-                normal_nll, normal_example_len = get_mean_loss(normal_batch, save_data=args.save_data, idx=idx)  # [0]
-                # print("PPL")
-                # print(normal_ppl)
-                total_normal_nll.append(normal_nll)  # * normal_example_len
-                metadata_nll, metadata_example_len = get_mean_loss(
-                    metadata_batch, save_data=args.save_data, idx=idx
-                )  # [0]
-                # print(metadata_ppl)
-                total_metadata_nll.append(metadata_nll)  # * metadata_example_len
-
-                total_normal_len.append(normal_example_len)
-                total_metadata_len.append(metadata_example_len)
-
-                data.append({"idx": idx, "normal_nll": normal_nll, "metadata_nll": metadata_nll})
-                # Ignore the block below
-                if False:  # n_examples == 1:
-                    loss, mask, shift_labels = normal_nll
-                    # print("normal ppl")
-                    printed = 0
-                    for i, (l, m, sl) in enumerate(zip(loss, mask, shift_labels)):
-                        if m:
-                            if printed < 10:
-                                # rich.print(f"Loss {json.dumps(tokenizer.decode(sl))}: {l}")
-                                printed += 1
-
-                    unmasked_labels = [label for label, m in zip(shift_labels, mask) if m]
-                    # print(f"first 10 unmasked labels: {[tokenizer.decode(x) for x in unmasked_labels[:10]]}")
-                    # print(f"first 10 unmasked labels: {tokenizer.decode(unmasked_labels[:10])}")
-                    # ex = format_by_one_mask(normal_batch["input_ids"][0], mask, tokenizer)
-                    # rich.print(ex)
-
-                    loss, mask, shift_labels = metadata_nll
-                    printed = 0
-                    # print("metadata ppl")
-                    for i, (l, m, sl) in enumerate(zip(loss, mask, shift_labels)):
-                        if m:
-                            if printed < 10:
-                                # rich.print(f"Loss {json.dumps(tokenizer.decode(sl))}: {l}")
-                                printed += 1
-
-                    unmasked_labels = [label for label, m in zip(shift_labels, mask) if m]
-                    # print(f"first 10 unmasked labels: {tokenizer.decode(unmasked_labels[:10])}")
-                    # ex = format_by_one_mask(metadata_batch["input_ids"][0], mask, tokenizer)
-                    # rich.print(ex)
-
-                    # ex = format_by_one_mask(normal_batch["input_ids"][0], normal_batch["attention_mask"][0], tokenizer)
-                    # rich.print(ex)
-                    # rich.print(f"Normal example: (ppl={normal_ppl[0]})")
-
-                    # ex = format_by_one_mask(
-                    #    metadata_batch["input_ids"][0], metadata_batch["metadata_mask"][0], tokenizer
-                    # )
-                    # rich.print(ex)
-                    # rich.print(f"Metadata example: (ppl={metadata_ppl[0]})")
-                    # rich.print(f"Normal example: (mask={normal_ppl[1]})")
-                    # rich.print(f"Metadata example: (mask={metadata_ppl[1]})")
-                    # import sys
-
-                    # sys.exit()
-
-                if n_examples > args.max_n_examples:
-                    break
-
-        if exit_flag:
-            continue
-
-        # Get number of skipped examples
-        skipped_examples = len(validation_dataset) - n_examples
-        print(f"Skipped {skipped_examples} of {len(validation_dataset)} examples")
-
-        # Get average ppl weighted by token sequence length
-        if n_examples > 0:
-
-            def ppl(examples_mean_loss, examples_len):
-                examples_mean_loss = torch.tensor(examples_mean_loss)
-                examples_len = torch.tensor(examples_len)
-                weight = examples_len / examples_len.sum()
-                return torch.exp((examples_mean_loss * weight).sum()).item()
-
-            torch.save(
-                {
-                    "total_normal_nll": total_normal_nll,
-                    "total_metadata_nll": total_metadata_nll,
-                    "total_normal_len": total_normal_len,
-                    "total_metadata_len": total_metadata_len,
-                },
-                "eva.data2",
-            )
-            final_normal_ppl = ppl(total_normal_nll, total_normal_len)
-            final_metadata_ppl = ppl(total_metadata_nll, total_metadata_len)
-        else:
-            final_metadata_ppl = final_normal_ppl = 0
-
-        # Write results to output file
-        with open(args.output_file, "a", encoding="utf8") as f:
-            f.write(f"=== RESULT [{metadata_type}] ===\n")
-            f.write("Perplexity (metadata): {:>6,.3f}\n".format(final_metadata_ppl))
-            f.write("Perplexity (normal):   {:>6,.3f}\n\n".format(final_normal_ppl))
-        torch.save(data, "eva.data")
+    # Write results to output file
+    with open(args.output_file, "a", encoding="utf8") as f:
+        for k, v in results.items():
+            f.write(f"=== RESULT [{k}] ===\n")
+            f.write("Perplexity (metadata): {:>6,.3f}\n".format(v["final_metadata_ppl"]))
+            f.write("Perplexity (normal):   {:>6,.3f}\n\n".format(v["final_normal_ppl"]))

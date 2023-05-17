@@ -75,11 +75,12 @@ data_config:
     local_metadata_special_token_end:
         entity_paragraph: " </ENTITY_CHAIN> "
     local_metadata_special_token_state: true
-    html_overall_sample_rate: 0.25
+    html_overall_sample_rate: 1
     without_metadata_same_context: false
+    use_full_evaluation_for_val: false
   experiment: with_metadata_datasetv2_tf
-  per_device_eval_batch_size: 8
-  per_device_train_batch_size: 8
+  per_device_eval_batch_size: 64 # 32 for 40gb
+  per_device_train_batch_size: 64
   dataset_name: bs-modeling-metadata/c4-en-html-with-training_metadata_all
   dataset_config_name: null
   train_file: c4-en-html_cc-main-2019-18_pq00-000.jsonl.gz
@@ -87,12 +88,12 @@ data_config:
   overwrite_cache: false
   cache_dir: null
   extension: null
-  preprocessing_num_workers: 6
+  preprocessing_num_workers: 40
   validation_split_percentage: 5
   block_size: null
   map_batch_size: 1
 weight_decay: 0.01
-learning_rate: 5e-5
+learning_rate: 0.0001
 num_train_epochs: 1
 max_train_steps: 100000
 lr_scheduler_type: linear
@@ -103,16 +104,16 @@ model_name: gpt2
 project_name: metadata_lm
 jobid: ''
 start_with_eval: false
-extra_steps_to_eval_save_at:
-- 2
+#extra_steps_to_eval_save_at:
+#- 2
 evaluation_strategy: STEPS
 eval_num_per_epoch: 3
-eval_steps: 2000
+eval_steps: 250
 save_strategy: STEPS
 save_num_per_epoch: 3
-save_steps: 150
+save_steps: 250
 do_train: true
 do_eval: true
 gradient_checkpointing: true
 resume_from_checkpoint_dir: null
-gradient_accumulation_steps: 16
+gradient_accumulation_steps: 1

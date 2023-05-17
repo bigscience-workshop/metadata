@@ -89,9 +89,6 @@ class CFG:
     gradient_checkpointing: bool = field(
         default=False, metadata={"help": "Whether to use gradient_checkpointing to save memory."}
     )
-    use_full_evaluation_for_val: bool = field(
-        default=False, metadata={"help": "Whether to use full evaluation for val"}
-    )
 
 
 cs = ConfigStore.instance()
@@ -382,8 +379,13 @@ def main(args: CFG) -> None:
         if use_full_evaluation_for_val:
             results = evaluate_main(
                 output_file="eval.txt",
+                # metadata_to_test="entity_paragraph",
                 metadata_to_test="title,html,entity_paragraph,website_desc,generation_datasource,timestamp",
+                model=model,
+                tokenizer=tokenizer,
+                accelerator=accelerator,
             )
+            model.train()
             for k, v in results.items():
                 metrics_logger.log({k: v})
         else:
@@ -402,7 +404,7 @@ def main(args: CFG) -> None:
     do_eval = args.do_eval and args.start_with_eval
     if do_eval:
         logger.info("Start with an evaluation")
-        evaluate_multiple_dateloaders(eval_dataloaders, args.use_full_evaluation_for_val)
+        evaluate_multiple_dateloaders(eval_dataloaders, args.data_config.use_full_evaluation_for_val)
 
     if not args.do_train:
         return
@@ -524,7 +526,7 @@ def main(args: CFG) -> None:
             path = Path(args.out_dir).resolve() / f"checkpoint-{completed_steps}step"
             save(path)
         if do_eval:
-            evaluate_multiple_dateloaders(eval_dataloaders, args.use_full_evaluation_for_val)
+            evaluate_multiple_dateloaders(eval_dataloaders, args.data_config.use_full_evaluation_for_val)
 
         if completed_steps >= args.max_train_steps:
             # finished = True

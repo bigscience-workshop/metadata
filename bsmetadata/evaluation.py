@@ -180,6 +180,7 @@ def get_mean_loss(
     batch: Dict[str, torch.Tensor],
     save_data: bool = False,
     idx: int = None,
+    model=None,
 ) -> torch.Tensor:
     """Prepares the arguments for perplexity calculation and passes them to the perplexity function.
 
@@ -272,18 +273,20 @@ def evaluate_main(
     test: bool = False,
     max_n_examples: int = 1500,
     prompt: bool = False,
-    no_cuda: bool = False,
+    no_cuda: bool = True,
     save_data: bool = False,
     untrained: bool = False,
     config_file_path: str = None,
     model: str = None,
     tokenizer: str = None,
+    accelerator=None,
 ) -> dict:
     if config_file_path is None:
         try:
             config_file_path = hf_hub_download(repo_id=repo_id, filename="actual_config.yaml", use_auth_token=True)
         except Exception:
             config_file_path = "bsmetadata/hydra_configs/v2.yaml"
+    config_file_path = "/fsx/home-jordiclive/metadata/bsmetadata/hydra_configs/v2.yaml"
     repo_args = OmegaConf.load(config_file_path)
     data_config = repo_args.data_config
 
@@ -398,7 +401,10 @@ def evaluate_main(
                 normal_batch = default_data_collator([normal_example])
                 metadata_example["labels"] = metadata_example["input_ids"]
                 metadata_batch = default_data_collator([metadata_example])
-                if not no_cuda:
+                if accelerator is not None:
+                    normal_batch = {k: v.to(accelerator.device) for k, v in normal_batch.items()}
+                    metadata_batch = {k: v.to(accelerator.device) for k, v in metadata_batch.items()}
+                elif not no_cuda:
                     normal_batch = {k: v.cuda() for k, v in normal_batch.items()}
                     metadata_batch = {k: v.cuda() for k, v in metadata_batch.items()}
                 if n_examples == 1:
@@ -414,11 +420,15 @@ def evaluate_main(
                     # rich.print(tokenizer.decode(metadata_batch["input_ids"][0]))
 
                 # Calculate nll (natural-log loss)
-                normal_nll, normal_example_len = get_mean_loss(normal_batch, save_data=save_data, idx=idx)  # [0]
+                normal_nll, normal_example_len = get_mean_loss(
+                    normal_batch, save_data=save_data, idx=idx, model=model
+                )  # [0]
                 # print("PPL")
                 # print(normal_ppl)
                 total_normal_nll.append(normal_nll)  # * normal_example_len
-                metadata_nll, metadata_example_len = get_mean_loss(metadata_batch, save_data=save_data, idx=idx)  # [0]
+                metadata_nll, metadata_example_len = get_mean_loss(
+                    metadata_batch, save_data=save_data, idx=idx, model=model
+                )  # [0]
                 # print(metadata_ppl)
                 total_metadata_nll.append(metadata_nll)  # * metadata_example_len
 

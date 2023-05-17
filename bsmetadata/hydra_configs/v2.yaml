@@ -1,6 +1,7 @@
 data_config:
   streaming: True
   validation_size_max: 1024
+  use_full_evaluation_for_val: true
   metadata_config:
     random_sample_metadata: true
     random_sample_metadata_calculate_size: 16384
@@ -38,7 +39,7 @@ data_config:
     #- generation_length_sentence
     #- generation_length_text
     - entity_paragraph
-    local_metadata_special_tokens: 
+    local_metadata_special_tokens:
       entity_paragraph: "entity"
     metadata_sep: ' | '
     metadata_key_value_sep: ': '
@@ -77,10 +78,9 @@ data_config:
     local_metadata_special_token_state: true
     html_overall_sample_rate: 1
     without_metadata_same_context: false
-    use_full_evaluation_for_val: false
   experiment: with_metadata_datasetv2_tf
-  per_device_eval_batch_size: 64 # 32 for 40gb
-  per_device_train_batch_size: 64
+  per_device_eval_batch_size: 32 # 32 for 40gb
+  per_device_train_batch_size: 32
   dataset_name: bs-modeling-metadata/c4-en-html-with-training_metadata_all
   dataset_config_name: null
   train_file: c4-en-html_cc-main-2019-18_pq00-000.jsonl.gz
@@ -104,8 +104,8 @@ model_name: gpt2
 project_name: metadata_lm
 jobid: ''
 start_with_eval: false
-#extra_steps_to_eval_save_at:
-#- 2
+extra_steps_to_eval_save_at:
+- 2
 evaluation_strategy: STEPS
 eval_num_per_epoch: 3
 eval_steps: 250
@@ -116,4 +116,4 @@ do_train: true
 do_eval: true
 gradient_checkpointing: true
 resume_from_checkpoint_dir: null
-gradient_accumulation_steps: 1
+gradient_accumulation_steps: 2

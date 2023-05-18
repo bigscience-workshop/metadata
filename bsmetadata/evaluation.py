@@ -62,15 +62,16 @@ def mean_loss_fn(
     b = outputs.logits.size(0)
     lm_logits = outputs.logits
 
-    # lm_logits[:, :, 50257] = float("-inf")
-    # lm_logits[:, :, 50258] = float("-inf")
-
     labels = batch["labels"]
     attention_mask = batch["attention_mask"]
 
     shift_logits = lm_logits[..., :-1, :].contiguous()
     shift_labels = labels[..., 1:].contiguous()
     if metadata_mask is not None:
+        # Only patch entity-chain tokens when metadata is on
+        shift_logits[:, :, 50257] = float("-inf")
+        shift_logits[:, :, 50258] = float("-inf")
+
         metadata_mask = metadata_mask.bool()
         nonmetadata_cumsum = torch.cumsum(~metadata_mask, dim=-1)
         first_nonmetadata = nonmetadata_cumsum == 1
@@ -133,6 +134,10 @@ def mean_loss_fn(
         shift_labels.view(-1),
         reduction="none",
     ).view(b, -1)
+    # -log(softmax(-inf)) approaches to inf,
+    # So temporarily convert it to the biggest float,
+    # And then the normalization below with shift_mask will make it 0
+    loss = torch.nan_to_num(loss)
 
     if save_data:
         # Save the non-masked tokens & their loss

@@ -579,17 +579,17 @@ if __name__ == "__main__":
     args = parser.parse_args()
     print(f"Parameters: {args}")
     results = evaluate_main(
-        args.repo_id,
-        args.subfolder,
-        args.config_file_path,
-        args.output_file,
-        args.save_data,
-        args.test,
-        args.max_n_examples,
-        args.metadata_to_test,
-        args.untrained,
-        args.prompt,
-        args.no_cuda,
+        repo_id=args.repo_id,
+        subfolder=args.subfolder,
+        config_file_path=args.config_file_path,
+        output_file=args.output_file,
+        save_data=args.save_data,
+        test=args.test,
+        max_n_examples=args.max_n_examples,
+        metadata_to_test=args.metadata_to_test,
+        untrained=args.untrained,
+        prompt=args.prompt,
+        no_cuda=args.no_cuda,
     )
     # Load config
     # Write results to output file

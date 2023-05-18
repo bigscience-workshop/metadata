@@ -62,8 +62,8 @@ def mean_loss_fn(
     b = outputs.logits.size(0)
     lm_logits = outputs.logits
 
-    lm_logits[:, :, 50257] = float("-inf")
-    lm_logits[:, :, 50258] = float("-inf")
+    # lm_logits[:, :, 50257] = float("-inf")
+    # lm_logits[:, :, 50258] = float("-inf")
 
     labels = batch["labels"]
     attention_mask = batch["attention_mask"]
@@ -348,8 +348,13 @@ if __name__ == "__main__":
     model.eval().cuda() if not args.no_cuda else model.eval()
 
     # Load tokenizer
-    tokenizer = AutoTokenizer.from_pretrained(repo_args.model_name)
-    tokenizer.pad_token = tokenizer.eos_token
+    if args.untrained:
+        tokenizer = AutoTokenizer.from_pretrained(repo_args.model_name)
+        tokenizer.pad_token = tokenizer.eos_token
+    else:
+        tokenizer = AutoTokenizer.from_pretrained(
+            "bs-modeling-metadata/checkpoints_all_04_23", subfolder="tokenizer", use_auth_token=True
+        )
 
     # Config preprocess function
     cfg = data_config.metadata_config

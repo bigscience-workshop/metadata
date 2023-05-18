@@ -286,7 +286,7 @@ def evaluate_main(
             config_file_path = hf_hub_download(repo_id=repo_id, filename="actual_config.yaml", use_auth_token=True)
         except Exception:
             config_file_path = "bsmetadata/hydra_configs/v2.yaml"
-    config_file_path = "/fsx/home-jordiclive/metadata/bsmetadata/hydra_configs/v2.yaml"
+#     config_file_path = "/fsx/home-jordiclive/metadata/bsmetadata/hydra_configs/v2.yaml" need to add this path to PYTHONPATH
     repo_args = OmegaConf.load(config_file_path)
     data_config = repo_args.data_config
 

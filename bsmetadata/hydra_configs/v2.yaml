@@ -72,8 +72,10 @@ data_config:
       - 0.0
     local_metadata_special_token_start:
         entity_paragraph: "<ENTITY_CHAIN>"
+        html: "<HTML>"
     local_metadata_special_token_end:
         entity_paragraph: " </ENTITY_CHAIN> "
+        html: "</HTML>"
     local_metadata_special_token_state: true
     html_overall_sample_rate: 0.25
     without_metadata_same_context: false

@@ -11,6 +11,7 @@ data_config:
       title: 1.0657717366883845
       generation_datasource: 1.0
       entity_paragraph: 1.028817740667444
+      generation_length_text: 1.0
 
     #- url: 1.0
     #- generation_length_sentence
@@ -27,6 +28,7 @@ data_config:
     - url
     - datasource
     - length
+    - generation_length_text
     - entity_paragraph
     metadata_column_list:
     - html
@@ -36,7 +38,7 @@ data_config:
     #- url
     - generation_datasource
     #- generation_length_sentence
-    #- generation_length_text
+    - generation_length_text
     - entity_paragraph
     local_metadata_special_tokens: 
       entity_paragraph: "entity"

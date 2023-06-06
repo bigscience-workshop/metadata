@@ -43,5 +43,5 @@ CUDA_LAUNCH_BLOCKING=1 CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 accelerate launch --
   data_config.dataset_name=$DATA_DIR \
   data_config.train_file='*.jsonl.gz' \
   data_config.validation_file='c4-en-html_cc-main-2019-18_pq00-000.jsonl.gz' \
-  out_dir=/fsx/home-jordiclive/tmp/metadata-html-quarter \
-  wb_name="full-metadata-with-generation-text-0.5-html"
+  out_dir=/fsx/home-jordiclive/tmp/metadata-html-half \
+#  wb_name="full-metadata-with-generation-text-0.5-html"

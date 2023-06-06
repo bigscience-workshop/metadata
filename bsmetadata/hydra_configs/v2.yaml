@@ -1,7 +1,6 @@
 data_config:
   streaming: True
   validation_size_max: 1024
-  use_full_evaluation_for_val: true
   metadata_config:
     random_sample_metadata: true
     random_sample_metadata_calculate_size: 16384

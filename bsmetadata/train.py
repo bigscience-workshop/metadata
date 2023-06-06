@@ -408,7 +408,7 @@ def main(args: CFG) -> None:
     do_eval = args.do_eval and args.start_with_eval
     if do_eval:
         logger.info("Start with an evaluation")
-        evaluate_multiple_dateloaders(eval_dataloaders, args.data_config.use_full_evaluation_for_val)
+        evaluate_multiple_dateloaders(eval_dataloaders, use_full_evaluation_for_val=True)
 
     if not args.do_train:
         return
@@ -530,7 +530,7 @@ def main(args: CFG) -> None:
             path = Path(args.out_dir).resolve() / f"checkpoint-{completed_steps}step"
             save(path)
         if do_eval:
-            evaluate_multiple_dateloaders(eval_dataloaders, args.data_config.use_full_evaluation_for_val)
+            evaluate_multiple_dateloaders(eval_dataloaders, use_full_evaluation_for_val=True)
 
         if completed_steps >= args.max_train_steps:
             # finished = True

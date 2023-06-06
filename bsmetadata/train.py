@@ -34,6 +34,7 @@ class CFG:
     data_config: DataConfig = DataConfig()
     weight_decay: float = field(default=0.0, metadata={"help": "The weight decay to use for training."})
     learning_rate: float = field(default=5e-5, metadata={"help": "The initial learning rate."})
+    wb_name: str = field(default="bsmetadata", metadata={"help": "The name of the wandb project."})
     gradient_accumulation_steps: int = field(
         default=1,
         metadata={"help": "The number of gradient accumulation steps to perform before updating model parameters."},
@@ -399,7 +400,10 @@ def main(args: CFG) -> None:
         return
 
     progress_bar = tqdm(range(args.max_train_steps), desc="training", initial=train_state.completed_steps)
-    metrics_logger = Logger(is_local_main_process, project=args.project_name, config=config_dict)
+    t_bs = args.data_config.per_device_train_batch_size * args.gradient_accumulation_steps * 8
+    os.environ['WANDB_API_KEY'] = 'd8216641d549f9bb3d0c5074baa39e15dfd55030'
+    metrics_logger = Logger(is_local_main_process, name=f"{args.wb_name}-{args.learning_rate}-{t_bs}",
+                            entity='jordanclive', project='metadata', config=config_dict)
 
     do_eval = args.do_eval and args.start_with_eval
     if do_eval:

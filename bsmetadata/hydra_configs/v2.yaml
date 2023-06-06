@@ -97,6 +97,7 @@ data_config:
   map_batch_size: 1
 weight_decay: 0.01
 learning_rate: 0.0001
+wb_name: "metadata_datasetv2_tf"
 num_train_epochs: 1
 max_train_steps: 100000
 lr_scheduler_type: linear
@@ -114,7 +115,7 @@ eval_num_per_epoch: 3
 eval_steps: 250
 save_strategy: STEPS
 save_num_per_epoch: 3
-save_steps: 250
+save_steps: 1000
 do_train: true
 do_eval: true
 gradient_checkpointing: true

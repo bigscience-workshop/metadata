@@ -275,7 +275,7 @@ def evaluate_main(
     test: bool = False,
     max_n_examples: int = 1500,
     prompt: bool = False,
-    no_cuda: bool = True,
+    no_cuda: bool = False,
     save_data: bool = False,
     untrained: bool = False,
     config_file_path: str = None,

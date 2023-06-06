@@ -46,6 +46,7 @@ def mean_loss_fn(
     metadata_mask: torch.Tensor = None,
     save_data: bool = False,
     idx: int = None,
+    tokenizer = None,
 ) -> torch.Tensor:
     """Calculates the perplexity for a given batch.
 
@@ -62,15 +63,15 @@ def mean_loss_fn(
     b = outputs.logits.size(0)
     lm_logits = outputs.logits
 
-    lm_logits[:, :, 50257] = float("-inf")
-    lm_logits[:, :, 50258] = float("-inf")
-
     labels = batch["labels"]
     attention_mask = batch["attention_mask"]
 
     shift_logits = lm_logits[..., :-1, :].contiguous()
     shift_labels = labels[..., 1:].contiguous()
     if metadata_mask is not None:
+        for special_tok in tokenizer.additional_special_tokens_ids:
+            shift_logits[:, :, special_tok] = torch.finfo(lm_logits.dtype).min
+
         metadata_mask = metadata_mask.bool()
         nonmetadata_cumsum = torch.cumsum(~metadata_mask, dim=-1)
         first_nonmetadata = nonmetadata_cumsum == 1
@@ -133,7 +134,7 @@ def mean_loss_fn(
         shift_labels.view(-1),
         reduction="none",
     ).view(b, -1)
-
+    loss = torch.nan_to_num(loss)
     if save_data:
         # Save the non-masked tokens & their loss
         suffix = "_meta" if metadata_mask is not None else ""
@@ -181,6 +182,7 @@ def get_mean_loss(
     save_data: bool = False,
     idx: int = None,
     model=None,
+    tokenizer = None,
 ) -> torch.Tensor:
     """Prepares the arguments for perplexity calculation and passes them to the perplexity function.
 
@@ -198,7 +200,7 @@ def get_mean_loss(
     metadata_mask = batch.pop("metadata_mask", None)
     outputs = model(**batch)
     batch["labels"] = labels
-    nll = mean_loss_fn(batch, outputs, metadata_mask, save_data=save_data, idx=idx)
+    nll = mean_loss_fn(batch, outputs, metadata_mask, save_data=save_data, idx=idx,tokenizer=tokenizer)
     return nll
 
 
@@ -421,13 +423,13 @@ def evaluate_main(
 
                 # Calculate nll (natural-log loss)
                 normal_nll, normal_example_len = get_mean_loss(
-                    normal_batch, save_data=save_data, idx=idx, model=model
+                    normal_batch, save_data=save_data, idx=idx, model=model,tokenizer=tokenizer
                 )  # [0]
                 # print("PPL")
                 # print(normal_ppl)
                 total_normal_nll.append(normal_nll)  # * normal_example_len
                 metadata_nll, metadata_example_len = get_mean_loss(
-                    metadata_batch, save_data=save_data, idx=idx, model=model
+                    metadata_batch, save_data=save_data, idx=idx, model=model,tokenizer=tokenizer
                 )  # [0]
                 # print(metadata_ppl)
                 total_metadata_nll.append(metadata_nll)  # * metadata_example_len

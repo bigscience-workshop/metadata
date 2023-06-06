@@ -12,7 +12,7 @@ data_config:
       title: 1.0657717366883845
       generation_datasource: 1.0
       entity_paragraph: 1.028817740667444
-
+      generation_length_text: 1.0
     #- url: 1.0
     #- generation_length_sentence
     #- generation_length_text
@@ -29,6 +29,7 @@ data_config:
     - datasource
     - length
     - entity_paragraph
+    - generation_length_text
     metadata_column_list:
     - html
     - timestamp
@@ -37,7 +38,7 @@ data_config:
     #- url
     - generation_datasource
     #- generation_length_sentence
-    #- generation_length_text
+    - generation_length_text
     - entity_paragraph
     local_metadata_special_tokens:
       entity_paragraph: "entity"
@@ -73,10 +74,12 @@ data_config:
       - 0.0
     local_metadata_special_token_start:
         entity_paragraph: "<ENTITY_CHAIN>"
+        html: "<HTML>"
     local_metadata_special_token_end:
         entity_paragraph: " </ENTITY_CHAIN> "
+        html: "</HTML>"
     local_metadata_special_token_state: true
-    html_overall_sample_rate: 1
+    html_overall_sample_rate: 0.5
     without_metadata_same_context: false
   experiment: with_metadata_datasetv2_tf
   per_device_eval_batch_size: 32 # 32 for 40gb

@@ -454,6 +454,24 @@ class MetadataUtilsTester(unittest.TestCase):
             "EntityOn |EntityParagraphOn ||| <ENTITY_CHAIN> |United Kingdom| |Louis Vuitton| |Billy Connolly| |Something in Common| |Lembit Öpik| </ENTITY_CHAIN> Hints and tips for media appearances, speaking and social media. This week; wall-to-wall politicians; Great Britain [[United Kingdom]]: Louis Vuitton [[Louis Vuitton]] condoms; Billy Connolly [[Billy Connolly]],; Lisa Dutton; Something in Common [[Something in Common]]; What was I saying?: We’re all publishers; An interview with Lembit Opik [[Lembit Öpik]]; Music from The Good Suns",
         )
 
+    def test_html_special_token_settings(self):
+        # from transformers import AddedToken
+
+        cfg = MetadataConfig()
+        PROCESSORS["html"] = HtmlProcessor
+        cfg.metadata_list = ["html"]
+        cfg.treat_local_metadata_as_regular_text = True
+        cfg.local_metadata_special_token_start = {"html": "<HTML>"}
+        cfg.local_metadata_special_token_end = {"html": "</HTML>"}
+        text, mask = add_local_metadata_to_text(self.examples[1], cfg)
+        self.assertEqual(
+            text,
+            "An <HTML><b></HTML>apple<HTML></b></HTML> is an edible fruit "
+            "produced by an <HTML><b class:level1 id:4 href:https://test.org>"
+            "<i class:level2></HTML>apple<HTML></i></HTML> tree<HTML></b>"
+            "</HTML> (Malus domestica).",
+        )
+
     def test_add_local_metadata_to_text(self):
         cfg = MetadataConfig()
         cfg.metadata_list = ["html", "entity"]

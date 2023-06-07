@@ -1,18 +1,20 @@
-pyarrow>=7.0.0,<8      # Our custom `Features` need >=6, yet 7 is probably better for bugfixes.
+pyarrow>=7.0.0,<8                           # Our custom `Features` need >=6, yet 7 is probably better for bugfixes.
 numpy<1.22; python_version < '3.8'
 numpy>=1.22; python_version >= '3.8'
 pandas<1.4; python_version < '3.8'
 pandas>=1.4; python_version >= '3.8'
-datasets>=1.18.4       # Our custom `Features` need this; pip will likely update it to 2.6.1 and it's ok.
-tokenizers!=1.12.0     # A yanked version.
-transformers>=4.22,<5  # It implies "huggingface-hub>=0.9.0,<1.0" since 4.22.
-accelerate>=0.4.0,<1   # pip will likely update it to 0.13.2, but it is probably ok and good for bugfixes.
-hydra_core>=1.1,<1.2   # pip will likely update it to 1.1.2, but it is probably ok and good for bugfixes.
-wandb>=0.10.32,<1      # pip will likely update it to 0.13.4, but it is probably ok and good for bugfixes.
-gensim>=3.8.3,<4       # Technically secondary, but gensim>=4 breaks wikipedia2vec.
+datasets>=2.10.0                            # For evaluation.py such that `Features` conversion can be more automatic.
+tokenizers!=1.12.0                          # A yanked version.
+transformers>=4.22,<5                       # It implies "huggingface-hub>=0.9.0,<1.0" since 4.22.
+accelerate>=0.4.0,<1                        # pip will likely update it to 0.13.2, but it is probably ok and good for bugfixes.
+hydra_core>=1.1,<1.2                        # pip will likely update it to 1.1.2, but it is probably ok and good for bugfixes.
+wandb>=0.10.32,<1                           # pip will likely update it to 0.13.4, but it is probably ok and good for bugfixes.
+gensim>=3.8.3,<4                            # Technically secondary, but gensim>=4 breaks wikipedia2vec.
 nltk==3.6.7
 lxml==4.6.5
 htmlmin==0.1.12
 loguru>=0.6.0
 deepspeed>=0.6.1
-tensorflow # for data processing
+tensorflow==2.11.0; python_version < '3.8'  # For with_metadata_datasetv2_tf.py
+tensorflow>=2.12.0; python_version >= '3.8'
+rich=">=13.4.1"                             # For evaluation.py's debugging output

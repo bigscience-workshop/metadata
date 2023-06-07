@@ -107,8 +107,8 @@ model_name: gpt2
 project_name: metadata_lm
 jobid: ''
 start_with_eval: false
-extra_steps_to_eval_save_at:
-- 2
+#extra_steps_to_eval_save_at:
+#- 2
 evaluation_strategy: STEPS
 eval_num_per_epoch: 3
 eval_steps: 1000

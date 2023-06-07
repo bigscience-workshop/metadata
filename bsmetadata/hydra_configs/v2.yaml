@@ -111,10 +111,10 @@ extra_steps_to_eval_save_at:
 - 2
 evaluation_strategy: STEPS
 eval_num_per_epoch: 3
-eval_steps: 500
+eval_steps: 1000
 save_strategy: STEPS
 save_num_per_epoch: 3
-save_steps: 1000
+save_steps: 500
 do_train: true
 do_eval: true
 gradient_checkpointing: true

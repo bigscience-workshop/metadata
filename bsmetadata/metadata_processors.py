@@ -141,7 +141,7 @@ class MetadataConfig:
         },
     )
     metadata_prefix_sep: str = field(
-        default=" |||",
+        default="<prefix_sep>",
         metadata={
             "help": "The character sequence that is used to separate all global metadata and/or local metadata "
             "special tokens (if `add_local_metadata_special_tokens_in_prefix` is `True`) from the actual text."
@@ -351,7 +351,9 @@ class UrlProcessor(MetadataProcessor):
     def process_global(self, metadata_attrs: Dict[str, Any]) -> Optional[str]:
         # We represent a URL with unquoted format such that less confusion for a tokenizer.
         # Example: "foo.bar/Year 2021/" instead of "foo.bar/Year%202021/".
-        return "".join([metadata_attrs["key"], self.cfg.metadata_key_value_sep, unquote_plus(metadata_attrs["value"])])
+        return "".join(
+            [self.cfg.prefix_sep_tokens["url"], self.cfg.metadata_key_value_sep, unquote_plus(metadata_attrs["value"])]
+        )
 
 
 class TitleProcessor(MetadataProcessor):
@@ -360,7 +362,7 @@ class TitleProcessor(MetadataProcessor):
     def process_global(self, metadata_attrs: Dict[str, Any]) -> Optional[str]:
         # We represent a title by the title of the corresponding webpage content.
         # Example: "My Thoughts On It » Dad, I want to be an inventor".
-        return "".join(["Title", self.cfg.metadata_key_value_sep, metadata_attrs["value"]])
+        return "".join([self.cfg.prefix_sep_tokens["title"], self.cfg.metadata_key_value_sep, metadata_attrs["value"]])
 
 
 class WebsiteDescriptionProcessor(MetadataProcessor):
@@ -368,7 +370,13 @@ class WebsiteDescriptionProcessor(MetadataProcessor):
 
     def process_global(self, metadata_attrs: Dict[str, Any]) -> Optional[str]:
         # Example: "website_description: BBC is a news organization".
-        return "".join(["Website Description", self.cfg.metadata_key_value_sep, metadata_attrs["value"]])
+        return "".join(
+            [
+                self.cfg.prefix_sep_tokens["website_description"],
+                self.cfg.metadata_key_value_sep,
+                metadata_attrs["value"],
+            ]
+        )
 
 
 class DatasourceProcessor(MetadataProcessor):
@@ -378,7 +386,9 @@ class DatasourceProcessor(MetadataProcessor):
         # We represent the DATASOURCE by using meaningful information of the URL.
         # URL: http://www.example.de/2015/forum/article/21-new-project
         # Example: example.de > forum > article > new project
-        return "".join(["Datasource", self.cfg.metadata_key_value_sep, metadata_attrs["value"]])
+        return "".join(
+            [self.cfg.prefix_sep_tokens["datasource"], self.cfg.metadata_key_value_sep, metadata_attrs["value"]]
+        )
 
 
 class GenerationLengthProcessor(MetadataProcessor):
@@ -388,7 +398,9 @@ class GenerationLengthProcessor(MetadataProcessor):
         # We represent the length of a text by the number of characters.
         # Example: Length: 123
 
-        return "".join(["Text Length", self.cfg.metadata_key_value_sep, metadata_attrs["value"]])
+        return "".join(
+            [self.cfg.prefix_sep_tokens["text_length"], self.cfg.metadata_key_value_sep, metadata_attrs["value"]]
+        )
 
 
 class BasicStartLocalProcessor(MetadataProcessor):

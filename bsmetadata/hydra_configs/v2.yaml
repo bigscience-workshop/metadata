@@ -40,15 +40,22 @@ data_config:
     #- generation_length_sentence
     - generation_length_text
     - entity_paragraph
-    local_metadata_special_tokens: 
-      entity_paragraph: "entity"
-    metadata_sep: ' | '
-    metadata_key_value_sep: ': '
+    local_metadata_special_tokens:
+      entity_paragraph: "<special_entity>"
+      html: "<special_html>"
+    prefix_sep_tokens:
+      title: "<special_title>"
+      website_description: "<special_website_description>"
+      datasource: "<special_datasource>"
+      text_length: "<special_text_length>"
+      url: "<special_url>"
+    metadata_prefix_sep: '<prefix_sep>'
+    metadata_sep: ''
+    metadata_key_value_sep: ''
+    metadata_prefix_start_seq: ''
     metadata_probability: 0.5
     treat_local_metadata_as_regular_text: true
     add_local_metadata_special_tokens_in_prefix: true
-    metadata_prefix_sep: ' |||'
-    metadata_prefix_start_seq: ''
     max_seq_len: 1024
     html_parser_config:
       all_tags_rules:
@@ -76,7 +83,7 @@ data_config:
         entity_paragraph: "<ENTITY_CHAIN>"
         html: "<HTML>"
     local_metadata_special_token_end:
-        entity_paragraph: " </ENTITY_CHAIN> "
+        entity_paragraph: "</ENTITY_CHAIN>"
         html: "</HTML>"
     local_metadata_special_token_state: true
     html_overall_sample_rate: 0.25
